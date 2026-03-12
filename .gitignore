@@ -44,6 +44,9 @@ cdk.context.json
 # Docker
 docker-compose.override.yml
 
+# SSH keys
+.ssh/
+
 # Logs
 *.log
 logs/
