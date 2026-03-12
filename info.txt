@@ -1,0 +1,1315 @@
+SentinelAI — Complete Project Explanation (From Scratch)
+
+  What Is This Project, In Plain English?
+
+  Imagine you run a call center — hundreds of customers calling in with billing questions, tech support issues, sales
+  inquiries, etc. These calls get routed into different queues (like lines at a theme park — one line for billing, one
+  for support, one for sales).
+
+  AWS Connect is Amazon's cloud-based call center software. It already shows you dashboards and numbers — how many
+  people are waiting, how long they've been waiting, how many agents (the people answering calls) are available.
+
+  The problem? AWS Connect shows you the data, but it doesn't do anything about it automatically. If Support suddenly
+  gets 100 calls and Sales has nobody waiting, a human manager has to manually notice this, log in, and move agents
+  around. By then, customers have already hung up.
+
+  SentinelAI is an AI layer that sits ON TOP of AWS Connect. It doesn't replace Connect — it adds autonomous AI "brains"
+  that watch the data 24/7, detect problems before they explode, and take action automatically (like moving agents
+  between queues), all while explaining their reasoning to humans.
+
+  ---
+  Who Built This and Why?
+
+  CirrusLabs (an enterprise AI consulting company) is building this for a 1-month internal buildathon (a competitive
+  hackathon-like event). A team of 4-6 people has to deliver a polished, demo-ready product. SentinelAI scored 19/20 on
+  their evaluation criteria (wow factor, business value, technical depth, feasibility).
+
+  ---
+  The 5 Pillars (Major Features)
+
+  Think of these as the 5 big capabilities of the product:
+
+  Pillar 1: AI Operations Center (The Main Dashboard)
+
+  This is what you see on screen. But it's NOT a typical metrics dashboard (Connect already has one). Instead, it's a
+  window into the AI's brain:
+
+  - AI Decision Feed: A live stream showing what the AI agents are thinking and doing — "I observed X → I analyzed Y → I
+   decided Z → I did W". Every action is visible with reasoning.
+  - Agent Collaboration Panel: When two AI agents disagree (e.g., one wants to move agents left, another wants to move
+  them right), you can watch them "negotiate" and resolve the conflict.
+  - Cost Impact Ticker: A running dollar counter showing how much money the AI has saved — "prevented 15 abandoned
+  calls, saved $750."
+  - Anomaly Timeline: A visual history of problems detected and how the AI responded.
+  - Queue Metrics Sidebar: The actual call center numbers (how many waiting, how long, etc.) — but these are just
+  context, not the main show.
+
+  Pillar 2: AI Anomaly Engine (The Problem Detector)
+
+  This watches all the call center data and spots unusual patterns:
+
+  - Spike Detection: "Support queue just jumped from 5 to 50 in 30 seconds!"
+  - Velocity Scoring: Not just "is this number high?" but "how FAST is it growing?" A slow rise is less urgent than a
+  sudden spike.
+  - Cascade Correlation: Detects when a problem in one queue is about to spill over into others — like a domino effect.
+  - Alerts: Generates Info / Warning / Critical alerts with specific recommendations.
+
+  Pillar 3: Autonomous AI Agents (The Brains)
+
+  Four specialized AI agents, each with a different job:
+
+  1. Queue Balancer — Detects when queues are unbalanced (one overloaded, another idle) and automatically moves agents
+  between them. Won't leave any queue below a minimum staffing level.
+  2. Predictive Prevention Agent — The "fortune teller." It spots the early warning signs of a crisis BEFORE it fully
+  hits. "I see queue A spiking + agents dropping off + handle times climbing = billing queue will be overwhelmed in 8
+  minutes. Acting now."
+  3. Escalation Handler — When something goes critically wrong, this agent escalates appropriately. It doesn't just say
+  "this is bad" — it says "this is bad, here are 3 options ranked by impact and cost."
+  4. Analytics Agent — The one you can talk to. Ask it "What was our busiest hour today?" or "What just happened?" and
+  it answers in plain English with supporting data.
+
+  Multi-Agent Negotiation: When agents disagree (e.g., Queue Balancer wants to pull from Sales, but Predictive
+  Prevention warns Sales will spike soon), they "negotiate" using a priority system (higher severity + higher confidence
+   + shorter time horizon wins). The negotiation is visible on screen.
+
+  Pillar 4: Conversational Command (Chat Interface)
+
+  A chat panel where supervisors can type questions and commands in plain English:
+
+  - Queries: "What's happening in the support queue?" → Gets a detailed, contextual answer.
+  - Commands: "Move 2 agents from sales to support" → Executes the action.
+  - Policy Rules: "If support queue exceeds 20, pull from sales first" → Creates a persistent rule.
+  - What-If Simulations: "What would happen if 3 agents go offline right now?" → Runs a mini simulation and shows the
+  projected impact.
+
+  Pillar 5: Simulation Engine (The Demo Machine)
+
+  Since the team may not have access to a real call center, the entire system is built simulation-first:
+
+  - Generates realistic fake call center data (customers arriving, agents handling calls, wait times fluctuating).
+  - Pre-built scenarios: Normal Operations, Volume Spike, Agent Dropout, Cascading Failure, Peak Hour Rush.
+  - Chaos Mode: An interactive panel where you can inject problems live — "kill 5 agents," "spike billing queue 4x." The
+   AI responds in real-time. This is designed to let judges at the buildathon test the system themselves.
+
+  Cross-Cutting: AI Governance Overlay
+
+  Every AI decision has:
+  - A confidence score (0.0 to 1.0) — how sure the AI is.
+  - A requires_approval flag — if confidence is low (<0.7) or the action is high-impact, a human must approve it before
+  it executes.
+  - In demo mode, unapproved actions auto-approve after 30 seconds so the demo keeps moving.
+  - Everything is logged for audit.
+
+  ---
+  The Tech Stack (What Technologies Are Used)
+
+  Frontend (What Users See)
+
+  Technology: React
+  What It Is: A JavaScript library for building user interfaces. Think of it as LEGO blocks for web pages — you build
+    small reusable "components" (a button, a chart, a card) and snap them together.
+  Why It's Used: Industry standard, huge ecosystem
+  ────────────────────────────────────────
+  Technology: TypeScript
+  What It Is: JavaScript with added "types" — it catches errors before the code runs. Like spell-check for code.
+  Why It's Used: Prevents bugs, better developer experience
+  ────────────────────────────────────────
+  Technology: TailwindCSS
+  What It Is: A way to style web pages by adding pre-built CSS classes directly to HTML. Instead of writing color: blue;
+
+    font-size: 16px in a separate file, you write class="text-blue text-lg" inline.
+  Why It's Used: Very fast to build with, consistent look
+  ────────────────────────────────────────
+  Technology: Zustand
+  What It Is: A state management library. In a React app, different components need to share data (e.g., the alert count
+
+    in the header needs to know about alerts from the WebSocket). Zustand is a tiny, simple "shared brain" where all
+    components can read and write shared data. Think of it as a global bulletin board that all parts of the app can see.
+  Why It's Used: Simple, lightweight, fast
+  ────────────────────────────────────────
+  Technology: Recharts / D3.js
+  What It Is: Libraries for drawing charts and data visualizations. Recharts for standard line/bar charts, D3 for fancy
+    custom visualizations.
+  Why It's Used: Data-heavy dashboard needs good charts
+
+  Backend (The Server)
+
+  ┌────────────┬──────────────────────────────────────────────────────────────────────────────┬─────────────────────┐
+  │ Technology │                                  What It Is                                  │    Why It's Used    │
+  ├────────────┼──────────────────────────────────────────────────────────────────────────────┼─────────────────────┤
+  │            │                                                                              │ Great for AI/ML,    │
+  │ Python     │ The programming language for the entire backend.                             │ huge library        │
+  │            │                                                                              │ ecosystem           │
+  ├────────────┼──────────────────────────────────────────────────────────────────────────────┼─────────────────────┤
+  │            │ A Python web framework for building APIs (the "endpoints" that the frontend  │ Fast, modern, great │
+  │ FastAPI    │ talks to). It's async-first, meaning it can handle many requests at the same │  for real-time apps │
+  │            │  time without blocking.                                                      │                     │
+  ├────────────┼──────────────────────────────────────────────────────────────────────────────┼─────────────────────┤
+  │            │ A persistent two-way connection between the browser and server. Unlike       │                     │
+  │ WebSocket  │ normal HTTP (browser asks → server answers → connection closes), a WebSocket │ Sub-second live     │
+  │            │  stays open so the server can push updates to the browser instantly without  │ updates             │
+  │            │ being asked. This is how the dashboard updates in real-time.                 │                     │
+  ├────────────┼──────────────────────────────────────────────────────────────────────────────┼─────────────────────┤
+  │            │ An extremely fast in-memory database. Data lives in RAM, not on disk, so     │ Lightning-fast      │
+  │ Redis      │ reads/writes happen in microseconds. Used here to store the current state of │ real-time state     │
+  │            │  all queues and agents, and as a pub/sub message broker.                     │                     │
+  ├────────────┼──────────────────────────────────────────────────────────────────────────────┼─────────────────────┤
+  │            │ Amazon's NoSQL database. Stores historical data (past decisions, audit       │ Serverless,         │
+  │ DynamoDB   │ trail) for longer-term persistence.                                          │ scalable,           │
+  │            │                                                                              │ AWS-native          │
+  └────────────┴──────────────────────────────────────────────────────────────────────────────┴─────────────────────┘
+
+  AI Layer
+
+  Technology: Amazon Bedrock
+  What It Is: Amazon's managed AI service that gives access to large language models (like Claude). Instead of hosting
+    your own AI model, you call Bedrock's API.
+  Why It's Used: Enterprise-grade, AWS-native
+  ────────────────────────────────────────
+  Technology: Claude (via Bedrock)
+  What It Is: Anthropic's large language model — the AI that powers the chat interface and analytics agent.
+  Why It's Used: High quality reasoning and language
+  ────────────────────────────────────────
+  Technology: LangGraph
+  What It Is: A framework for building AI "agent" workflows as state machines. A state machine is like a flowchart —
+    "start here, if X happens go to step A, if Y happens go to step B." LangGraph lets you wire the 4 agents together so
+
+    they run in sequence, detect conflicts, and negotiate.
+  Why It's Used: Structured multi-agent orchestration
+  ────────────────────────────────────────
+  Technology: MockBedrockLLM
+  What It Is: A fake version of Bedrock used when real Bedrock isn't available. It returns pre-written responses for the
+
+    top demo scenarios.
+  Why It's Used: Ensures demos work without cloud access
+
+  Infrastructure
+
+  ┌──────────────┬──────────────────────────────────────────────────────────────────────┬───────────────────────────┐
+  │  Technology  │                              What It Is                              │       Why It's Used       │
+  ├──────────────┼──────────────────────────────────────────────────────────────────────┼───────────────────────────┤
+  │              │ "Infrastructure as Code" — instead of clicking buttons in the AWS    │ Reproducible,             │
+  │ AWS CDK      │ console to set up servers, you write Python code that describes what │ version-controlled infra  │
+  │              │  you need, and CDK creates it.                                       │                           │
+  ├──────────────┼──────────────────────────────────────────────────────────────────────┼───────────────────────────┤
+  │ AWS Lambda   │ Serverless functions — small pieces of code that run on demand       │ Event-driven processing   │
+  │              │ without managing a server.                                           │                           │
+  ├──────────────┼──────────────────────────────────────────────────────────────────────┼───────────────────────────┤
+  │ AWS          │ A serverless event bus — routes events between AWS services.         │ Decoupled event           │
+  │ EventBridge  │                                                                      │ processing                │
+  ├──────────────┼──────────────────────────────────────────────────────────────────────┼───────────────────────────┤
+  │ AWS Kinesis  │ A real-time data streaming service — like a firehose of data that    │ High-throughput real-time │
+  │              │ multiple consumers can read from.                                    │  data                     │
+  └──────────────┴──────────────────────────────────────────────────────────────────────┴───────────────────────────┘
+
+  ---
+  How Data Flows Through the System (End-to-End)
+
+  Here's the complete journey of data, step by step:
+
+  Step 1: Data Generation (Every 2 Seconds)
+
+  The Simulation Engine (backend/app/services/simulation.py) generates fake but realistic call center metrics every 2
+  seconds (called a "tick"):
+  - How many customers are in each queue
+  - How long they've been waiting
+  - How many agents are online/available/busy
+  - Call handle times, abandonment rates
+
+  If chaos events have been injected (like "spike the support queue"), the engine applies those modifiers to the data.
+
+  In a real deployment, this data would come from AWS Connect APIs instead. But the system is designed so both paths
+  feed into the exact same pipeline — no separate code paths.
+
+  Step 2: Background Loop (The Heartbeat)
+
+  In backend/app/main.py, there's an asyncio background task that runs continuously:
+
+  What is asyncio? Python's built-in system for doing multiple things at once. Instead of waiting for one task to finish
+   before starting the next, async code can start a task, do something else while waiting, and come back when the first
+  task is ready. Think of a chef cooking multiple dishes simultaneously rather than finishing one completely before
+  starting the next.
+
+  Every 2 seconds, this loop:
+  1. Calls the Simulation Engine to get fresh metrics
+  2. Sends those metrics to the Anomaly Engine
+  3. Sends those metrics to the Agent Orchestrator
+  4. Broadcasts everything to all connected browsers via WebSocket
+
+  Step 3: Anomaly Detection
+
+  The Anomaly Engine (backend/app/services/anomaly.py) evaluates the incoming metrics:
+  - Compares current values to a rolling baseline (average of recent history)
+  - Calculates anomaly velocity — how fast is a metric changing?
+  - Checks for cross-queue cascade patterns — are multiple queues deteriorating together?
+  - Generates alerts (Info / Warning / Critical) when thresholds are breached
+
+  Step 4: Agent Orchestration (The AI Brain)
+
+  The Agent Orchestrator (backend/app/agents/orchestrator.py) is a LangGraph state machine. Every tick, it runs the
+  agents in a structured pipeline:
+
+  Queue Balancer evaluates → Predictive Prevention evaluates →
+  Check for conflicts → If conflicts: Negotiate → Execute decisions
+
+  Each agent follows the same pattern:
+  1. Observe: Look at current metrics and alerts
+  2. Analyze: Apply its specific logic (imbalance detection, velocity tracking, etc.)
+  3. Decide: Propose an action with a confidence score
+  4. Act (if approved): Execute the action (e.g., modify the simulation to move agents)
+
+  If two agents propose conflicting actions, the Negotiation Protocol (backend/app/agents/negotiation.py) resolves it by
+   weighing severity, confidence, and urgency.
+
+  Every decision becomes an AgentDecision object carrying:
+  - What was observed
+  - What was decided
+  - The reasoning chain
+  - A confidence score (0.0–1.0)
+  - Whether human approval is required
+  - Cost impact estimate
+
+  Step 5: WebSocket Broadcast
+
+  The WebSocket handler (backend/app/api/websocket.py) pushes updates to all connected browsers. Events include:
+
+  ┌────────────────────┬────────────────────────────────────┐
+  │       Event        │          What It Carries           │
+  ├────────────────────┼────────────────────────────────────┤
+  │ queue:update       │ Latest queue metrics               │
+  ├────────────────────┼────────────────────────────────────┤
+  │ alert:new          │ A new anomaly alert                │
+  ├────────────────────┼────────────────────────────────────┤
+  │ agent:reasoning    │ An agent's thinking process (live) │
+  ├────────────────────┼────────────────────────────────────┤
+  │ agent:negotiation  │ A conflict and its resolution      │
+  ├────────────────────┼────────────────────────────────────┤
+  │ action:taken       │ An agent executed an action        │
+  ├────────────────────┼────────────────────────────────────┤
+  │ cost:update        │ Updated cost savings counter       │
+  ├────────────────────┼────────────────────────────────────┤
+  │ prediction:warning │ Predictive agent's early warning   │
+  └────────────────────┴────────────────────────────────────┘
+
+  The WebSocket also receives events from the browser:
+  - action:approve / action:reject — human approves/rejects an AI decision
+  - chat:message — user typed a question
+  - chaos:inject — user injected a chaos event
+
+  Step 6: Frontend Receives and Renders
+
+  On the browser side:
+
+  1. WebSocketProvider (frontend/src/components/WebSocketProvider.tsx) — a React component that establishes and
+  maintains the WebSocket connection. It listens for all incoming events and dispatches them to the store.
+  2. Zustand Store (frontend/src/stores/dashboardStore.ts) — the "shared brain" of the frontend. When a WebSocket event
+  arrives, the store updates its state. For example:
+    - queue:update → updates the queues array in the store
+    - alert:new → adds to the alerts array
+    - agent:reasoning → adds to the decisions array
+    - cost:update → updates the costImpact number
+  3. React Components — Each UI component "subscribes" to the parts of the Zustand store it cares about. When that data
+  changes, the component automatically re-renders:
+    - The AI Decision Feed subscribes to decisions and shows the live reasoning stream
+    - The Cost Ticker subscribes to costImpact and animates the dollar amount
+    - The Alert Panel subscribes to alerts and shows toast notifications
+    - The Queue Metrics Sidebar subscribes to queues and updates the numbers
+
+  Step 7: User Interactions Flow Back
+
+  When a user interacts (approves a decision, types a chat message, injects chaos), the action flows in reverse:
+
+  User clicks "Approve" → WebSocket sends action:approve →
+  Backend receives → Orchestrator executes the approved action →
+  Simulation state changes → Next tick picks up new state →
+  Metrics change → Broadcast to all clients → UI updates
+
+  For chat:
+  User types "What just happened?" → WebSocket sends chat:message →
+  Backend routes to Analytics Agent → Agent queries current state + recent history →
+  Bedrock/MockLLM generates natural language answer →
+  WebSocket sends chat:response → Chat panel shows the answer
+
+  ---
+  The 3-Minute Demo (The Showpiece)
+
+  The entire system is designed around a choreographed 3-minute demo:
+
+  ┌───────────┬───────────────┬─────────────────────────────────────────────────────────────────────────────────────┐
+  │   Time    │     Phase     │                                    What Happens                                     │
+  ├───────────┼───────────────┼─────────────────────────────────────────────────────────────────────────────────────┤
+  │ 0:00–0:30 │ The Calm      │ System is running normally. Dashboard shows green metrics, agents are "Observing,"  │
+  │           │               │ cost ticker is at $0. Everything is peaceful.                                       │
+  ├───────────┼───────────────┼─────────────────────────────────────────────────────────────────────────────────────┤
+  │           │               │ Chaos is injected: support queue spikes 4x, agents on general queue go offline.     │
+  │ 0:30–1:15 │ The Storm     │ CRITICAL alerts fire. The AI agents light up — you watch them go through Observed → │
+  │           │               │  Analyzed → Decided in real-time.                                                   │
+  ├───────────┼───────────────┼─────────────────────────────────────────────────────────────────────────────────────┤
+  │           │ The           │ Queue Balancer and Escalation Handler disagree on what to do. The Agent             │
+  │ 1:15–1:45 │ Negotiation   │ Collaboration Panel shows their competing proposals, the negotiation process, and   │
+  │           │               │ the resolution. An approval prompt appears for the human.                           │
+  ├───────────┼───────────────┼─────────────────────────────────────────────────────────────────────────────────────┤
+  │ 1:45–2:30 │ The           │ Human approves the AI's recommended action. Agents execute. Metrics stabilize. Cost │
+  │           │ Resolution    │  ticker climbs ($450 → $890 → $1,240). Alerts resolve.                              │
+  ├───────────┼───────────────┼─────────────────────────────────────────────────────────────────────────────────────┤
+  │           │ The           │ Someone types "What just happened?" in the chat. The AI gives a complete summary:   │
+  │ 2:30–3:00 │ Intelligence  │ what went wrong, what actions were taken, how much money was saved, and the full    │
+  │           │               │ reasoning chain.                                                                    │
+  └───────────┴───────────────┴─────────────────────────────────────────────────────────────────────────────────────┘
+
+  ---
+  REST API Endpoints (How Frontend Talks to Backend)
+
+  Besides WebSocket (for real-time), the frontend also makes traditional HTTP requests:
+
+  ┌───────────────────────────────────┬────────────────────────────────────────┐
+  │             Endpoint              │                Purpose                 │
+  ├───────────────────────────────────┼────────────────────────────────────────┤
+  │ GET /api/queues                   │ Get all queues with current metrics    │
+  ├───────────────────────────────────┼────────────────────────────────────────┤
+  │ GET /api/alerts                   │ Get active and recent alerts           │
+  ├───────────────────────────────────┼────────────────────────────────────────┤
+  │ POST /api/alerts/{id}/acknowledge │ Mark an alert as "seen"                │
+  ├───────────────────────────────────┼────────────────────────────────────────┤
+  │ GET /api/agents/decisions         │ Get AI decision history with reasoning │
+  ├───────────────────────────────────┼────────────────────────────────────────┤
+  │ GET /api/agents/negotiations      │ Get negotiation history                │
+  ├───────────────────────────────────┼────────────────────────────────────────┤
+  │ GET /api/cost-impact              │ Get running cost savings total         │
+  ├───────────────────────────────────┼────────────────────────────────────────┤
+  │ POST /api/chat                    │ Send a chat message                    │
+  ├───────────────────────────────────┼────────────────────────────────────────┤
+  │ POST /api/simulation/start        │ Start a simulation scenario            │
+  ├───────────────────────────────────┼────────────────────────────────────────┤
+  │ POST /api/simulation/stop         │ Stop simulation                        │
+  ├───────────────────────────────────┼────────────────────────────────────────┤
+  │ POST /api/simulation/chaos        │ Inject a chaos event                   │
+  ├───────────────────────────────────┼────────────────────────────────────────┤
+  │ POST /api/simulation/whatif       │ Run a what-if simulation               │
+  └───────────────────────────────────┴────────────────────────────────────────┘
+
+  ---
+  Key Files and What They Do
+
+  ┌───────────────────────────────────────────────┬──────────────────────────────────────────────────────────────────┐
+  │                     File                      │                               Role                               │
+  ├───────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────┤
+  │ backend/app/main.py                           │ The entry point. Starts FastAPI, runs the background simulation  │
+  │                                               │ loop (the system's heartbeat).                                   │
+  ├───────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────┤
+  │ backend/app/agents/orchestrator.py            │ The LangGraph state machine that coordinates all 4 agents every  │
+  │                                               │ tick.                                                            │
+  ├───────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────┤
+  │ backend/app/agents/queue_balancer.py          │ Agent 1: detects queue imbalances, moves agents between queues.  │
+  ├───────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────┤
+  │ backend/app/agents/predictive_prevention.py   │ Agent 2: spots early warning signs of cascading failures.        │
+  ├───────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────┤
+  │ backend/app/agents/escalation_handler.py      │ Agent 3: handles critical situations with cost-aware             │
+  │                                               │ recommendations.                                                 │
+  ├───────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────┤
+  │ backend/app/agents/analytics.py               │ Agent 4: answers natural language questions about the system.    │
+  ├───────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────┤
+  │ backend/app/agents/negotiation.py             │ Resolves conflicts when agents disagree.                         │
+  ├───────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────┤
+  │ backend/app/services/simulation.py            │ Generates fake but realistic call center data + chaos events.    │
+  ├───────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────┤
+  │ backend/app/api/websocket.py                  │ Bidirectional WebSocket bridge between backend and frontend.     │
+  ├───────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────┤
+  │ backend/app/api/routes/                       │ REST API endpoint definitions.                                   │
+  ├───────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────┤
+  │ backend/app/models/agent.py                   │ Data models for AgentDecision (includes confidence,              │
+  │                                               │ requires_approval).                                              │
+  ├───────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────┤
+  │ frontend/src/stores/dashboardStore.ts         │ Zustand store — the frontend's shared state hub.                 │
+  ├───────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────┤
+  │ frontend/src/components/WebSocketProvider.tsx │ Establishes and manages the WebSocket connection.                │
+  ├───────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────┤
+  │ frontend/src/pages/                           │ The actual page components (Operations Center, Simulation Page,  │
+  │                                               │ Alerts, etc.).                                                   │
+  └───────────────────────────────────────────────┴──────────────────────────────────────────────────────────────────┘
+
+  ---
+  Summary in One Paragraph
+
+  SentinelAI is an AI-powered layer on top of AWS Connect (Amazon's call center platform). A simulation engine generates
+  realistic call center data every 2 seconds. That data flows to an anomaly engine (which spots problems) and an agent
+  orchestrator (which runs 4 AI agents through a LangGraph state machine). The agents observe, analyze, negotiate, and
+  decide — producing decisions with confidence scores and reasoning chains. Everything is pushed to the browser in
+  real-time via WebSocket, where a Zustand store feeds React components that render the AI Operations Center dashboard.
+  Users can approve/reject AI decisions, chat with the system in natural language, and inject chaos events to test the
+  AI's response. An AI governance layer ensures every decision is auditable, confidence-scored, and subject to human
+  approval when confidence is low. The whole thing is designed for a spectacular 3-minute demo showing calm → crisis →
+  AI negotiation → resolution → intelligence.
+
+✻ Sautéed for 2m 1s
+
+> explan the working in detail too while keeping the same in mind
+
+● Let me read the actual code files to explain the detailed working.
+
+● 3 Explore agents finished (ctrl+o to expand)
+   ├─ Explore backend core files · 31 tool uses · 55.8k tokens
+   │  ⎿  Done
+   ├─ Explore frontend core files · 29 tool uses · 72.8k tokens
+   │  ⎿  Done
+   └─ Explore routes and config files · 27 tool uses · 53.5k tokens
+      ⎿  Done
+
+● Let me read the full frontend output that was too large.
+
+● Read 1 file (ctrl+o to expand)
+
+● Let me read the key frontend files directly.
+
+● Read 17 files (ctrl+o to expand)
+
+● Now I have the complete picture. Let me read the remaining pages and layout components for completeness.
+
+● Read 5 files (ctrl+o to expand)
+
+● Now I have the complete picture. Here's the detailed, code-level explanation of how everything works.
+
+  ---
+  SentinelAI — Detailed Code-Level Working (Beginner Friendly)
+
+  Part 1: How The App Starts Up
+
+  Backend Startup
+
+  When you run the backend server, the entry point is backend/app/main.py. Here's what happens step by step:
+
+  Step 1 — Python starts the FastAPI server
+
+  uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+  What is uvicorn? It's a lightning-fast server that runs Python web applications. Think of it as the engine that makes
+  your Python backend accessible over the internet (or your local network). When you type localhost:8000 in a browser,
+  uvicorn is the thing listening and responding.
+
+  Step 2 — FastAPI app is created (main.py:22-27)
+
+  app = FastAPI(
+      title="SentinelAI",
+      description="Autonomous AI Operations Layer for AWS Connect",
+      version="0.1.0",
+      lifespan=lifespan,
+  )
+
+  What is FastAPI? A Python framework for building web APIs. An API (Application Programming Interface) is a set of URLs
+   that the frontend can call to get or send data. For example, GET /api/queues returns queue data. FastAPI
+  automatically validates incoming data, generates documentation, and supports async operations.
+
+  Step 3 — CORS middleware is added (main.py:30-36)
+
+  app.add_middleware(
+      CORSMiddleware,
+      allow_origins=settings.cors_origins.split(","),  # "http://localhost:5173"
+      ...
+  )
+
+  What is CORS? Cross-Origin Resource Sharing. The frontend runs on localhost:5173 (Vite dev server) and the backend
+  runs on localhost:8000. By default, browsers block a website on one address from talking to a server on a different
+  address (security feature). CORS middleware tells the browser "it's okay, I trust requests from localhost:5173."
+
+  Step 4 — Routes are registered (main.py:39-48)
+
+  Each include_router line tells FastAPI: "when someone visits /api/health, use the health router. When they visit
+  /api/queues, use the queues router." And so on.
+
+  Step 5 — Lifespan runs (main.py:12-19)
+
+  The lifespan function runs code when the server starts up and when it shuts down. Right now it just prints startup
+  messages. This is where the simulation background loop will eventually go — an async task that runs generate_metrics()
+   every 2 seconds.
+
+  What is async / asyncio? Imagine a chef in a kitchen. A "synchronous" chef makes one dish at a time — puts bread in
+  the toaster, stands there watching it, then starts the eggs. An "async" chef puts bread in the toaster, starts the
+  eggs while the bread toasts, and checks on both. async code works the same way — it can start multiple operations and
+  switch between them while waiting, instead of blocking everything.
+
+  Step 6 — Config loaded from environment (config.py)
+
+  class Settings(BaseSettings):
+      simulation_mode: bool = True
+      redis_url: str = "redis://localhost:6379"
+      bedrock_model_id: str = "anthropic.claude-3-5-sonnet-20241022-v2:0"
+      cors_origins: str = "http://localhost:5173"
+
+  What is pydantic-settings? It reads configuration from environment variables or .env files and validates them. If
+  SIMULATION_MODE=true is in your .env file, settings.simulation_mode will be True. Default values are used if nothing
+  is set.
+
+  ---
+  Frontend Startup
+
+  Step 1 — Vite serves the app
+
+  When you run npm run dev in the frontend folder, Vite (a fast build tool) starts a development server on
+  http://localhost:5173.
+
+  What is Vite? A build tool that serves your React code to the browser. It handles converting TypeScript to JavaScript,
+   bundling files, hot-reloading (updating the page instantly when you save a file), and more. Think of it as the
+  "compiler + server" for the frontend.
+
+  Step 2 — main.tsx is the entry point (frontend/src/main.tsx)
+
+  createRoot(document.getElementById("root")!).render(
+    <StrictMode>
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
+    </StrictMode>
+  );
+
+  This takes the <div id="root"> in index.html and fills it with the React app. BrowserRouter enables URL-based
+  navigation (clicking "Agents" changes the URL to /agents and shows the Agents page without a full page reload).
+
+  What is BrowserRouter? In a traditional website, clicking a link loads an entirely new page from the server. In a
+  React "Single Page Application" (SPA), the entire app loads once, and when you click navigation links, React just
+  swaps out the visible component — no page reload. BrowserRouter manages which component to show based on the URL.
+
+  Step 3 — App.tsx defines the routes (frontend/src/App.tsx)
+
+  <Routes>
+    <Route element={<AppLayout />}>
+      <Route index element={<OperationsCenter />} />
+      <Route path="agents" element={<AgentsPage />} />
+      <Route path="alerts" element={<AlertsPage />} />
+      <Route path="chat" element={<ChatPage />} />
+      <Route path="simulation" element={<SimulationPage />} />
+      <Route path="settings" element={<SettingsPage />} />
+    </Route>
+  </Routes>
+
+  All pages are wrapped in AppLayout, which provides the consistent sidebar + header. The index route (/) shows
+  OperationsCenter.
+
+  Step 4 — AppLayout establishes the WebSocket (components/layout/AppLayout.tsx)
+
+  export default function AppLayout() {
+    useWebSocketConnection();  // <-- THIS connects to the backend's WebSocket
+    return (
+      <div className="flex h-screen overflow-hidden">
+        <Sidebar />
+        <Header />
+        <main><Outlet /></main>  {/* <-- The current page renders here */}
+      </div>
+    );
+  }
+
+  The moment the app loads, useWebSocketConnection() is called, which opens a persistent WebSocket connection to the
+  backend.
+
+  ---
+  Part 2: The WebSocket System (Real-Time Communication)
+
+  This is the nervous system of the entire app. Let me trace it from end to end.
+
+  Frontend Side: services/websocket.ts
+
+  class WebSocketService {
+    private ws: WebSocket | null = null;
+    private handlers: Map<string, Set<WSHandler>> = new Map();
+
+  What is a Map? A data structure that stores key-value pairs. Here, the key is an event name (like "queue:update") and
+  the value is a set of functions that should run when that event arrives.
+
+  connect() — Opens the WebSocket connection:
+  this.ws = new WebSocket(this.url);  // url = "ws://localhost:8000/ws/dashboard"
+
+  onmessage — When any message arrives from the server:
+  this.ws.onmessage = (event) => {
+    const message: WSMessage = JSON.parse(event.data);  // Parse the JSON string
+    const handlers = this.handlers.get(message.event);  // Find handlers for this event type
+    if (handlers) {
+      handlers.forEach((handler) => handler(message));   // Call each handler
+    }
+  };
+
+  So if the server sends {"event": "queue:update", "data": {...}}, this finds all functions registered for
+  "queue:update" and calls them with the data.
+
+  on(event, handler) — Registers a listener:
+  on(event: string, handler: WSHandler) {
+    if (!this.handlers.has(event)) {
+      this.handlers.set(event, new Set());
+    }
+    this.handlers.get(event)!.add(handler);
+    return () => this.off(event, handler);  // Returns an unsubscribe function
+  }
+
+  send(event, data) — Sends a message TO the server:
+  send(event: string, data: unknown) {
+    if (this.ws?.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify({ event, data, timestamp: new Date().toISOString() }));
+    }
+  }
+
+  Auto-reconnect — If the connection drops, it retries after 3 seconds:
+  this.ws.onclose = () => {
+    this.reconnectTimeout = setTimeout(() => this.connect(), 3000);
+  };
+
+  Frontend Side: hooks/useWebSocket.ts
+
+  This is a React hook that makes it easy for any component to listen to WebSocket events:
+
+  export function useWebSocket(event: string, handler: (message: WSMessage) => void) {
+    useEffect(() => {
+      const listener = (message: WSMessage) => savedHandler.current(message);
+      const unsubscribe = wsService.on(event, listener);
+      return unsubscribe;  // Cleanup when component unmounts
+    }, [event]);
+  }
+
+  What is a React hook? A reusable piece of logic that components can "hook into." Instead of every component writing
+  its own WebSocket subscription code, they just call useWebSocket("queue:update", myHandler) and it handles everything
+  — subscribing, cleaning up when the component is removed, etc.
+
+  What is useEffect? A React hook that runs code when a component first appears on screen (or when its dependencies
+  change), and can clean up when the component is removed. Here it subscribes to a WebSocket event on mount and
+  unsubscribes on unmount.
+
+  Backend Side: api/websocket.py
+
+  ConnectionManager — Tracks all connected browsers:
+  class ConnectionManager:
+      def __init__(self):
+          self.active_connections: list[WebSocket] = []
+
+      async def connect(self, websocket: WebSocket):
+          await websocket.accept()
+          self.active_connections.append(websocket)
+
+      async def broadcast(self, event: str, data: dict):
+          message = json.dumps({"event": event, "data": data, "timestamp": ...})
+          for connection in self.active_connections:
+              await connection.send_text(message)
+
+  When the backend calls manager.broadcast("queue:update", metrics_data), it sends that message to every connected
+  browser simultaneously.
+
+  The WebSocket endpoint (/ws/dashboard) handles incoming messages from browsers:
+  @router.websocket("/ws/dashboard")
+  async def websocket_endpoint(websocket: WebSocket):
+      await manager.connect(websocket)
+      while True:
+          data = await websocket.receive_text()  # Wait for a message from browser
+          message = json.loads(data)
+          event = message.get("event", "")
+
+          if event == "chat:message":
+              # Route to chat handler
+          elif event == "chaos:inject":
+              await manager.broadcast("chaos:injected", message.get("data", {}))
+          elif event == "action:approve":
+              # Route to agent orchestrator
+
+  ---
+  Part 3: The Simulation Engine (Data Generation)
+
+  backend/app/services/simulation.py — This is the fake call center data generator.
+
+  The 5 Simulated Queues
+
+  SIMULATED_QUEUES = [
+      {"id": "q-support", "name": "Support", "base_load": 8, "agents": 12},
+      {"id": "q-billing", "name": "Billing", "base_load": 5, "agents": 8},
+      {"id": "q-sales",   "name": "Sales",   "base_load": 3, "agents": 6},
+      {"id": "q-general", "name": "General",  "base_load": 4, "agents": 7},
+      {"id": "q-vip",     "name": "VIP",      "base_load": 2, "agents": 4},
+  ]
+
+  Each queue has a base_load (typical number of customers waiting) and agents (number of people answering calls).
+
+  How Metrics Are Generated (generate_metrics())
+
+  Every 2 seconds (each "tick"), this function creates a snapshot:
+
+  # Natural time-based variation (sine wave)
+  time_factor = math.sin(self.tick * 0.1) * 0.3 + 1.0
+  noise = random.gauss(0, 0.15)
+
+  What is a sine wave? A smooth wave that goes up and down. math.sin() produces values between -1 and 1. Multiplied by
+  0.3 and shifted by 1.0, it creates a factor that smoothly varies between 0.7 and 1.3. This simulates natural patterns
+  — call centers get busier and quieter in waves throughout the day.
+
+  What is random.gauss? A random number from a "normal distribution" (bell curve). Most values will be close to 0, but
+  occasionally you get bigger numbers. This adds realistic randomness — some ticks are slightly busier, some slightly
+  quieter.
+
+  For each queue, it calculates:
+  contacts = max(0, int(queue["base_load"] * time_factor + noise * queue["base_load"]))
+  agents_available = max(0, agents_online - contacts // 2)
+  avg_wait = max(0, contacts * 15 + random.gauss(0, 10))
+  abandon_rate = max(0, min(100, (contacts / max(agents_online, 1)) * 5 + random.gauss(0, 2)))
+
+  The math means: more contacts = longer wait times = higher abandonment rate. This creates realistic correlations.
+
+  Each tick produces a QueueMetrics object:
+  QueueMetrics(
+      queue_id="q-support",
+      queue_name="Support",
+      contacts_in_queue=12,
+      oldest_contact_age=180.0,    # seconds
+      agents_online=12,
+      agents_available=6,
+      avg_wait_time=180.0,         # seconds
+      avg_handle_time=210.0,       # seconds
+      abandonment_rate=5.0,        # percent
+      service_level=85.0,          # percent
+      contacts_handled=45,
+      timestamp=datetime.now(),
+  )
+
+  ---
+  Part 4: The Anomaly Engine (Problem Detector)
+
+  backend/app/services/anomaly.py — Watches metrics and spots trouble.
+
+  Rolling Baselines
+
+  self.baselines: dict[str, dict[str, list[float]]] = defaultdict(lambda: defaultdict(list))
+
+  What is a rolling baseline? Instead of a fixed threshold ("alert if more than 20 contacts"), a rolling baseline is the
+   average of the last N data points. If a queue normally has 5 contacts, and suddenly jumps to 15, that's 3x the
+  baseline — clearly abnormal. But if a queue normally has 50 contacts and hits 55, that's just a small fluctuation.
+  Rolling baselines adapt to what's "normal" for each specific queue.
+
+  The engine stores the last 60 readings for each metric, per queue:
+
+  def update_baseline(self, queue_id: str, metric: str, value: float):
+      history = self.baselines[queue_id][metric]
+      history.append(value)
+      if len(history) > self.baseline_window:  # 60 samples
+          history.pop(0)  # Remove oldest, keep a sliding window
+
+  How Anomalies Are Detected (evaluate())
+
+  For each incoming QueueMetrics, it checks:
+
+  Queue Depth Check:
+  avg, std = self.get_baseline(metrics.queue_id, "contacts_in_queue")
+  if avg > 0 and metrics.contacts_in_queue > avg * 3:
+      # CRITICAL — queue depth is 3x the normal baseline
+      alerts.append(Alert(severity=AlertSeverity.CRITICAL, ...))
+  elif avg > 0 and metrics.contacts_in_queue > avg * 2:
+      # WARNING — queue depth is 2x the normal baseline
+      alerts.append(Alert(severity=AlertSeverity.WARNING, ...))
+
+  Abandonment Rate Check:
+  if metrics.abandonment_rate > 30:
+      # CRITICAL — more than 30% of customers are hanging up
+  elif metrics.abandonment_rate > 15:
+      # WARNING — abandonment rate is climbing
+
+  Each alert includes a recommended action, e.g., "Rebalance agents from idle queues".
+
+  ---
+  Part 5: The AI Agents (The Brain)
+
+  Data Models (models/agent.py)
+
+  Every decision an agent makes is captured as an AgentDecision:
+
+  class AgentDecision(BaseModel):
+      id: str                      # Unique identifier
+      agent_type: AgentType        # Which agent made this (queue_balancer, predictive_prevention, etc.)
+      phase: DecisionPhase         # Where in the thinking process (observed → analyzed → decided → acted)
+      summary: str                 # Human-readable summary
+      reasoning: str               # Why the agent made this decision
+      action: str | None           # What action to take (if any)
+      timestamp: datetime
+
+  What is Pydantic BaseModel? A way to define structured data in Python with automatic validation. If you try to set
+  confidence to the string "high" instead of a number, Pydantic will reject it. It also handles converting to/from JSON
+  for sending over the network.
+
+  The DecisionPhase enum tracks the agent's thinking lifecycle:
+  OBSERVED → ANALYZED → DECIDED → ACTED → (or NEGOTIATING if there's a conflict)
+
+  Agent 1: Queue Balancer (agents/queue_balancer.py)
+
+  What it will do (the TODO):
+  1. Look at all queues and calculate a "pressure score" for each (ratio of contacts to agents)
+  2. Find overloaded queues (high pressure) and idle queues (low pressure)
+  3. Propose moving agents from idle queues to overloaded ones
+  4. Enforce minimum staffing (never leave a queue with fewer than X agents)
+  5. Calculate cost impact ("moving 2 agents prevents ~10 abandoned calls, saving $500")
+
+  Agent 2: Predictive Prevention (agents/predictive_prevention.py)
+
+  What it will do:
+  1. Track anomaly velocity — not just "is this metric bad?" but "how fast is it getting worse?"
+  2. Compare current patterns against known historical patterns of past incidents
+  3. If the current pattern matches a historical cascade (e.g., Support spike + agent dropout = Billing overwhelm in 8
+  minutes), generate an early warning
+  4. Propose preemptive action with a confidence score
+
+  Agent 3: Escalation Handler (agents/escalation_handler.py)
+
+  What it will do:
+  1. Respond to CRITICAL alerts from the Anomaly Engine
+  2. Generate ranked resolution options with trade-offs (Option A: fast but expensive, Option B: slower but cheaper)
+  3. Calculate cost impact for each option
+  4. Escalate through configured channels (dashboard alert, webhook notification)
+
+  Agent 4: Analytics Agent (agents/analytics.py)
+
+  What it will do:
+  1. Receive natural language questions from the chat (e.g., "What just happened?")
+  2. Query current state from Redis and historical data from DynamoDB
+  3. Use Amazon Bedrock (Claude) to generate a natural language response
+  4. Return the answer with supporting data
+
+  The Orchestrator (agents/orchestrator.py)
+
+  This coordinates all four agents using LangGraph:
+
+  What is LangGraph? A framework for building AI agent workflows as state machines. A state machine is like a flowchart
+  with defined states and transitions. LangGraph lets you define: "First run Queue Balancer, then run Predictive
+  Prevention, then check if they conflict, then either negotiate or execute." Each step is a "node" in the graph, and
+  the flow between nodes follows defined rules.
+
+  The planned orchestration pipeline:
+  Tick arrives with new metrics
+      │
+      ├── Queue Balancer evaluates → produces decisions
+      ├── Predictive Prevention evaluates → produces decisions
+      │
+      ├── Check for conflicts between decisions
+      │   ├── No conflicts → Execute all decisions
+      │   └── Conflicts found → Run Negotiation Protocol
+      │       └── Negotiation resolves → Execute winning decision
+      │
+      └── Broadcast all decisions + reasoning to frontend via WebSocket
+
+  The Negotiation Protocol (agents/negotiation.py)
+
+  This is the working piece — it's actually implemented:
+
+  class NegotiationProtocol:
+      def resolve(self, proposals: list[NegotiationProposal]) -> AgentNegotiation:
+          # Weighted score: severity(0.4) * confidence(0.3) * time_urgency(0.3)
+          scored = sorted(
+              proposals,
+              key=lambda p: p.priority * 0.4 + p.confidence * 0.3,
+              reverse=True,
+          )
+          winner = scored[0] if scored else None
+
+  When agents disagree:
+  1. Each agent's proposal has a priority (how severe/important) and confidence (how sure the agent is)
+  2. The weighted formula priority * 0.4 + confidence * 0.3 produces a score for each proposal
+  3. Proposals are sorted by score, highest wins
+  4. The result is an AgentNegotiation object showing all proposals and the resolution
+
+  ---
+  Part 6: The Zustand Store (Frontend State Hub)
+
+  frontend/src/stores/dashboardStore.ts — This is the central brain of the frontend.
+
+  What is Zustand? (pronounced "zoo-shtand," German for "state") A tiny state management library for React. In a React
+  app, components are like separate rooms in a house. If the kitchen needs to know what happened in the living room, you
+   need a shared message board. Zustand IS that message board — a single place where all components can read and write
+  shared data. When the data changes, any component watching it automatically re-renders.
+
+  export const useDashboardStore = create<DashboardState>((set) => ({
+    // The data
+    queues: [],
+    alerts: [],
+    decisions: [],
+    negotiations: [],
+    costSummary: { totalSaved: 0, totalPreventedAbandoned: 0, actionsToday: 0 },
+    chatMessages: [],
+    simulationActive: false,
+
+    // Functions to update the data
+    setQueues: (queues) => set({ queues }),
+    addAlert: (alert) => set((state) => ({
+      alerts: [alert, ...state.alerts].slice(0, 100)  // Keep max 100, newest first
+    })),
+    addDecision: (decision) => set((state) => ({
+      decisions: [decision, ...state.decisions].slice(0, 200)  // Keep max 200
+    })),
+    ...
+  }));
+
+  What does set() do? It updates the store's state and triggers re-renders. set({ queues: newData }) replaces the queues
+   array and causes every component that reads queues to re-render with the new data.
+
+  What does .slice(0, 100) do? It keeps only the first 100 items. This prevents the arrays from growing forever and
+  eating memory. The newest items are prepended with [alert, ...state.alerts] (new one first), then trimmed to 100.
+
+  How Components Read From The Store
+
+  Any component can subscribe to specific slices:
+
+  // In AIDecisionFeed.tsx:
+  const decisions = useDashboardStore((s) => s.decisions);
+
+  // In CostImpactTicker.tsx:
+  const cost = useDashboardStore((s) => s.costSummary);
+
+  // In MetricsSidebar.tsx:
+  const queues = useDashboardStore((s) => s.queues);
+
+  The (s) => s.decisions is a selector — it tells Zustand "I only care about the decisions field." If alerts changes but
+   decisions doesn't, the AIDecisionFeed component will NOT re-render. This is a performance optimization.
+
+  ---
+  Part 7: The Frontend Components (What The User Sees)
+
+  Layout: Sidebar + Header + Page Content
+
+  ┌────┬──────────────────────────────────────┐
+  │ IQ │  SentinelAI   AI Operations Center    │ ← Header
+  │    │                           [Sim Mode] │
+  ├────┼──────────────────────────────────────┤
+  │ ⬜ │                                      │
+  │ 🧠 │      Current Page Content            │
+  │ ⚠️ │      (Operations Center /            │ ← Main content area
+  │ 💬 │       Agents / Alerts / etc.)        │
+  │ 🧪 │                                      │
+  │ ⚙️ │                                      │
+  └────┴──────────────────────────────────────┘
+    ↑ Sidebar (navigation icons)
+
+  Sidebar (Sidebar.tsx) — Six navigation icons using lucide-react (an icon library):
+  - Operations (dashboard icon) → /
+  - Agents (brain icon) → /agents
+  - Alerts (warning triangle) → /alerts
+  - Chat (message bubble) → /chat
+  - Simulation (flask icon) → /simulation
+  - Settings (gear icon) → /settings
+
+  Uses NavLink which automatically highlights the active page's icon.
+
+  Header (Header.tsx) — Shows "SentinelAI" logo, and when simulation is running, shows an animated "Simulation Mode"
+  badge.
+
+  Operations Center (Main Dashboard)
+
+  pages/OperationsCenter.tsx — A 12-column grid layout:
+
+  ┌──────────────────────────────┬──────────────┐
+  │  Cost Impact Ticker          │              │
+  │  [$1,240 saved] [15 prev.]  │  Queue       │
+  ├──────────────┬───────────────┤  Metrics     │
+  │  AI Decision │  Agent        │  Sidebar     │
+  │  Feed        │  Collaboration│──────────────│
+  │  (live       │  Panel        │  Alert       │
+  │   reasoning  │  (negotiation │  Panel       │
+  │   stream)    │   display)    │──────────────│
+  ├──────────────┴───────────────┤  Chat        │
+  │  Anomaly Timeline            │  Panel       │
+  │  (horizontal scrolling       │  (mini)      │
+  │   event cards)               │              │
+  └──────────────────────────────┴──────────────┘
+      col-span-8 (left)              col-span-4
+
+  8 columns (left): CostImpactTicker on top, then a 2-column split with AIDecisionFeed and AgentCollaborationPanel, then
+   AnomalyTimeline at the bottom.
+
+  4 columns (right): MetricsSidebar, AlertPanel, and ChatPanel stacked vertically.
+
+  Component: AI Decision Feed (AIDecisionFeed.tsx)
+
+  const decisions = useDashboardStore((s) => s.decisions);
+
+  For each decision, it renders a card showing:
+  - Phase icon — color-coded: blue eye (Observed), yellow magnifier (Analyzed), purple brain (Decided), green lightning
+  (Acted), orange check (Negotiating)
+  - Agent type — "queue balancer," "predictive prevention," etc.
+  - Timestamp — when it happened
+  - Summary — what the agent observed/decided
+  - Reasoning — why (shown in smaller gray text)
+
+  Each card has animate-fade-in for a smooth entrance animation.
+
+  Component: Cost Impact Ticker (CostImpactTicker.tsx)
+
+  Reads costSummary from the store and displays three metrics in a horizontal bar:
+  - Total Saved — dollar amount in green
+  - Prevented Abandoned — number of saved calls with a shield icon
+  - AI Actions Today — count of actions taken
+
+  Component: Alert Panel (AlertPanel.tsx)
+
+  const alerts = useDashboardStore((s) => s.alerts);
+  const activeAlerts = alerts.filter((a) => !a.resolvedAt);
+
+  Shows up to 20 alerts, each with:
+  - Severity icon (Info = blue "i", Warning = yellow triangle, Critical = red X)
+  - Title, description, and timestamp
+  - Resolved alerts are shown at 50% opacity
+
+  Component: Agent Collaboration Panel (AgentCollaborationPanel.tsx)
+
+  const negotiations = useDashboardStore((s) => s.negotiations);
+
+  For each negotiation:
+  - Shows the topic ("Resource allocation conflict")
+  - Lists each agent's proposal with color-coded agent names and confidence percentages
+  - Shows the resolution in green
+
+  Component: Metrics Sidebar (MetricsSidebar.tsx)
+
+  Aggregates queue data into totals:
+  const totals = queues.reduce((acc, q) => ({
+    contactsInQueue: acc.contactsInQueue + q.contactsInQueue,
+    agentsOnline: acc.agentsOnline + q.agentsOnline,
+    ...
+  }), { contactsInQueue: 0, agentsOnline: 0, ... });
+
+  What is reduce()? An array method that "reduces" a list into a single value by processing items one at a time. Here it
+   takes all 5 queue objects and sums up their contacts, agents, etc., into one totals object.
+
+  Shows 4 metric cards (In Queue, Agents Online, Available, Avg Wait) plus per-queue breakdowns.
+
+  Component: Chat Panel (ChatPanel.tsx)
+
+  A mini chat interface in the sidebar:
+  1. User types a message → handleSend() is called
+  2. User message is added to store immediately (so it appears in the chat)
+  3. REST API call: chatApi.send(input) → POST /api/chat
+  4. Response comes back → added to store as assistant message
+  5. On error → shows "Sorry, I encountered an error"
+
+  Messages are styled differently: user messages have a blue tint and are right-aligned, assistant messages are
+  left-aligned with darker background.
+
+  Simulation Page (SimulationPage.tsx)
+
+  Left column — Scenario Selector:
+  Fetches scenarios from GET /api/simulation/scenarios on mount. Shows 5 scenario cards (Normal Operations, Volume
+  Spike, Agent Dropout, Cascade Failure, Peak Rush) each with a Play/Stop button.
+
+  Right column — Chaos Engine:
+  Four chaos buttons: Kill Agents (skull icon, red), Spike Queue (lightning, yellow), Network Delay (globe, blue),
+  Cascade Failure (flame, orange). Each calls POST /api/simulation/chaos.
+
+  Bottom — Event Log:
+  Currently a placeholder that shows "Events will stream here as the simulation runs..."
+
+  Agents Page (AgentsPage.tsx)
+
+  Shows 4 agent cards, each with:
+  - Icon (color-coded), name, description, and "Active" badge
+  - Count of decisions made by that agent
+  - Last 3 decisions listed
+
+  Below the cards: a Negotiation Log showing all inter-agent negotiations with proposals, confidence scores, and
+  resolutions.
+
+  Alerts Page (AlertsPage.tsx)
+
+  A full-page alert management view with filters:
+  - Status filter: All / Active / Resolved
+  - Severity filter: All / Info / Warning / Critical
+
+  Each alert card shows the severity icon, title, description, queue name, anomaly velocity (if present), and
+  recommended action.
+
+  Chat Page (ChatPage.tsx)
+
+  A full-page chat experience (versus the mini sidebar panel):
+  - Quick action buttons: "Queue status," "Busiest queue," "SLA check," "Agent availability" — pre-written queries you
+  can click
+  - Full message history with reasoning shown below AI responses (marked with a sparkle icon)
+  - Right sidebar: Active Policies panel (for NL-created rules) and Example Commands
+
+  ---
+  Part 8: The REST API Layer (Traditional Requests)
+
+  frontend/src/services/api.ts — A clean wrapper around fetch():
+
+  async function request<T>(path: string, options?: RequestInit): Promise<T> {
+    const res = await fetch(`/api${path}`, {
+      headers: { "Content-Type": "application/json" },
+      ...options,
+    });
+    if (!res.ok) throw new Error(`API error: ${res.status}`);
+    return res.json();
+  }
+
+  What is fetch()? The browser's built-in function for making HTTP requests. Like opening a URL, but in code.
+  fetch("/api/queues") hits the backend's /api/queues endpoint and returns the JSON data.
+
+  The API is organized into namespaces:
+  queuesApi.list()         → GET /api/queues
+  alertsApi.acknowledge(id) → POST /api/alerts/{id}/acknowledge
+  chatApi.send(message)     → POST /api/chat
+  simulationApi.start(id)   → POST /api/simulation/start
+  simulationApi.injectChaos({type, params}) → POST /api/simulation/chaos
+
+  Backend Routes
+
+  Each route file defines endpoints. For example, routes/simulation.py:
+
+  GET /api/simulation/scenarios — Returns the 5 pre-defined scenarios.
+
+  POST /api/simulation/start — Accepts {"scenario_id": "volume_spike"}, starts the simulation engine.
+
+  POST /api/simulation/chaos — Accepts {"type": "kill_agents", "params": {"queue": "q-support", "count": 3}}, injects
+  the chaos event.
+
+  POST /api/simulation/whatif — Accepts a natural language query, runs a micro-simulation (future feature).
+
+  ---
+  Part 9: TypeScript Types (The Contract)
+
+  frontend/src/types/index.ts — Defines the exact shape of every data object:
+
+  What are TypeScript types? A contract that says "this object MUST have these fields with these data types." If the
+  code tries to access alert.titl (typo), TypeScript catches it before the code even runs. Think of it as spell-check
+  for data structures.
+
+  Key types:
+  - QueueMetrics — mirrors the backend's QueueMetrics model but in camelCase
+  - Alert — severity, title, description, queue info, recommended action
+  - AgentDecision — phase, summary, reasoning, cost impact
+  - AgentNegotiation — agents involved, proposals with confidence, resolution
+  - WSEventType — all possible WebSocket event names as a union type
+  - ChaosEventType — "kill_agents" | "spike_queue" | "network_delay" | "cascade_failure"
+
+  Notice the naming convention difference: Python uses snake_case (e.g., contacts_in_queue) while TypeScript uses
+  camelCase (e.g., contactsInQueue). This conversion happens at the API boundary.
+
+  ---
+  Part 10: Infrastructure & DevOps
+
+  Docker Compose (docker-compose.yml)
+
+  Defines 3 services that run together:
+  1. Redis (port 6379) — in-memory cache
+  2. DynamoDB Local (port 8042) — local version of Amazon's DynamoDB
+  3. Backend (port 8000) — the FastAPI app, with hot-reload (--reload)
+
+  What is Docker Compose? A tool that lets you define and run multiple services (containers) together with one command.
+  Instead of manually installing Redis, DynamoDB, and Python, you just run docker-compose up and everything starts
+  automatically in isolated containers.
+
+  CI/CD (.github/workflows/ci.yml)
+
+  GitHub Actions workflow that runs on every push/PR — runs linting and tests.
+
+  ---
+  Part 11: What's Built vs What's TODO
+
+  Built and Working:
+
+  - Full frontend UI with all 6 pages, all components, navigation, styling
+  - Zustand store with all data management functions
+  - WebSocket service with auto-reconnect and event routing
+  - REST API client with all endpoint wrappers
+  - Backend FastAPI skeleton with all route definitions
+  - WebSocket connection manager with broadcast capability
+  - Simulation Engine: metric generation with sine waves and Gaussian noise
+  - Anomaly Engine: rolling baselines, queue depth detection, abandonment rate detection
+  - Data models: QueueMetrics, Alert, AgentDecision, AgentNegotiation, CostImpact
+  - Negotiation Protocol: weighted scoring resolution
+  - Configuration system with environment variable support
+  - Docker Compose setup for Redis + DynamoDB + Backend
+
+  TODO (Scaffolded but Empty):
+
+  - Background simulation loop in main.py lifespan (the 2-second tick)
+  - Queue Balancer Agent evaluate() and execute() logic
+  - Predictive Prevention Agent cascade pattern detection
+  - Escalation Handler Agent escalation logic
+  - Analytics Agent Bedrock-powered query processing
+  - LangGraph orchestrator state machine wiring
+  - WebSocket ↔ Store wiring (dispatching WS events into Zustand)
+  - Chaos event application in simulation engine
+  - Redis caching of current state
+  - DynamoDB persistence for audit trail
+  - Bedrock integration for LLM-powered chat
+  - Approve/Reject action flow (end-to-end)
+  - Cost accumulation tracking
+
+  ---
+  Part 12: The Complete Data Flow (Putting It All Together)
+
+  Here's what the system does every 2 seconds when fully implemented:
+
+  TICK (every 2 seconds)
+  │
+  ├─ 1. SimulationEngine.generate_metrics()
+  │     → Produces 5 QueueMetrics objects (one per queue)
+  │     → Applies any active chaos events
+  │
+  ├─ 2. AnomalyEngine.evaluate(metrics)
+  │     → Updates rolling baselines
+  │     → Checks thresholds (queue depth, abandonment)
+  │     → Produces Alert objects if anomalies found
+  │
+  ├─ 3. AgentOrchestrator.process_metrics(metrics + alerts)
+  │     │
+  │     ├─ 3a. QueueBalancerAgent.evaluate()
+  │     │       → Checks for imbalances → proposes agent moves
+  │     │
+  │     ├─ 3b. PredictivePreventionAgent.evaluate()
+  │     │       → Checks velocity patterns → proposes preemptive actions
+  │     │
+  │     ├─ 3c. Check for conflicts between 3a and 3b
+  │     │       ├─ No conflict → both execute
+  │     │       └─ Conflict → NegotiationProtocol.resolve()
+  │     │                     → Weighted scoring → winner executes
+  │     │
+  │     ├─ 3d. If CRITICAL alert → EscalationHandlerAgent.evaluate()
+  │     │       → Generates resolution options with cost analysis
+  │     │
+  │     └─ 3e. Produce AgentDecision objects for each step
+  │
+  ├─ 4. ConnectionManager.broadcast() via WebSocket
+  │     → queue:update    → latest metrics for all queues
+  │     → alert:new       → any new anomaly alerts
+  │     → agent:reasoning → each agent's thinking process
+  │     → agent:negotiation → any conflict resolutions
+  │     → cost:update     → running savings total
+  │     → action:taken    → completed agent actions
+  │
+  ├─ 5. Frontend WebSocket receives messages
+  │     → wsService.onmessage dispatches to registered handlers
+  │
+  ├─ 6. Zustand store updates
+  │     → useDashboardStore.setQueues(newQueues)
+  │     → useDashboardStore.addAlert(newAlert)
+  │     → useDashboardStore.addDecision(newDecision)
+  │     → useDashboardStore.addNegotiation(newNeg)
+  │     → useDashboardStore.updateCost(newCost)
+  │
+  └─ 7. React components re-render
+        → MetricsSidebar shows new queue numbers
+        → AlertPanel shows new alerts with toast
+        → AIDecisionFeed shows new reasoning cards
+        → AgentCollaborationPanel shows negotiations
+        → CostImpactTicker shows updated savings
+        → AnomalyTimeline adds new event cards
+
+  And in the reverse direction (user actions):
+
+  USER ACTION (e.g., clicks "Approve" on a decision)
+  │
+  ├─ 1. Component calls wsService.send("action:approve", {decisionId: "..."})
+  │
+  ├─ 2. WebSocket sends JSON to backend
+  │
+  ├─ 3. Backend websocket_endpoint receives message
+  │     → Routes to AgentOrchestrator
+  │
+  ├─ 4. Orchestrator executes the approved action
+  │     → Calls SimulationEngine.adjust_queue() (or Connect API in production)
+  │
+  ├─ 5. Next tick picks up changed state
+  │     → Metrics reflect the change (fewer contacts, more agents)
+  │
+  └─ 6. Updated metrics broadcast to all clients
+        → UI shows the improvement in real time
+
+  ---
+  This covers every file, every connection, every data flow in the project. The architecture is clean and well-separated
+   — the simulation generates data, the anomaly engine detects problems, the agents decide what to do, the orchestrator
+  coordinates them, the WebSocket pushes everything to the frontend, the Zustand store manages the state, and React
+  components render it beautifully.
