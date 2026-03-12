@@ -1,7 +1,7 @@
 # SentinelAI — Build Status
 > Tracks the implementation state of every component.
 > → Go to [TASKS.md](./TASKS.md) for what to build next.
-> → Updated: 2026-03-11
+> → Updated: 2026-03-12
 
 ---
 
@@ -12,27 +12,30 @@
 | Frontend UI | ✅ 100% | — | — |
 | Frontend State / WS | ✅ 100% | — | — |
 | Frontend Governance (confidence bars, approve/reject) | ✅ 100% | — | — |
+| Frontend Polish (W4) | ✅ 100% | empty states, animations, demo button, branding ✅ | — |
 | Backend Models | ✅ 100% | camelCase aliases ✅, governance fields ✅ | — |
 | Backend Config | ✅ 100% | — | — |
 | Anomaly Detection | ✅ 100% | — | — |
-| Simulation Metrics | ✅ 100% | chaos ✅, adjust_queue ✅ | — |
+| Simulation Metrics | ✅ 100% | chaos ✅, adjust_queue ✅, clear_spike ✅ | — |
 | Simulation Loop | ✅ 100% | 2s tick ✅, app.state ✅ | — |
-| WebSocket Infra | ✅ 100% | approve/reject/chaos handlers ✅ | chat:message (Week 3) |
-| API: Simulation Routes | ✅ 100% | start/stop/chaos/status/scenarios/whatif ✅ | — |
+| WebSocket Infra | ✅ 100% | approve/reject/chaos/chat handlers ✅, exponential backoff ✅ | — |
+| API: Simulation Routes | ✅ 100% | start/stop/chaos/status/scenarios/whatif ✅, clean restart ✅ | — |
 | API: Queue Routes | ✅ 100% | live data from state ✅ | — |
 | API: Alert Routes | ✅ 100% | list + acknowledge ✅ | — |
 | API: Agent Routes | ✅ 100% | agents/decisions/negotiations/audit/governance ✅ | — |
 | API: Cost/Actions Routes | ✅ 100% | cost-impact + actions/log ✅ | — |
-| API: Chat Routes | — | 🟡 Prompt injection guard ✅ | Analytics Agent (Week 3) |
+| API: Chat Routes | ✅ 100% | Analytics Agent ✅, prompt injection guard ✅, NL policies ✅ | — |
 | Queue Balancer Agent | ✅ 100% | pressure scoring, execute, confidence ✅ | — |
 | Predictive Prevention | ✅ 100% | velocity tracking, cascade, cooldown ✅ | — |
 | Escalation Handler | ✅ 100% | CRITICAL alerts, 15s cooldown, confidence=0.80 ✅ | — |
-| Orchestrator (full) | ✅ 100% | 3 agents + guardrails + negotiation + revenue-at-risk ✅ | — |
+| Orchestrator (full) | ✅ 100% | 4 agents + guardrails + negotiation + revenue-at-risk ✅ | — |
 | Negotiation Protocol | ✅ 100% | weighted scoring, resolution strings ✅ | — |
 | GuardrailsLayer (SentinelAI) | ✅ 100% | policies, rate limits, auto-approve 30s, audit ✅ | — |
 | PII Sanitizer | ✅ 100% | regex-based redaction ✅ | — |
-| Analytics Agent | — | — | 🔴 0% (Week 3) |
-| Bedrock Service | — | — | 🔴 0% (Week 3) |
+| Analytics Agent | ✅ 100% | Bedrock-powered queries + context enrichment ✅ | — |
+| Bedrock Service | ✅ 100% | MockBedrockLLM ✅ + real Bedrock fallback ✅ | — |
+| Scripted Demo Scenario | ✅ 100% | sentinelai_demo 3-min timeline ✅ | — |
+| NL Policy Engine | ✅ 100% | CRUD via /chat/policy endpoints ✅ | — |
 | Redis Cache | — | 🟡 10% | connection configured, not used |
 | CDK Infra | — | 🟡 30% | DynamoDB tables only |
 
@@ -42,41 +45,52 @@
 
 | Demo Moment | Status |
 |---|---|
+| ✅ "Start Demo" button in header | Working — visible on every page, starts sentinelai_demo |
 | ✅ Live metrics streaming (5 queues) | Working — 2s tick via WS |
+| ✅ Empty states when idle | Working — meaningful placeholders across all components |
 | ✅ Chaos injection (spike, kill, cascade, delay) | Working — SimulationPage sends proper params |
-| ✅ Agent decisions in AI Decision Feed | Working — 3 agents generate decisions |
+| ✅ Agent decisions in AI Decision Feed | Working — slide-in animation, 3 agents |
 | ✅ Confidence bars on decision cards | Working — color-coded (green/yellow/red) |
 | ✅ Approve/Reject buttons on pending decisions | Working — sends WS action:approve/reject |
 | ✅ Auto-approve countdown (30s) | Working — visible timer on pending cards |
 | ✅ Guardrail status badges | Working — AUTO_APPROVE / PENDING_HUMAN / BLOCKED |
 | ✅ Multi-agent negotiation | Working — Queue Balancer vs Escalation Handler conflicts |
-| ✅ Cost Impact Ticker + Revenue at Risk | Working — pulses red during CRITICAL |
+| ✅ Cost Impact Ticker + Revenue at Risk | Working — glow pulse animation on savings |
 | ✅ Governance Scorecard | Working — auto/human/blocked counts + avg confidence |
 | ✅ Alert acknowledge button | Working — AlertsPage + backend |
+| ✅ Critical alert flash animation | Working — red border flash on new CRITICAL |
 | ✅ Simulation event log | Working — live decisions + alerts stream |
-| ⚠️ Chat: "What happened?" | Stub — needs Bedrock/MockLLM (Week 3) |
-| ⚠️ Scripted 3-min demo scenario | Not yet — needs scenario timeline scripting |
+| ✅ Chat: "What happened?" | Working — MockBedrockLLM with context-enriched responses |
+| ✅ Scripted 3-min demo scenario | Working — sentinelai_demo with timed chaos events |
+| ✅ NL Policy Engine | Working — create/list/delete via REST |
+| ✅ WS reconnect with backoff | Working — exponential backoff + "Reconnecting..." indicator |
+| ✅ Clean demo restart | Working — stop clears all state, start is fresh |
+| ✅ SentinelAI branding | Working — header + sidebar updated |
 
 ---
 
 ## Test Status
 
 ```
-backend/tests/test_health.py — PASSING (4 tests)
+backend/tests/test_health.py — PASSING (8 tests)
   ✅ test_health_check
   ✅ test_list_queues
   ✅ test_list_scenarios
   ✅ test_chat_endpoint
+  ✅ test_chat_what_just_happened
+  ✅ test_chat_prompt_injection_blocked
+  ✅ test_demo_scenario_listed
+  ✅ test_policy_crud
 ```
 
 Frontend: TypeScript compiles clean (`npx tsc --noEmit` — 0 errors)
 
 ---
 
-## Next Priority: Week 3
+## All Weeks Complete
 
-1. **Bedrock service** (`backend/app/services/bedrock.py`) — MockBedrockLLM fallback
-2. **Analytics Agent** — real implementation using Bedrock
-3. **Chat route** — wire to Analytics Agent
-4. **Scripted demo scenario** — 3-minute timeline with choreographed events
-5. **NL policy engine** — lightweight persistent rules via chat
+Weeks 1-4 are all done. Remaining optional items:
+- Redis cache integration (not needed for demo)
+- CDK infra completion (not needed for demo)
+- Real AWS Connect integration (Week 4 bonus, not needed)
+- Demo rehearsals and backup video recording

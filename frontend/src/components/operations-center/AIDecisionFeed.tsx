@@ -73,8 +73,8 @@ function DecisionCard({ decision }: { decision: AgentDecision }) {
   return (
     <div
       className={clsx(
-        "animate-fade-in rounded-lg border bg-surface p-3",
-        isPending ? "border-yellow-600/50" : "border-gray-800",
+        "animate-slide-in-right rounded-lg border bg-surface p-3 transition-all",
+        isPending ? "border-yellow-600/50 shadow-sm shadow-yellow-600/10" : "border-gray-800",
         isRejected && "opacity-50"
       )}
     >
@@ -193,8 +193,10 @@ export default function AIDecisionFeed() {
 
       <div className="flex-1 space-y-2 overflow-auto">
         {decisions.length === 0 ? (
-          <div className="flex h-full items-center justify-center text-sm text-gray-500">
-            Waiting for AI agent activity...
+          <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
+            <BrainCircuit className="h-8 w-8 text-gray-700" />
+            <p className="text-sm text-gray-500">Agents are standing by</p>
+            <p className="text-xs text-gray-600">Start a simulation to activate AI agents</p>
           </div>
         ) : (
           decisions.map((decision) => (

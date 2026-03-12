@@ -24,9 +24,10 @@ export default function AlertPanel() {
 
       <div className="flex-1 space-y-2 overflow-auto">
         {alerts.length === 0 ? (
-          <div className="flex items-center gap-2 text-sm text-gray-500">
-            <CheckCircle className="h-4 w-4" />
-            All clear — no active alerts
+          <div className="flex flex-col items-center gap-2 py-3 text-center">
+            <CheckCircle className="h-6 w-6 text-gray-700" />
+            <p className="text-sm text-gray-500">No active alerts</p>
+            <p className="text-xs text-gray-600">System healthy</p>
           </div>
         ) : (
           alerts.slice(0, 20).map((alert) => {
@@ -36,8 +37,12 @@ export default function AlertPanel() {
               <div
                 key={alert.id}
                 className={clsx(
-                  "animate-fade-in rounded-lg border bg-surface p-2.5",
-                  alert.resolvedAt ? "border-gray-800 opacity-50" : "border-gray-700"
+                  "animate-fade-in-up rounded-lg border bg-surface p-2.5 transition-all",
+                  alert.resolvedAt
+                    ? "border-gray-800 opacity-50"
+                    : alert.severity === "critical"
+                      ? "animate-border-flash border-red-600/50"
+                      : "border-gray-700"
                 )}
               >
                 <div className="flex items-start gap-2">

@@ -45,10 +45,21 @@ async def websocket_endpoint(websocket: WebSocket):
             event = message.get("event", "")
 
             if event == "chat:message":
-                # TODO: Route to chat handler
+                from app.agents.analytics import analytics_agent
+                user_message = message.get("data", {}).get("message", "")
+                # Build context from app state
+                context = {
+                    "recent_alerts": list(getattr(websocket.app.state, "recent_alerts", []))[:10],
+                    "recent_decisions": list(getattr(websocket.app.state, "recent_decisions", []))[:10],
+                    "queue_metrics": list(getattr(websocket.app.state, "latest_metrics", {}).values()),
+                }
+                result = await analytics_agent.query(user_message, context)
                 await websocket.send_text(json.dumps({
                     "event": "chat:response",
-                    "data": {"message": "Chat processing not yet connected."},
+                    "data": {
+                        "message": result.get("message", ""),
+                        "reasoning": result.get("reasoning", ""),
+                    },
                     "timestamp": datetime.now(timezone.utc).isoformat(),
                 }))
 

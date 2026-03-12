@@ -1,4 +1,4 @@
-import { Users, PhoneIncoming, Clock } from "lucide-react";
+import { Users, PhoneIncoming, Clock, Radio } from "lucide-react";
 import { useDashboardStore } from "../../stores/dashboardStore";
 
 export default function MetricsSidebar() {
@@ -48,20 +48,29 @@ export default function MetricsSidebar() {
         <span className="card-title">Queue Metrics</span>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        {metrics.map((m) => (
-          <div
-            key={m.label}
-            className="flex items-center gap-2 rounded-lg bg-surface p-2"
-          >
-            <m.icon className={`h-4 w-4 ${m.color}`} />
-            <div>
-              <p className="text-xs text-gray-500">{m.label}</p>
-              <p className="text-sm font-semibold">{m.value}</p>
-            </div>
+      {queues.length === 0 ? (
+        <div className="flex flex-col items-center gap-2 py-4 text-center">
+          <Radio className="h-5 w-5 text-gray-600" />
+          <p className="text-xs text-gray-500">Start a simulation to see live metrics</p>
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 gap-3">
+            {metrics.map((m) => (
+              <div
+                key={m.label}
+                className="flex items-center gap-2 rounded-lg bg-surface p-2"
+              >
+                <m.icon className={`h-4 w-4 ${m.color}`} />
+                <div>
+                  <p className="text-xs text-gray-500">{m.label}</p>
+                  <p className="text-sm font-semibold">{m.value}</p>
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </>
+      )}
 
       {queues.length > 0 && (
         <div className="mt-3 space-y-2">

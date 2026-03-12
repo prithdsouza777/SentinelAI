@@ -23,6 +23,33 @@ SIMULATED_QUEUES = [
 # Store original agent counts for chaos reset
 _ORIGINAL_AGENTS = {q["id"]: q["agents"] for q in SIMULATED_QUEUES}
 
+# ── Scripted Demo Scenario (3 minutes @ 2s ticks = 90 ticks) ────────────────
+# Each entry fires once when tick matches. "clear_*" entries undo earlier chaos.
+DEMO_SCRIPT = [
+    # === Act 1: The Calm (ticks 0-14, ~30s) ===
+    # Normal operations, no events — agents observing
+
+    # === Act 2: The Storm (tick 15, ~30s mark) ===
+    {"tick": 15, "type": "spike_queue",   "params": {"queue_id": "q-support", "multiplier": 4.0}},
+    {"tick": 15, "type": "kill_agents",   "params": {"queue_id": "q-general", "agents_count": 4}},
+
+    # === Act 3: Escalation (tick 22, ~44s) — secondary pressure ===
+    {"tick": 22, "type": "spike_queue",   "params": {"queue_id": "q-billing", "multiplier": 2.0}},
+
+    # === Act 4: Partial Resolution (tick 37, ~74s) — restore general agents ===
+    {"tick": 37, "type": "restore_agents", "params": {"queue_id": "q-general"}},
+
+    # === Act 5: Stabilization (tick 45, ~90s) — clear billing spike ===
+    {"tick": 45, "type": "clear_spike",   "params": {"queue_id": "q-billing"}},
+
+    # === Act 6: Full Resolution (tick 52, ~104s) — clear support spike ===
+    {"tick": 52, "type": "clear_spike",   "params": {"queue_id": "q-support"}},
+
+    # === Act 7: The Intelligence (ticks 60+, ~120s+) ===
+    # Metrics normalize. User asks "What just happened?" in chat.
+    # No scripted events — calm operations for the final 60s of demo.
+]
+
 
 class SimulationEngine:
     def __init__(self):
@@ -34,6 +61,10 @@ class SimulationEngine:
 
     def generate_metrics(self) -> list[QueueMetrics]:
         """Generate a snapshot of queue metrics with natural variation, applying any active chaos."""
+        # Apply scripted demo events for the current tick
+        if self.scenario == "sentinelai_demo":
+            self._apply_demo_script()
+
         now = datetime.now(timezone.utc)
         metrics = []
 
@@ -116,11 +147,22 @@ class SimulationEngine:
                 for m in metrics:
                     m.avg_wait_time = m.avg_wait_time + delay_ms / 1000
 
+            # clear_spike is handled at inject time (removes matching spike_queue events)
+            # so it won't appear in the loop — it's a meta-event
+
         self.tick += 1
         return metrics
 
     def inject_chaos(self, event_type: str, params: dict):
         """Inject a chaos event into the simulation."""
+        if event_type == "clear_spike":
+            # Remove spike_queue events for the given queue
+            queue_id = params.get("queue_id")
+            self._chaos_events = [
+                e for e in self._chaos_events
+                if not (e["type"] == "spike_queue" and e.get("params", {}).get("queue_id") == queue_id)
+            ]
+            return
         self._chaos_events.append({"type": event_type, "params": params})
 
     def adjust_queue(self, queue_id: str, agents_delta: int):
@@ -135,6 +177,13 @@ class SimulationEngine:
         self._chaos_events.clear()
         for q in SIMULATED_QUEUES:
             q["agents"] = _ORIGINAL_AGENTS[q["id"]]
+
+    def _apply_demo_script(self):
+        """Check DEMO_SCRIPT for events matching the current tick and inject them."""
+        for entry in DEMO_SCRIPT:
+            if entry["tick"] == self.tick:
+                print(f"[demo] tick {self.tick}: injecting {entry['type']} {entry.get('params', {})}")
+                self.inject_chaos(entry["type"], entry.get("params", {}))
 
     async def start(self, scenario: str = "normal"):
         """Start the simulation loop."""

@@ -44,11 +44,14 @@ class AgentOrchestrator:
         from app.agents.predictive_prevention import PredictivePreventionAgent
         from app.agents.escalation_handler import EscalationHandlerAgent
 
+        from app.agents.analytics import analytics_agent
+
         self.agents[AgentType.QUEUE_BALANCER] = QueueBalancerAgent()
         self.agents[AgentType.PREDICTIVE_PREVENTION] = PredictivePreventionAgent()
         self.agents[AgentType.ESCALATION_HANDLER] = EscalationHandlerAgent()
+        self.agents[AgentType.ANALYTICS] = analytics_agent
         self._initialized = True
-        print("[orchestrator] Initialized: QueueBalancer, PredictivePreventionAgent, EscalationHandlerAgent")
+        print("[orchestrator] Initialized: QueueBalancer, PredictivePreventionAgent, EscalationHandlerAgent, AnalyticsAgent")
 
     async def process_metrics(
         self,
@@ -246,17 +249,10 @@ class AgentOrchestrator:
         """Route an alert to the appropriate agent(s)."""
         pass
 
-    async def handle_chat(self, message: str) -> dict:
+    async def handle_chat(self, message: str, context: dict | None = None) -> dict:
         """Route a chat message to the Analytics Agent."""
-        return {
-            "message": (
-                f"I've analyzed your query: '{message}'. "
-                "The Analytics Agent with Bedrock integration will be available in Week 3. "
-                "Currently monitoring: 5 queues, real-time anomaly detection active, "
-                "Queue Balancer, Predictive Prevention, and Escalation Handler agents running."
-            ),
-            "reasoning": "Analytics agent not yet initialized with Bedrock.",
-        }
+        from app.agents.analytics import analytics_agent
+        return await analytics_agent.query(message, context)
 
     async def handle_human_decision(
         self, decision_id: str, approved: bool, approver: str = "human"

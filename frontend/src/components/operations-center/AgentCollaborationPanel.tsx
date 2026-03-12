@@ -20,8 +20,10 @@ export default function AgentCollaborationPanel() {
 
       <div className="flex-1 space-y-3 overflow-auto">
         {negotiations.length === 0 ? (
-          <div className="flex h-full items-center justify-center text-sm text-gray-500">
-            No agent negotiations yet
+          <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
+            <GitMerge className="h-8 w-8 text-gray-700" />
+            <p className="text-sm text-gray-500">No negotiations yet</p>
+            <p className="text-xs text-gray-600">Conflicts between agents will appear here</p>
           </div>
         ) : (
           negotiations.map((neg) => (

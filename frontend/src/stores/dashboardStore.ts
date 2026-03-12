@@ -41,6 +41,7 @@ interface DashboardState {
   // Simulation
   simulationActive: boolean;
   setSimulationActive: (active: boolean) => void;
+  resetForNewDemo: () => void;
 
   // Governance scorecard
   governance: GovernanceSnapshot;
@@ -109,6 +110,28 @@ export const useDashboardStore = create<DashboardState>((set) => ({
 
   simulationActive: false,
   setSimulationActive: (active) => set({ simulationActive: active }),
+  resetForNewDemo: () =>
+    set({
+      queues: [],
+      alerts: [],
+      decisions: [],
+      negotiations: [],
+      chatMessages: [],
+      costSummary: {
+        totalSaved: 0,
+        totalPreventedAbandoned: 0,
+        actionsToday: 0,
+        lastUpdated: new Date().toISOString(),
+      },
+      governance: {
+        totalDecisions: 0,
+        autoApproved: 0,
+        humanApproved: 0,
+        blocked: 0,
+        avgConfidence: 0,
+        lastUpdated: new Date().toISOString(),
+      },
+    }),
 
   governance: {
     totalDecisions: 0,

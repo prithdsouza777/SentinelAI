@@ -24,8 +24,9 @@ export default function Sidebar() {
       <NavLink
         to="/"
         className="mb-6 flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-sm font-bold"
+        title="SentinelAI"
       >
-        IQ
+        AI
       </NavLink>
 
       <nav className="flex flex-1 flex-col items-center gap-1">

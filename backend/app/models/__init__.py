@@ -6,6 +6,7 @@ from app.models.agent import (
     AgentType,
     CamelModel,
     DecisionPhase,
+    NegotiationProposal,
 )
 from app.models.action import ActionLog, CostImpact
 from app.models.guardrails import AuditEntry, GuardrailPolicy, GuardrailResult, GuardrailStatus
@@ -25,4 +26,5 @@ __all__ = [
     "GuardrailPolicy",
     "GuardrailResult",
     "GuardrailStatus",
+    "NegotiationProposal",
 ]

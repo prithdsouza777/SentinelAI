@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from pydantic import BaseModel
 
 from app.services.simulation import simulation_engine
@@ -20,6 +20,13 @@ class WhatIfRequest(BaseModel):
 
 
 SCENARIOS = [
+    {
+        "id": "sentinelai_demo",
+        "name": "SentinelAI Demo (3 min)",
+        "description": "Scripted 3-minute demo: calm → storm → negotiation → resolution → intelligence",
+        "duration": 180,
+        "featured": True,
+    },
     {
         "id": "normal",
         "name": "Normal Operations",
@@ -67,9 +74,20 @@ async def start_simulation(request: SimulationStartRequest):
 
 
 @router.post("/simulation/stop")
-async def stop_simulation():
-    """Stop the current simulation."""
+async def stop_simulation(request: Request):
+    """Stop the current simulation and clear in-memory state for clean restart."""
     await simulation_engine.stop()
+    # Clear in-memory state so next demo starts fresh
+    request.app.state.latest_metrics.clear()
+    request.app.state.recent_decisions.clear()
+    request.app.state.recent_alerts.clear()
+    request.app.state.recent_negotiations.clear()
+    # Reset orchestrator cost accumulators
+    from app.agents.orchestrator import orchestrator
+    orchestrator._total_saved = 0.0
+    orchestrator._revenue_at_risk = 0.0
+    orchestrator._prevented_abandoned = 0
+    orchestrator._actions_today = 0
     return {"status": "stopped"}
 
 
@@ -91,12 +109,16 @@ async def get_simulation_status():
 
 
 @router.post("/simulation/whatif")
-async def what_if(request: WhatIfRequest):
-    """Run a what-if simulation (mock response until Bedrock integration in Week 3)."""
+async def what_if(body: WhatIfRequest, request: Request):
+    """Run a what-if simulation using the Analytics Agent."""
+    from app.agents.analytics import analytics_agent
+    context = {
+        "recent_alerts": list(getattr(request.app.state, "recent_alerts", []))[:5],
+        "recent_decisions": list(getattr(request.app.state, "recent_decisions", []))[:5],
+        "queue_metrics": list(getattr(request.app.state, "latest_metrics", {}).values()),
+    }
+    result = await analytics_agent.query(f"what if {body.query}", context)
     return {
-        "query": request.query,
-        "result": (
-            "Predicted: if 2 agents moved from Billing → Support, "
-            "queue depth normalizes in ~3 min. Estimated savings: ~$180."
-        ),
+        "query": body.query,
+        "result": result.get("message", "Unable to generate prediction."),
     }

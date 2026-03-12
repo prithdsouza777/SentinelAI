@@ -1,11 +1,23 @@
 import { AlertTriangle, DollarSign, TrendingUp, ShieldCheck } from "lucide-react";
 import { useDashboardStore } from "../../stores/dashboardStore";
+import { clsx } from "clsx";
 
 export default function CostImpactTicker() {
   const cost = useDashboardStore((s) => s.costSummary);
+  const simulationActive = useDashboardStore((s) => s.simulationActive);
+  const hasSavings = cost.totalSaved > 0;
+
+  if (!simulationActive && !hasSavings) {
+    return (
+      <div className="card flex items-center gap-4">
+        <DollarSign className="h-5 w-5 text-gray-600" />
+        <span className="text-sm text-gray-500">Cost impact will appear when simulation is active</span>
+      </div>
+    );
+  }
 
   return (
-    <div className="card flex items-center gap-6">
+    <div className={clsx("card flex items-center gap-6", hasSavings && "animate-glow-pulse")}>
       {(cost.revenueAtRisk ?? 0) > 0 && (
         <>
           <div className="flex items-center gap-3">

@@ -1,6 +1,6 @@
 import re
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
 from app.agents.guardrails import guardrails
@@ -47,19 +47,33 @@ class PolicyRequest(BaseModel):
     rule: str
 
 
+# ── Context builder ──────────────────────────────────────────────────────────
+
+
+def _build_chat_context(request: Request) -> dict:
+    """Extract live system state from app.state for the Analytics Agent."""
+    context: dict = {}
+    try:
+        context["recent_alerts"] = list(getattr(request.app.state, "recent_alerts", []))[:10]
+        context["recent_decisions"] = list(getattr(request.app.state, "recent_decisions", []))[:10]
+        context["queue_metrics"] = list(getattr(request.app.state, "latest_metrics", {}).values())
+    except Exception:
+        pass
+    return context
+
+
 # ── Routes ────────────────────────────────────────────────────────────────────
 
 
 @router.post("/chat")
-async def send_message(request: ChatRequest):
+async def send_message(body: ChatRequest, request: Request):
     """Send message to conversational interface.
 
     Messages are screened for prompt injection before reaching the LLM.
     Adversarial inputs are blocked and logged to the audit trail.
     """
-    matched = _detect_injection(request.message)
+    matched = _detect_injection(body.message)
     if matched:
-        # Log to audit trail as a security event
         import uuid
         from datetime import datetime
         from app.models.agent import AgentType
@@ -84,29 +98,52 @@ async def send_message(request: ChatRequest):
             },
         )
 
-    # TODO: Route to Analytics Agent / NL Policy Engine via Bedrock
+    from app.agents.analytics import analytics_agent
+
+    context = _build_chat_context(request)
+    result = await analytics_agent.query(body.message, context)
+
     return {
-        "message": f"Received: {request.message}. AI processing not yet connected.",
-        "reasoning": "Placeholder — Bedrock integration pending.",
+        "message": result["message"],
+        "reasoning": result.get("reasoning", ""),
+        "timestamp": result.get("timestamp", ""),
     }
 
 
+# ── In-memory NL policy store ────────────────────────────────────────────────
+
+_policies: list[dict] = []
+_next_policy_id = 1
+
+
 @router.post("/chat/policy")
-async def create_policy(request: PolicyRequest):
+async def create_policy(body: PolicyRequest):
     """Create a natural language policy rule."""
-    # TODO: Parse NL rule, store in DynamoDB
-    return {"id": "policy-placeholder", "rule": request.rule, "status": "created"}
+    global _next_policy_id
+    from datetime import datetime, timezone
+
+    policy = {
+        "id": f"policy-{_next_policy_id}",
+        "rule": body.rule,
+        "status": "active",
+        "createdAt": datetime.now(timezone.utc).isoformat(),
+    }
+    _policies.append(policy)
+    _next_policy_id += 1
+    return policy
 
 
 @router.get("/chat/policies")
 async def list_policies():
     """List active NL-defined policies."""
-    # TODO: Pull from DynamoDB
-    return {"policies": []}
+    return {"policies": [p for p in _policies if p["status"] == "active"]}
 
 
 @router.delete("/chat/policies/{policy_id}")
 async def delete_policy(policy_id: str):
     """Remove a policy."""
-    # TODO: Delete from DynamoDB
-    return {"policy_id": policy_id, "status": "deleted"}
+    for p in _policies:
+        if p["id"] == policy_id:
+            p["status"] = "deleted"
+            return {"policy_id": policy_id, "status": "deleted"}
+    raise HTTPException(status_code=404, detail="Policy not found")

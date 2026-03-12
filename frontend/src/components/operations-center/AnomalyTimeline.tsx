@@ -32,7 +32,10 @@ export default function AnomalyTimeline() {
 
       <div className="flex gap-2 overflow-x-auto pb-2">
         {timelineEvents.length === 0 ? (
-          <p className="text-sm text-gray-500">No events yet</p>
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            <Clock className="h-4 w-4 text-gray-600" />
+            <span>Timeline will populate when agents detect anomalies</span>
+          </div>
         ) : (
           timelineEvents.slice(0, 12).map((event) => (
             <div

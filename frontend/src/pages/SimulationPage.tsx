@@ -19,6 +19,7 @@ interface Scenario {
   name: string;
   description: string;
   duration: number;
+  featured?: boolean;
 }
 
 const chaosActions: {
@@ -145,13 +146,22 @@ export default function SimulationPage() {
                   "flex items-center justify-between rounded-lg border bg-surface p-3 transition-colors",
                   activeScenario === scenario.id
                     ? "border-brand-500/50"
-                    : "border-gray-800"
+                    : scenario.featured
+                      ? "border-brand-600/30 bg-brand-600/5"
+                      : "border-gray-800"
                 )}
               >
                 <div>
-                  <p className="text-sm font-medium text-gray-200">
-                    {scenario.name}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-gray-200">
+                      {scenario.name}
+                    </p>
+                    {scenario.featured && (
+                      <span className="rounded bg-brand-600/20 px-1.5 py-0.5 text-[10px] font-semibold text-brand-400">
+                        RECOMMENDED
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs text-gray-500">
                     {scenario.description}
                   </p>

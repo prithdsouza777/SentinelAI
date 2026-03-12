@@ -23,6 +23,7 @@ async def _tick():
     from app.services.anomaly import anomaly_engine
     from app.agents.orchestrator import orchestrator
     from app.api.websocket import manager
+    from app.services.redis_client import redis_client
 
     metrics = simulation_engine.generate_metrics()
 
@@ -41,6 +42,7 @@ async def _tick():
             if len(_recent_alerts) > 100:
                 _recent_alerts.pop()
             await manager.broadcast("alert:new", a_dict)
+            await redis_client.push_json("sentinelai:alerts", a_dict, maxlen=100)
 
     # Run agents with camelCase dicts
     metrics_dicts = [m.model_dump(by_alias=True, mode="json") for m in metrics]
@@ -61,6 +63,7 @@ async def _tick():
         _recent_decisions.insert(0, d)
         if len(_recent_decisions) > 200:
             _recent_decisions.pop()
+        await redis_client.push_json("sentinelai:decisions", d, maxlen=200)
 
 
 async def _simulation_loop():
@@ -88,9 +91,13 @@ async def lifespan(app: FastAPI):
     app.state.recent_alerts = _recent_alerts
     app.state.recent_negotiations = _recent_negotiations
 
+    # Connect to Redis (graceful fallback to in-memory if unavailable)
+    from app.services.redis_client import redis_client
+    await redis_client.connect()
+
     print("SentinelAI backend starting...")
     print(f"  Simulation mode: {settings.simulation_mode}")
-    print(f"  Redis: {settings.redis_url}")
+    print(f"  Redis: {'connected' if redis_client.available else 'in-memory fallback'}")
 
     task = asyncio.create_task(_simulation_loop())
     yield
@@ -102,6 +109,7 @@ async def lifespan(app: FastAPI):
         await task
     except asyncio.CancelledError:
         pass
+    await redis_client.close()
 
 
 app = FastAPI(
