@@ -166,15 +166,33 @@ app.state.recent_negotiations = _recent_negotiations
 # When deployed via the root Dockerfile, built frontend lives in /app/static
 _static_dir = Path(__file__).resolve().parent.parent / "static"
 if _static_dir.is_dir():
-    from fastapi.responses import FileResponse
+    from starlette.responses import FileResponse as StarletteFileResponse
+    from starlette.types import ASGIApp, Receive, Scope, Send
 
     # Serve static assets (JS, CSS, images)
     app.mount("/assets", StaticFiles(directory=_static_dir / "assets"), name="assets")
 
-    # Catch-all: serve index.html for any non-API/non-WS route (SPA client-side routing)
-    @app.get("/{path:path}")
-    async def serve_spa(path: str):
-        file_path = _static_dir / path
-        if file_path.is_file():
-            return FileResponse(file_path)
-        return FileResponse(_static_dir / "index.html")
+    # SPA fallback middleware — serves index.html for non-API/non-WS 404s
+    class SPAFallbackMiddleware:
+        def __init__(self, app: ASGIApp):
+            self.app = app
+
+        async def __call__(self, scope: Scope, receive: Receive, send: Send):
+            if scope["type"] == "http":
+                path = scope.get("path", "")
+                # Don't intercept API or WS routes
+                if not path.startswith("/api") and not path.startswith("/ws"):
+                    # Try serving a static file first
+                    file_path = _static_dir / path.lstrip("/")
+                    if file_path.is_file():
+                        response = StarletteFileResponse(str(file_path))
+                        await response(scope, receive, send)
+                        return
+                    # For SPA routes (not a real file), serve index.html
+                    if "." not in path.split("/")[-1]:
+                        response = StarletteFileResponse(str(_static_dir / "index.html"))
+                        await response(scope, receive, send)
+                        return
+            await self.app(scope, receive, send)
+
+    app = SPAFallbackMiddleware(app)  # type: ignore[assignment]

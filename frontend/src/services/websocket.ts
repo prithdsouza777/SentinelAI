@@ -5,17 +5,21 @@ type ConnectionHandler = (connected: boolean) => void;
 
 class WebSocketService {
   private ws: WebSocket | null = null;
+  private sse: EventSource | null = null;
   private handlers: Map<string, Set<WSHandler>> = new Map();
   private connectionHandlers: Set<ConnectionHandler> = new Set();
   private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
   private reconnectAttempts = 0;
   private maxReconnectDelay = 30000;
-  private url: string;
+  private wsUrl: string;
+  private sseUrl: string;
   private _connected = false;
+  private _useSSE = false;
 
   constructor() {
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    this.url = `${protocol}//${window.location.host}/ws/dashboard`;
+    this.wsUrl = `${protocol}//${window.location.host}/ws/dashboard`;
+    this.sseUrl = `${window.location.origin}/api/stream`;
   }
 
   get connected() {
@@ -23,9 +27,17 @@ class WebSocketService {
   }
 
   connect() {
+    if (this._useSSE) {
+      this.connectSSE();
+      return;
+    }
+    this.connectWS();
+  }
+
+  private connectWS() {
     if (this.ws?.readyState === WebSocket.OPEN) return;
 
-    this.ws = new WebSocket(this.url);
+    this.ws = new WebSocket(this.wsUrl);
 
     this.ws.onopen = () => {
       console.log("[WS] Connected");
@@ -39,23 +51,21 @@ class WebSocketService {
     };
 
     this.ws.onmessage = (event) => {
-      const message: WSMessage = JSON.parse(event.data);
-      const handlers = this.handlers.get(message.event);
-      if (handlers) {
-        handlers.forEach((handler) => handler(message));
-      }
-      // Also notify wildcard listeners
-      const wildcardHandlers = this.handlers.get("*");
-      if (wildcardHandlers) {
-        wildcardHandlers.forEach((handler) => handler(message));
-      }
+      this.dispatchMessage(JSON.parse(event.data));
     };
 
-    this.ws.onclose = () => {
+    this.ws.onclose = (event) => {
       this._connected = false;
       this.connectionHandlers.forEach((h) => h(false));
 
-      // Exponential backoff: 1s -> 2s -> 4s -> 8s -> ... -> 30s cap
+      // If WebSocket was rejected with 403, switch to SSE permanently
+      if (event.code === 1006 && this.reconnectAttempts >= 2) {
+        console.log("[WS] WebSocket blocked, switching to SSE fallback");
+        this._useSSE = true;
+        this.connectSSE();
+        return;
+      }
+
       const delay = Math.min(
         1000 * Math.pow(2, this.reconnectAttempts),
         this.maxReconnectDelay
@@ -65,9 +75,50 @@ class WebSocketService {
       this.reconnectTimeout = setTimeout(() => this.connect(), delay);
     };
 
-    this.ws.onerror = (error) => {
-      console.error("[WS] Error:", error);
+    this.ws.onerror = () => {
+      // Error logged by onclose
     };
+  }
+
+  private connectSSE() {
+    if (this.sse) {
+      this.sse.close();
+    }
+
+    console.log("[SSE] Connecting...");
+    this.sse = new EventSource(this.sseUrl);
+
+    this.sse.onopen = () => {
+      console.log("[SSE] Connected");
+      this.reconnectAttempts = 0;
+      this._connected = true;
+      this.connectionHandlers.forEach((h) => h(true));
+    };
+
+    this.sse.onmessage = (event) => {
+      try {
+        this.dispatchMessage(JSON.parse(event.data));
+      } catch {
+        // keepalive comment, ignore
+      }
+    };
+
+    this.sse.onerror = () => {
+      this._connected = false;
+      this.connectionHandlers.forEach((h) => h(false));
+      // EventSource auto-reconnects
+    };
+  }
+
+  private dispatchMessage(message: WSMessage) {
+    const handlers = this.handlers.get(message.event);
+    if (handlers) {
+      handlers.forEach((handler) => handler(message));
+    }
+    const wildcardHandlers = this.handlers.get("*");
+    if (wildcardHandlers) {
+      wildcardHandlers.forEach((handler) => handler(message));
+    }
   }
 
   disconnect() {
@@ -76,6 +127,8 @@ class WebSocketService {
     }
     this.ws?.close();
     this.ws = null;
+    this.sse?.close();
+    this.sse = null;
     this._connected = false;
     this.connectionHandlers.forEach((h) => h(false));
   }
@@ -94,7 +147,6 @@ class WebSocketService {
 
   onConnectionChange(handler: ConnectionHandler) {
     this.connectionHandlers.add(handler);
-    // Immediately fire with current status
     handler(this._connected);
     return () => {
       this.connectionHandlers.delete(handler);
@@ -102,9 +154,17 @@ class WebSocketService {
   }
 
   send(event: string, data: unknown) {
+    // WebSocket: send directly
     if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify({ event, data, timestamp: new Date().toISOString() }));
+      return;
     }
+    // SSE fallback: use HTTP POST for client-to-server messages
+    fetch("/api/ws-action", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ event, data }),
+    }).catch(() => {});
   }
 }
 
