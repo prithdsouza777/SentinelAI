@@ -7,30 +7,21 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
+    restart: unless-stopped
 
-  dynamodb-local:
-    image: amazon/dynamodb-local:latest
-    ports:
-      - "8042:8000"
-    command: "-jar DynamoDBLocal.jar -sharedDb -dbPath /home/dynamodblocal/data"
-    volumes:
-      - dynamodb_data:/home/dynamodblocal/data
-
-  backend:
-    build: ./backend
+  sentinelai:
+    build: .
     ports:
       - "8000:8000"
+    env_file:
+      - backend/.env
     environment:
       - REDIS_URL=redis://redis:6379
-      - DYNAMODB_ENDPOINT=http://dynamodb-local:8000
       - SIMULATION_MODE=true
+      - CORS_ORIGINS=*
     depends_on:
       - redis
-      - dynamodb-local
-    volumes:
-      - ./backend:/app
-    command: uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+    restart: unless-stopped
 
 volumes:
   redis_data:
-  dynamodb_data:

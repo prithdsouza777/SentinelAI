@@ -1,12 +1,28 @@
 import asyncio
+import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.api.routes import alerts, agents, chat, health, queues, simulation
 from app.api.websocket import router as ws_router
 from app.config import settings
+
+# Configure logging for the entire sentinelai namespace
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)-8s [%(name)s] %(message)s",
+    datefmt="%H:%M:%S",
+)
+# Quiet noisy third-party loggers
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
+logging.getLogger("urllib3").setLevel(logging.WARNING)
+
+logger = logging.getLogger("sentinelai")
 
 # ── In-memory state (imported by routes via app.state) ────────────────────────
 _latest_metrics: dict[str, dict] = {}       # queue_id → latest QueueMetrics (camelCase)
@@ -72,15 +88,15 @@ async def _simulation_loop():
     from app.agents.orchestrator import orchestrator
 
     await orchestrator.initialize()
-    print("[loop] Simulation loop started — waiting for simulation.start()")
+    logger.info("Simulation loop started — waiting for simulation.start()")
 
     while True:
         try:
             if simulation_engine.running:
                 await _tick()
         except Exception as e:
-            print(f"[loop] tick error: {e}")
-        await asyncio.sleep(2)
+            logger.exception("Tick error")
+        await asyncio.sleep(3)
 
 
 @asynccontextmanager
@@ -95,15 +111,15 @@ async def lifespan(app: FastAPI):
     from app.services.redis_client import redis_client
     await redis_client.connect()
 
-    print("SentinelAI backend starting...")
-    print(f"  Simulation mode: {settings.simulation_mode}")
-    print(f"  Redis: {'connected' if redis_client.available else 'in-memory fallback'}")
+    logger.info("SentinelAI backend starting...")
+    logger.info("  Simulation mode: %s", settings.simulation_mode)
+    logger.info("  Redis: %s", "connected" if redis_client.available else "in-memory fallback")
 
     task = asyncio.create_task(_simulation_loop())
     yield
 
     # Shutdown
-    print("SentinelAI backend shutting down...")
+    logger.info("SentinelAI backend shutting down...")
     task.cancel()
     try:
         await task
@@ -120,10 +136,11 @@ app = FastAPI(
 )
 
 # CORS
+_origins = settings.cors_origins.split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins.split(","),
-    allow_credentials=True,
+    allow_origins=_origins,
+    allow_credentials=("*" not in _origins),  # credentials incompatible with wildcard
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -144,3 +161,20 @@ app.state.latest_metrics = _latest_metrics
 app.state.recent_decisions = _recent_decisions
 app.state.recent_alerts = _recent_alerts
 app.state.recent_negotiations = _recent_negotiations
+
+# ── Serve frontend static files in production ────────────────────────────────
+# When deployed via the root Dockerfile, built frontend lives in /app/static
+_static_dir = Path(__file__).resolve().parent.parent / "static"
+if _static_dir.is_dir():
+    from fastapi.responses import FileResponse
+
+    # Serve static assets (JS, CSS, images)
+    app.mount("/assets", StaticFiles(directory=_static_dir / "assets"), name="assets")
+
+    # Catch-all: serve index.html for any non-API/non-WS route (SPA client-side routing)
+    @app.get("/{path:path}")
+    async def serve_spa(path: str):
+        file_path = _static_dir / path
+        if file_path.is_file():
+            return FileResponse(file_path)
+        return FileResponse(_static_dir / "index.html")

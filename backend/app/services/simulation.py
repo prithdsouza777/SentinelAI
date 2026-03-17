@@ -5,11 +5,14 @@ that flows through the same pipeline as real Connect data.
 """
 
 import asyncio
+import logging
 import math
 import random
 from datetime import datetime, timezone
 
 from app.models import QueueMetrics
+
+logger = logging.getLogger("sentinelai.simulation")
 
 # Default simulated queues
 SIMULATED_QUEUES = [
@@ -27,27 +30,39 @@ _ORIGINAL_AGENTS = {q["id"]: q["agents"] for q in SIMULATED_QUEUES}
 # Each entry fires once when tick matches. "clear_*" entries undo earlier chaos.
 DEMO_SCRIPT = [
     # === Act 1: The Calm (ticks 0-14, ~30s) ===
-    # Normal operations, no events — agents observing
+    # Normal operations, no events — agents observing, cost at $0, green across the board
 
     # === Act 2: The Storm (tick 15, ~30s mark) ===
+    # Support queue gets slammed + General loses agents — dual-point failure
     {"tick": 15, "type": "spike_queue",   "params": {"queue_id": "q-support", "multiplier": 4.0}},
     {"tick": 15, "type": "kill_agents",   "params": {"queue_id": "q-general", "agents_count": 4}},
 
-    # === Act 3: Escalation (tick 22, ~44s) — secondary pressure ===
-    {"tick": 22, "type": "spike_queue",   "params": {"queue_id": "q-billing", "multiplier": 2.0}},
+    # === Act 3: The Cascade (tick 20, ~40s) — pressure spreads ===
+    # Support overflow spills into Billing — triggers multiple agents simultaneously
+    {"tick": 20, "type": "spike_queue",   "params": {"queue_id": "q-billing", "multiplier": 2.5}},
+    # VIP starts feeling pressure too (smaller spike, triggers Predictive Prevention)
+    {"tick": 23, "type": "spike_queue",   "params": {"queue_id": "q-vip", "multiplier": 2.0}},
 
-    # === Act 4: Partial Resolution (tick 37, ~74s) — restore general agents ===
-    {"tick": 37, "type": "restore_agents", "params": {"queue_id": "q-general"}},
+    # === Act 4: The Negotiation (tick 26, ~52s) ===
+    # Queue Balancer wants to pull from Sales -> Support
+    # Escalation Handler wants to pull from Sales -> Billing
+    # Both target Sales as donor — CONFLICT triggers negotiation protocol
+    # (This happens naturally because both agents will fire on the same tick)
 
-    # === Act 5: Stabilization (tick 45, ~90s) — clear billing spike ===
-    {"tick": 45, "type": "clear_spike",   "params": {"queue_id": "q-billing"}},
+    # === Act 5: Partial Resolution (tick 33, ~66s) — agents recovering General ===
+    {"tick": 33, "type": "restore_agents", "params": {"queue_id": "q-general"}},
+    {"tick": 35, "type": "clear_spike",   "params": {"queue_id": "q-vip"}},
 
-    # === Act 6: Full Resolution (tick 52, ~104s) — clear support spike ===
-    {"tick": 52, "type": "clear_spike",   "params": {"queue_id": "q-support"}},
+    # === Act 6: Stabilization (tick 40, ~80s) — crisis subsiding ===
+    {"tick": 40, "type": "clear_spike",   "params": {"queue_id": "q-billing"}},
 
-    # === Act 7: The Intelligence (ticks 60+, ~120s+) ===
+    # === Act 7: Full Resolution (tick 48, ~96s) — clear the main spike ===
+    {"tick": 48, "type": "clear_spike",   "params": {"queue_id": "q-support"}},
+
+    # === Act 8: The Intelligence (ticks 55+, ~110s+) ===
     # Metrics normalize. User asks "What just happened?" in chat.
-    # No scripted events — calm operations for the final 60s of demo.
+    # Cost ticker shows total savings. Governance scorecard shows decisions.
+    # No scripted events — calm operations for the final ~70s of demo.
 ]
 
 
@@ -182,7 +197,7 @@ class SimulationEngine:
         """Check DEMO_SCRIPT for events matching the current tick and inject them."""
         for entry in DEMO_SCRIPT:
             if entry["tick"] == self.tick:
-                print(f"[demo] tick {self.tick}: injecting {entry['type']} {entry.get('params', {})}")
+                logger.info("Demo tick %d: injecting %s %s", self.tick, entry["type"], entry.get("params", {}))
                 self.inject_chaos(entry["type"], entry.get("params", {}))
 
     async def start(self, scenario: str = "normal"):

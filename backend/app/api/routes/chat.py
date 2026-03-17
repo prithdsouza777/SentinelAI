@@ -54,9 +54,22 @@ def _build_chat_context(request: Request) -> dict:
     """Extract live system state from app.state for the Analytics Agent."""
     context: dict = {}
     try:
-        context["recent_alerts"] = list(getattr(request.app.state, "recent_alerts", []))[:10]
-        context["recent_decisions"] = list(getattr(request.app.state, "recent_decisions", []))[:10]
+        context["recent_alerts"] = list(getattr(request.app.state, "recent_alerts", []))[:20]
+        context["recent_decisions"] = list(getattr(request.app.state, "recent_decisions", []))[:15]
         context["queue_metrics"] = list(getattr(request.app.state, "latest_metrics", {}).values())
+        context["recent_negotiations"] = list(getattr(request.app.state, "recent_negotiations", []))[:5]
+
+        # Cost data from orchestrator
+        from app.agents.orchestrator import orchestrator
+        context["cost_data"] = {
+            "totalSaved": orchestrator._total_saved,
+            "revenueAtRisk": orchestrator._revenue_at_risk,
+            "totalPreventedAbandoned": orchestrator._prevented_abandoned,
+            "actionsToday": orchestrator._actions_today,
+        }
+
+        # Governance snapshot
+        context["governance"] = guardrails.get_governance_summary()
     except Exception:
         pass
     return context
@@ -99,9 +112,11 @@ async def send_message(body: ChatRequest, request: Request):
         )
 
     from app.agents.analytics import analytics_agent
+    from app.services.sanitizer import sanitize_string
 
+    sanitized_message = sanitize_string(body.message)
     context = _build_chat_context(request)
-    result = await analytics_agent.query(body.message, context)
+    result = await analytics_agent.query(sanitized_message, context)
 
     return {
         "message": result["message"],

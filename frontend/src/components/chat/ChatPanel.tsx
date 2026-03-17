@@ -1,8 +1,11 @@
 import { useState } from "react";
-import { Send, MessageSquare } from "lucide-react";
+import { Send, MessageSquare, Sparkles } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useDashboardStore } from "../../stores/dashboardStore";
 import { chatApi } from "../../services/api";
 import type { ChatMessage } from "../../types";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
 
 export default function ChatPanel() {
   const [input, setInput] = useState("");
@@ -46,54 +49,66 @@ export default function ChatPanel() {
   };
 
   return (
-    <div className="card flex min-h-0 flex-1 flex-col overflow-hidden">
-      <div className="card-header">
-        <span className="card-title">Command Center</span>
-        <MessageSquare className="h-4 w-4 text-gray-500" />
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-white/[0.06] bg-card/50 backdrop-blur-sm">
+      <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-3">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-purple-400" />
+          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Command Center</span>
+        </div>
+        <MessageSquare className="h-4 w-4 text-muted-foreground" />
       </div>
 
-      <div className="flex-1 space-y-2 overflow-auto">
-        {messages.length === 0 ? (
-          <p className="text-xs text-gray-500">
-            Ask about queue status, give commands, or create policies...
-          </p>
-        ) : (
-          messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`rounded-lg p-2 text-sm ${
-                msg.role === "user"
-                  ? "ml-4 bg-brand-600/15 text-gray-200"
-                  : "mr-4 bg-surface text-gray-300"
-              }`}
-            >
-              {msg.content}
+      <ScrollArea className="flex-1 p-3">
+        <div className="space-y-2">
+          {messages.length === 0 ? (
+            <p className="text-xs text-muted-foreground/60">
+              Ask about queue status, give commands, or create policies...
+            </p>
+          ) : (
+            messages.map((msg) => (
+              <div
+                key={msg.id}
+                className={cn(
+                  "rounded-xl p-2.5 text-[12px] leading-relaxed",
+                  msg.role === "user"
+                    ? "ml-4 border border-blue-500/15 bg-blue-500/10 text-foreground"
+                    : "mr-4 border border-white/[0.06] bg-white/[0.03] text-foreground/90"
+                )}
+              >
+                {msg.content}
+              </div>
+            ))
+          )}
+          {loading && (
+            <div className="mr-4 rounded-xl border border-white/[0.06] bg-white/[0.03] p-2.5 text-[12px] text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5">
+                <Sparkles className="h-3 w-3 animate-pulse text-purple-400" />
+                Thinking...
+              </span>
             </div>
-          ))
-        )}
-        {loading && (
-          <div className="mr-4 rounded-lg bg-surface p-2 text-sm text-gray-500">
-            <span className="animate-pulse">Thinking...</span>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      </ScrollArea>
 
-      <div className="mt-2 flex gap-2">
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleSend()}
-          placeholder="Type a command..."
-          className="flex-1 rounded-lg border border-gray-700 bg-surface px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:border-brand-500 focus:outline-none"
-        />
-        <button
-          onClick={handleSend}
-          disabled={loading || !input.trim()}
-          className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600 text-white transition-colors hover:bg-brand-700 disabled:opacity-50"
-        >
-          <Send className="h-4 w-4" />
-        </button>
+      <div className="border-t border-white/[0.06] p-3">
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSend()}
+            placeholder="Type a command..."
+            className="flex-1 rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-sm text-foreground placeholder-muted-foreground/50 focus:border-blue-500/30 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
+          />
+          <Button
+            onClick={handleSend}
+            disabled={loading || !input.trim()}
+            size="icon"
+            className="h-9 w-9 bg-gradient-to-r from-blue-600 to-purple-600 shadow-lg shadow-blue-500/20 hover:from-blue-500 hover:to-purple-500"
+          >
+            <Send className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
     </div>
   );

@@ -5,9 +5,12 @@ When simulation_mode is enabled, returns data from the simulation engine instead
 """
 
 import json
+import logging
 
 from app.config import settings
 from app.models import QueueMetrics
+
+logger = logging.getLogger("sentinelai.connect")
 
 
 class ConnectService:
@@ -21,7 +24,7 @@ class ConnectService:
                 import boto3
                 self._client = boto3.client("connect", region_name=settings.connect_region)
             except Exception as e:
-                print(f"[connect] Failed to create client: {e}")
+                logger.warning("Failed to create client: %s", e)
         return self._client
 
     async def get_current_metrics(self) -> list[QueueMetrics]:
@@ -49,7 +52,7 @@ class ConnectService:
             )
             return self._parse_connect_metrics(response)
         except Exception as e:
-            print(f"[connect] get_current_metrics error: {e}")
+            logger.warning("get_current_metrics error: %s", e)
             return []
 
     async def list_queues(self) -> list[dict]:
@@ -76,7 +79,7 @@ class ConnectService:
                 for q in response.get("QueueSummaryList", [])
             ]
         except Exception as e:
-            print(f"[connect] list_queues error: {e}")
+            logger.warning("list_queues error: %s", e)
             return []
 
     async def update_routing_profile(self, agent_id: str, routing_profile_id: str) -> bool:
@@ -98,7 +101,7 @@ class ConnectService:
             )
             return True
         except Exception as e:
-            print(f"[connect] update_routing_profile error: {e}")
+            logger.warning("update_routing_profile error: %s", e)
             return False
 
     async def health_check(self) -> dict:

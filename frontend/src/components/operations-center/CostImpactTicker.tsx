@@ -1,6 +1,34 @@
 import { AlertTriangle, DollarSign, TrendingUp, ShieldCheck } from "lucide-react";
 import { useDashboardStore } from "../../stores/dashboardStore";
-import { clsx } from "clsx";
+import { cn } from "@/lib/utils";
+import { AnimatedCounter } from "@/components/ui/animated-counter";
+import { motion, AnimatePresence } from "framer-motion";
+
+function StatBlock({
+  icon: Icon,
+  label,
+  children,
+  iconColor,
+  glowClass,
+}: {
+  icon: typeof DollarSign;
+  label: string;
+  children: React.ReactNode;
+  iconColor: string;
+  glowClass?: string;
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <div className={cn("flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.06] bg-white/[0.03]", glowClass)}>
+        <Icon className={cn("h-5 w-5", iconColor)} />
+      </div>
+      <div>
+        <p className="text-[11px] font-medium text-muted-foreground">{label}</p>
+        {children}
+      </div>
+    </div>
+  );
+}
 
 export default function CostImpactTicker() {
   const cost = useDashboardStore((s) => s.costSummary);
@@ -9,63 +37,70 @@ export default function CostImpactTicker() {
 
   if (!simulationActive && !hasSavings) {
     return (
-      <div className="card flex items-center gap-4">
-        <DollarSign className="h-5 w-5 text-gray-600" />
-        <span className="text-sm text-gray-500">Cost impact will appear when simulation is active</span>
+      <div className="flex items-center gap-4 rounded-xl border border-white/[0.06] bg-card/50 p-4 backdrop-blur-sm">
+        <DollarSign className="h-5 w-5 text-muted-foreground" />
+        <span className="text-sm text-muted-foreground">Cost impact will appear when simulation is active</span>
       </div>
     );
   }
 
   return (
-    <div className={clsx("card flex items-center gap-6", hasSavings && "animate-glow-pulse")}>
-      {(cost.revenueAtRisk ?? 0) > 0 && (
-        <>
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-500/15 animate-pulse">
-              <AlertTriangle className="h-5 w-5 text-red-400" />
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-red-400">Revenue at Risk</p>
-              <p className="text-xl font-bold text-red-400">
-                ${(cost.revenueAtRisk ?? 0).toLocaleString()}
-              </p>
-            </div>
-          </div>
-          <div className="h-8 w-px bg-gray-800" />
-        </>
+    <motion.div
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={cn(
+        "relative flex items-center gap-6 overflow-hidden rounded-xl border border-white/[0.06] bg-card/80 p-4 backdrop-blur-sm",
+        hasSavings && "glow-green"
       )}
+    >
+      {/* Subtle gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/[0.03] via-transparent to-blue-500/[0.03]" />
 
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent-success/15">
-          <DollarSign className="h-5 w-5 text-accent-success" />
-        </div>
-        <div>
-          <p className="text-xs text-gray-400">Total Saved</p>
-          <p className="text-xl font-bold text-accent-success">
-            ${cost.totalSaved.toLocaleString()}
+      <AnimatePresence>
+        {(cost.revenueAtRisk ?? 0) > 0 && (
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="relative"
+          >
+            <StatBlock icon={AlertTriangle} label="Revenue at Risk" iconColor="text-red-400" glowClass="animate-pulse border-red-500/20">
+              <p className="text-xl font-bold tabular-nums text-red-400">
+                <AnimatedCounter value={cost.revenueAtRisk ?? 0} prefix="$" />
+              </p>
+            </StatBlock>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {(cost.revenueAtRisk ?? 0) > 0 && <div className="relative h-8 w-px bg-white/[0.06]" />}
+
+      <div className="relative">
+        <StatBlock icon={DollarSign} label="Total Saved" iconColor="text-emerald-400">
+          <p className="text-xl font-bold tabular-nums text-emerald-400">
+            <AnimatedCounter value={cost.totalSaved} prefix="$" />
           </p>
-        </div>
+        </StatBlock>
       </div>
 
-      <div className="h-8 w-px bg-gray-800" />
+      <div className="relative h-8 w-px bg-white/[0.06]" />
 
-      <div className="flex items-center gap-3">
-        <ShieldCheck className="h-5 w-5 text-brand-400" />
-        <div>
-          <p className="text-xs text-gray-400">Prevented Abandoned</p>
-          <p className="text-lg font-semibold">{cost.totalPreventedAbandoned}</p>
-        </div>
+      <div className="relative">
+        <StatBlock icon={ShieldCheck} label="Prevented Abandoned" iconColor="text-blue-400">
+          <p className="text-lg font-semibold tabular-nums">
+            <AnimatedCounter value={cost.totalPreventedAbandoned} />
+          </p>
+        </StatBlock>
       </div>
 
-      <div className="h-8 w-px bg-gray-800" />
+      <div className="relative h-8 w-px bg-white/[0.06]" />
 
-      <div className="flex items-center gap-3">
-        <TrendingUp className="h-5 w-5 text-purple-400" />
-        <div>
-          <p className="text-xs text-gray-400">AI Actions Today</p>
-          <p className="text-lg font-semibold">{cost.actionsToday}</p>
-        </div>
+      <div className="relative">
+        <StatBlock icon={TrendingUp} label="AI Actions" iconColor="text-purple-400">
+          <p className="text-lg font-semibold tabular-nums">
+            <AnimatedCounter value={cost.actionsToday} />
+          </p>
+        </StatBlock>
       </div>
-    </div>
+    </motion.div>
   );
 }

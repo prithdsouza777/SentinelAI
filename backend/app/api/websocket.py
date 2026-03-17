@@ -1,7 +1,10 @@
 import json
+import logging
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+
+logger = logging.getLogger("sentinelai.websocket")
 
 router = APIRouter()
 
@@ -28,8 +31,8 @@ class ConnectionManager:
         for connection in self.active_connections:
             try:
                 await connection.send_text(message)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("WS send failed: %s", e)
 
 
 manager = ConnectionManager()

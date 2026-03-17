@@ -77,13 +77,23 @@ export default function WebSocketProvider() {
       }),
 
       wsService.on("action:approved", (msg) => {
-        const { id } = msg.data as { id: string };
-        approveDecision(id);
+        const data = msg.data as { id?: string; decisionId?: string };
+        approveDecision(data.decisionId || data.id || "");
       }),
 
       wsService.on("action:rejected", (msg) => {
-        const { id } = msg.data as { id: string };
-        rejectDecision(id);
+        const data = msg.data as { id?: string; decisionId?: string };
+        rejectDecision(data.decisionId || data.id || "");
+      }),
+
+      wsService.on("action:auto_approved", (msg) => {
+        const data = msg.data as { decisionId?: string };
+        if (data.decisionId) approveDecision(data.decisionId);
+      }),
+
+      wsService.on("action:human_approved", (msg) => {
+        const data = msg.data as { decisionId?: string };
+        if (data.decisionId) approveDecision(data.decisionId);
       }),
 
       wsService.on("governance:update", (msg) => {

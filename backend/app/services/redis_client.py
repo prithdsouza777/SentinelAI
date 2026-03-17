@@ -5,11 +5,14 @@ When Redis is unavailable, the app works identically using in-memory lists.
 """
 
 import json
+import logging
 from datetime import datetime, timezone
 
 import redis.asyncio as aioredis
 
 from app.config import settings
+
+logger = logging.getLogger("sentinelai.redis")
 
 
 class RedisClient:
@@ -31,9 +34,9 @@ class RedisClient:
             )
             await self._client.ping()
             self._available = True
-            print(f"[redis] Connected to {settings.redis_url}")
+            logger.info("Connected to %s", settings.redis_url)
         except Exception as e:
-            print(f"[redis] Not available: {e}. Using in-memory fallback.")
+            logger.info("Not available: %s. Using in-memory fallback.", e)
             self._available = False
 
     async def close(self):
@@ -51,7 +54,7 @@ class RedisClient:
             await self._client.lpush(key, json.dumps(value, default=str))
             await self._client.ltrim(key, 0, maxlen - 1)
         except Exception as e:
-            print(f"[redis] push_json error: {e}")
+            logger.warning("push_json error: %s", e)
 
     async def get_list(self, key: str, limit: int = 100) -> list[dict]:
         """Get a list of JSON objects from Redis."""
@@ -61,7 +64,7 @@ class RedisClient:
             items = await self._client.lrange(key, 0, limit - 1)
             return [json.loads(i) for i in items]
         except Exception as e:
-            print(f"[redis] get_list error: {e}")
+            logger.warning("get_list error: %s", e)
             return []
 
     async def set_json(self, key: str, value: dict, ttl: int | None = None):
@@ -75,7 +78,7 @@ class RedisClient:
             else:
                 await self._client.set(key, data)
         except Exception as e:
-            print(f"[redis] set_json error: {e}")
+            logger.warning("set_json error: %s", e)
 
     async def get_json(self, key: str) -> dict | None:
         """Get a JSON value by key."""
@@ -85,7 +88,7 @@ class RedisClient:
             data = await self._client.get(key)
             return json.loads(data) if data else None
         except Exception as e:
-            print(f"[redis] get_json error: {e}")
+            logger.warning("get_json error: %s", e)
             return None
 
     async def incr(self, key: str, amount: float = 1.0) -> float:
@@ -95,7 +98,7 @@ class RedisClient:
         try:
             return float(await self._client.incrbyfloat(key, amount))
         except Exception as e:
-            print(f"[redis] incr error: {e}")
+            logger.warning("incr error: %s", e)
             return 0.0
 
     async def health_check(self) -> dict:

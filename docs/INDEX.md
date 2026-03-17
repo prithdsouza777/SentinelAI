@@ -7,56 +7,60 @@
 
 | Doc | What It Answers |
 |-----|----------------|
+| [../README.md](../README.md) | Project overview, setup instructions, tech stack |
+| [../OVERVIEW.md](../OVERVIEW.md) | Non-technical explanation of the entire project |
 | [STATUS.md](./STATUS.md) | What has been built? What's broken? What % is done? |
-| [TASKS.md](./TASKS.md) | What should I build RIGHT NOW? (Current sprint W1) |
-| [BACKLOG.md](./BACKLOG.md) | What comes after? (Sprints W2, W3, W4) |
+| [TASKS.md](./TASKS.md) | What should I build RIGHT NOW? (Current sprint) |
+| [BACKLOG.md](./BACKLOG.md) | What comes after? (Future sprints) |
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | How should I write the code? Patterns, conventions, contracts |
 | [CONTEXT.md](./CONTEXT.md) | Why are we building this? What must the demo show? |
 
 ---
 
-## Current Build State — Snapshot (Updated 2026-03-11)
+## Current Build State — Snapshot (Updated 2026-03-17)
 
 | Sprint | Status | Key Blocker |
 |--------|--------|-------------|
-| Week 1: Foundation | ✅ DONE | — |
-| Week 2: Core Features | ✅ DONE | — |
-| Week 2.5: Governance (SentinelAI) | ✅ DONE | — |
-| Week 3: Intelligence | 🟡 IN PROGRESS | Bedrock + Analytics Agent + Chat |
-| Week 4: Polish | ⬜ NOT STARTED | Blocked on W3 |
+| Week 1: Foundation | Done | — |
+| Week 2: Core Features | Done | — |
+| Week 2.5: Governance (SentinelAI) | Done | — |
+| Week 3: Intelligence | Done | — |
+| Week 4: Polish | Done | — |
 
-**Overall: ~85% complete**
-→ Full breakdown in [STATUS.md](./STATUS.md)
+**Overall: ~100% complete — fully functional demo-ready product**
 
----
-
-## The Single Most Important Task Right Now
-
-**Build the Bedrock/MockLLM service and wire the Analytics Agent + Chat route** — needed for the "What just happened?" moment in the 3-minute demo.
-
-→ See [BACKLOG.md](./BACKLOG.md) — Tasks **W3-1** (Bedrock), **W3-2** (Analytics Agent + Chat)
+Key milestones achieved:
+- All 4 AI agents fully implemented with real Gemini LLM reasoning
+- LangGraph parallel orchestration working
+- Human-in-the-loop governance (approve/reject with auto-approve countdown)
+- Multi-agent negotiation protocol live
+- Chat with natural language queries and what-if analysis
+- Chaos engine with 4 injection types
+- 6 simulation scenarios including choreographed 3-minute demo
+- Full dark glassmorphism UI redesign (shadcn/ui + Aceternity UI)
+- 16/16 backend tests passing, 0 TypeScript errors
 
 ---
 
 ## 60-Second Orientation for Any Model
 
-1. **Frontend is done.** All 6 pages, Zustand store, WebSocket client, TypeScript types, confidence bars, approve/reject buttons, governance scorecard — complete.
+1. **Frontend is done.** All 6 pages with shadcn/ui + Aceternity UI dark theme, Zustand store, WebSocket client, approve/reject buttons, guardrail badges, auto-approve countdown, animated components.
 
-2. **Backend agents/orchestrator/governance are done.** Queue Balancer, Predictive Prevention, Escalation Handler, Negotiation Protocol, GuardrailsLayer (SentinelAI), full orchestrator with revenue-at-risk tracking — all complete.
+2. **Backend is done.** All 4 agents (Queue Balancer, Predictive Prevention, Escalation Handler, Analytics) powered by Gemini 2.5 Flash Lite with 4-tier LLM fallback. LangGraph parallel orchestrator, negotiation protocol, guardrails layer.
 
-3. **What's left:** Bedrock service (with MockLLM fallback), Analytics Agent real implementation, Chat route wiring, scripted demo scenario, NL policy engine.
+3. **LLM**: Google Gemini 2.5 Flash Lite (primary) via `google-genai` SDK. Falls back to Anthropic > AWS Bedrock > MockLLM. Config in `backend/.env` with `GEMINI_API_KEY`.
 
 4. **Critical gotcha**: Backend uses `snake_case`, frontend needs `camelCase`. Fixed via `CamelModel` base class — always serialize with `.model_dump(by_alias=True, mode="json")`.
 
-5. **Simulation-first**. Real AWS Connect is Week 4 optional. All demos run on the built-in simulation engine.
+5. **Simulation-first**. All demos run on the built-in simulation engine. Real AWS Connect is optional.
 
 ---
 
 ## How to Run the Project
 
 ```bash
-# From C:\Users\prith\Downloads\Buildathon
-
+# From the SentinelAI root directory
+npm install              # install frontend + backend dependencies
 npm run dev              # frontend (:5173) + backend (:8000) concurrently
 cd backend && pytest     # run tests
 ```
@@ -65,18 +69,3 @@ cd backend && pytest     # run tests
 **Frontend**: http://localhost:5173
 **API docs**: http://localhost:8000/docs
 **WebSocket**: ws://localhost:8000/ws/dashboard
-
----
-
-## Document Update Protocol
-
-When you finish a task:
-1. In [TASKS.md](./TASKS.md) — change task status from `TODO` → `DONE`
-2. In [STATUS.md](./STATUS.md) — update the component's % and status
-3. In this file — update the sprint status row above if a sprint completes
-
-When you start a new session:
-1. Read this file first
-2. Read [STATUS.md](./STATUS.md) to see current state
-3. Read [TASKS.md](./TASKS.md) and find the first `TODO` task
-4. Read the relevant section in [ARCHITECTURE.md](./ARCHITECTURE.md) before coding

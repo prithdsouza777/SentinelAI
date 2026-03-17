@@ -11,7 +11,7 @@ async def health_check():
     from app.services.bedrock import bedrock_service
 
     redis_health = await redis_client.health_check()
-    bedrock_status = "mock" if bedrock_service.is_mock else "bedrock"
+    provider = bedrock_service.provider_name
 
     return {
         "status": "healthy",
@@ -19,9 +19,14 @@ async def health_check():
         "simulation_mode": settings.simulation_mode,
         "services": {
             "redis": redis_health,
-            "bedrock": {
-                "status": bedrock_status,
-                "model": settings.bedrock_model_id if bedrock_status == "bedrock" else "MockBedrockLLM",
+            "llm": {
+                "provider": provider,
+                "model": {
+                    "gemini": settings.gemini_model,
+                    "anthropic": settings.anthropic_model,
+                    "bedrock": settings.bedrock_model_id,
+                    "mock": "MockBedrockLLM",
+                }.get(provider, "unknown"),
             },
         },
     }

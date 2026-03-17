@@ -15,7 +15,7 @@ async def test_health_check():
     assert "version" in data
     assert "services" in data
     assert "redis" in data["services"]
-    assert "bedrock" in data["services"]
+    assert "llm" in data["services"]
 
 
 @pytest.mark.asyncio

@@ -7,7 +7,8 @@ import {
   FlaskConical,
   Settings,
 } from "lucide-react";
-import { clsx } from "clsx";
+import { cn } from "@/lib/utils";
+
 
 const navItems = [
   { icon: LayoutDashboard, label: "Operations", href: "/" },
@@ -20,10 +21,10 @@ const navItems = [
 
 export default function Sidebar() {
   return (
-    <aside className="flex w-16 flex-col items-center border-r border-gray-800 bg-surface py-4">
+    <aside className="flex w-16 flex-col items-center border-r border-white/[0.06] bg-surface py-4">
       <NavLink
         to="/"
-        className="mb-6 flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-sm font-bold"
+        className="mb-6 flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 text-xs font-bold text-white shadow-lg shadow-blue-500/20 transition-transform hover:scale-105"
         title="SentinelAI"
       >
         AI
@@ -36,16 +37,16 @@ export default function Sidebar() {
             to={item.href}
             end={item.href === "/"}
             className={({ isActive }) =>
-              clsx(
-                "group flex h-10 w-10 items-center justify-center rounded-lg transition-colors",
+              cn(
+                "group flex h-10 w-10 items-center justify-center rounded-lg transition-all duration-200",
                 isActive
-                  ? "bg-brand-600/15 text-brand-400"
-                  : "text-gray-500 hover:bg-gray-800 hover:text-gray-300"
+                  ? "bg-white/10 text-white shadow-sm shadow-blue-500/10"
+                  : "text-muted-foreground hover:bg-white/5 hover:text-white"
               )
             }
             title={item.label}
           >
-            <item.icon className="h-5 w-5" />
+            <item.icon className="h-[18px] w-[18px]" />
           </NavLink>
         ))}
       </nav>

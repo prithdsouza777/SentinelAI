@@ -1,24 +1,34 @@
-import { AlertTriangle, CheckCircle, Info, XCircle, Filter } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Info, XCircle, Shield } from "lucide-react";
 import { useState } from "react";
-import { clsx } from "clsx";
+import { cn } from "@/lib/utils";
 import { useDashboardStore } from "../stores/dashboardStore";
 import { alertsApi } from "../services/api";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
+import { motion, AnimatePresence } from "framer-motion";
 import type { AlertSeverity } from "../types";
 
 const severityConfig: Record<
   AlertSeverity,
-  { icon: typeof Info; color: string; bg: string }
+  { icon: typeof Info; color: string; border: string; bg: string }
 > = {
-  info: { icon: Info, color: "text-accent-info", bg: "bg-accent-info/10" },
+  info: {
+    icon: Info,
+    color: "text-blue-400",
+    border: "border-blue-500/20",
+    bg: "bg-blue-500/10",
+  },
   warning: {
     icon: AlertTriangle,
-    color: "text-accent-warning",
-    bg: "bg-accent-warning/10",
+    color: "text-amber-400",
+    border: "border-amber-500/20",
+    bg: "bg-amber-500/10",
   },
   critical: {
     icon: XCircle,
-    color: "text-accent-danger",
-    bg: "bg-accent-danger/10",
+    color: "text-red-400",
+    border: "border-red-500/20",
+    bg: "bg-red-500/10",
   },
 };
 
@@ -39,141 +49,164 @@ export default function AlertsPage() {
   const activeCount = alerts.filter((a) => !a.resolvedAt).length;
 
   return (
-    <div className="flex h-full flex-col gap-4 overflow-auto">
+    <div className="flex h-full flex-col gap-4 overflow-hidden">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold">Alerts</h2>
-          <p className="text-sm text-gray-500">
-            {activeCount} active alert{activeCount !== 1 ? "s" : ""} — {alerts.length} total
+          <h2 className="text-lg font-semibold text-foreground">Alerts</h2>
+          <p className="text-sm text-muted-foreground">
+            {activeCount > 0 && (
+              <span className="mr-1 inline-flex items-center gap-1 text-red-400">
+                <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-red-400" />
+                {activeCount} active
+              </span>
+            )}
+            {alerts.length} total alerts
           </p>
         </div>
-        <Filter className="h-4 w-4 text-gray-500" />
+        <Shield className="h-5 w-5 text-muted-foreground/40" />
       </div>
 
       {/* Filters */}
-      <div className="flex gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {(["all", "active", "resolved"] as FilterType[]).map((f) => (
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={clsx(
-              "rounded-lg px-3 py-1.5 text-xs font-medium capitalize transition-colors",
+            className={cn(
+              "rounded-lg px-3 py-1.5 text-xs font-medium capitalize transition-all",
               filter === f
-                ? "bg-brand-600/15 text-brand-400"
-                : "text-gray-500 hover:bg-gray-800 hover:text-gray-300"
+                ? "bg-white/10 text-white shadow-sm"
+                : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
             )}
           >
             {f}
           </button>
         ))}
-        <div className="mx-2 w-px bg-gray-800" />
-        {(["all", "info", "warning", "critical"] as (AlertSeverity | "all")[]).map(
-          (s) => (
-            <button
-              key={s}
-              onClick={() => setSeverityFilter(s)}
-              className={clsx(
-                "rounded-lg px-3 py-1.5 text-xs font-medium capitalize transition-colors",
-                severityFilter === s
-                  ? "bg-brand-600/15 text-brand-400"
-                  : "text-gray-500 hover:bg-gray-800 hover:text-gray-300"
-              )}
-            >
-              {s}
-            </button>
-          )
-        )}
+        <div className="mx-1 h-4 w-px bg-white/[0.08]" />
+        {(["all", "info", "warning", "critical"] as (AlertSeverity | "all")[]).map((s) => (
+          <button
+            key={s}
+            onClick={() => setSeverityFilter(s)}
+            className={cn(
+              "rounded-lg px-3 py-1.5 text-xs font-medium capitalize transition-all",
+              severityFilter === s
+                ? "bg-white/10 text-white shadow-sm"
+                : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
+            )}
+          >
+            {s}
+          </button>
+        ))}
       </div>
 
       {/* Alert List */}
-      <div className="space-y-2">
-        {filtered.length === 0 ? (
-          <div className="card flex flex-col items-center gap-2 py-12 text-center">
-            <CheckCircle className="h-8 w-8 text-accent-success" />
-            <p className="text-sm text-gray-400">
-              {alerts.length === 0
-                ? "No alerts yet. The anomaly engine will detect issues automatically."
-                : "No alerts match your filters."}
-            </p>
-          </div>
-        ) : (
-          filtered.map((alert) => {
-            const config = severityConfig[alert.severity];
-            const Icon = config.icon;
-            return (
-              <div
-                key={alert.id}
-                className={clsx(
-                  "card flex gap-4",
-                  alert.resolvedAt && "opacity-50"
-                )}
-              >
-                <div
-                  className={clsx(
-                    "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg",
-                    config.bg
-                  )}
-                >
-                  <Icon className={clsx("h-5 w-5", config.color)} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-start justify-between gap-2">
-                    <h3 className="font-medium text-gray-200">{alert.title}</h3>
-                    <span className="shrink-0 text-xs text-gray-600">
-                      {new Date(alert.timestamp).toLocaleString()}
-                    </span>
-                  </div>
-                  <p className="mt-0.5 text-sm text-gray-400">
-                    {alert.description}
-                  </p>
-                  <div className="mt-2 flex items-center gap-3 text-xs">
-                    <span className="text-gray-500">
-                      Queue: <span className="text-gray-300">{alert.queueName}</span>
-                    </span>
-                    {alert.anomalyVelocity != null && (
-                      <span className="text-gray-500">
-                        Velocity:{" "}
-                        <span className="text-gray-300">
-                          {alert.anomalyVelocity.toFixed(1)}
-                        </span>
-                      </span>
+      <ScrollArea className="flex-1">
+        <div className="space-y-2 pr-2">
+          {filtered.length === 0 ? (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex flex-col items-center gap-3 rounded-xl border border-white/[0.06] bg-card/50 py-16 text-center backdrop-blur-sm"
+            >
+              <CheckCircle2 className="h-10 w-10 text-emerald-400/40" />
+              <p className="text-sm text-muted-foreground">
+                {alerts.length === 0
+                  ? "No alerts yet. The anomaly engine will detect issues automatically."
+                  : "No alerts match your filters."}
+              </p>
+            </motion.div>
+          ) : (
+            <AnimatePresence mode="popLayout">
+              {filtered.map((alert, i) => {
+                const config = severityConfig[alert.severity];
+                const Icon = config.icon;
+                return (
+                  <motion.div
+                    key={alert.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.03 }}
+                    className={cn(
+                      "flex gap-4 rounded-xl border bg-card/50 p-4 backdrop-blur-sm transition-all",
+                      alert.resolvedAt
+                        ? "border-white/[0.04] opacity-50"
+                        : config.border,
+                      !alert.resolvedAt && alert.severity === "critical" && "animate-critical-flash"
                     )}
-                    {alert.resolvedAt ? (
-                      <span className="badge badge-success">Resolved</span>
-                    ) : (
-                      <span className={clsx("badge", `badge-${alert.severity === "critical" ? "danger" : alert.severity}`)}>
-                        {alert.severity}
-                      </span>
-                    )}
-                  </div>
-                  {alert.recommendedAction && (
-                    <div className="mt-2 rounded-lg bg-surface px-3 py-2 text-xs text-gray-400">
-                      <span className="font-medium text-gray-300">
-                        Recommended:
-                      </span>{" "}
-                      {alert.recommendedAction}
+                  >
+                    <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", config.bg)}>
+                      <Icon className={cn("h-5 w-5", config.color)} />
                     </div>
-                  )}
-                  {!alert.resolvedAt && (
-                    <button
-                      onClick={async () => {
-                        try {
-                          await alertsApi.acknowledge(alert.id);
-                          useDashboardStore.getState().resolveAlert(alert.id);
-                        } catch { /* ignore */ }
-                      }}
-                      className="mt-2 flex items-center gap-1.5 rounded-lg bg-accent-success/15 px-3 py-1.5 text-xs font-medium text-accent-success transition-colors hover:bg-accent-success/25"
-                    >
-                      <CheckCircle className="h-3 w-3" />
-                      Acknowledge
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })
-        )}
-      </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="font-medium text-foreground">{alert.title}</h3>
+                        <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground">
+                          {new Date(alert.timestamp).toLocaleTimeString()}
+                        </span>
+                      </div>
+                      <p className="mt-0.5 text-[12px] leading-relaxed text-muted-foreground">
+                        {alert.description}
+                      </p>
+                      <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px]">
+                        <span className="text-muted-foreground/70">
+                          Queue: <span className="text-foreground/80">{alert.queueName}</span>
+                        </span>
+                        {alert.anomalyVelocity != null && (
+                          <span className="text-muted-foreground/70">
+                            Velocity:{" "}
+                            <span className="tabular-nums text-foreground/80">
+                              {alert.anomalyVelocity.toFixed(1)}
+                            </span>
+                          </span>
+                        )}
+                        {alert.resolvedAt ? (
+                          <span className="flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-400">
+                            <CheckCircle2 className="h-2.5 w-2.5" />
+                            Resolved
+                          </span>
+                        ) : (
+                          <span className={cn(
+                            "rounded-full px-2 py-0.5 text-[10px] font-medium uppercase",
+                            alert.severity === "critical"
+                              ? "bg-red-500/10 text-red-400"
+                              : alert.severity === "warning"
+                                ? "bg-amber-500/10 text-amber-400"
+                                : "bg-blue-500/10 text-blue-400"
+                          )}>
+                            {alert.severity}
+                          </span>
+                        )}
+                      </div>
+                      {alert.recommendedAction && (
+                        <div className="mt-2 rounded-lg border border-white/[0.04] bg-white/[0.02] px-3 py-2 text-[11px] text-muted-foreground">
+                          <span className="font-medium text-foreground/80">Recommended:</span>{" "}
+                          {alert.recommendedAction}
+                        </div>
+                      )}
+                      {!alert.resolvedAt && (
+                        <Button
+                          size="sm"
+                          onClick={async () => {
+                            try {
+                              await alertsApi.acknowledge(alert.id);
+                              useDashboardStore.getState().resolveAlert(alert.id);
+                            } catch { /* ignore */ }
+                          }}
+                          className="mt-2 h-7 bg-emerald-600/20 text-[11px] font-medium text-emerald-400 hover:bg-emerald-600/30"
+                        >
+                          <CheckCircle2 className="mr-1.5 h-3 w-3" />
+                          Acknowledge
+                        </Button>
+                      )}
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
+          )}
+        </div>
+      </ScrollArea>
     </div>
   );
 }

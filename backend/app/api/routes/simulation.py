@@ -93,7 +93,9 @@ async def stop_simulation(request: Request):
 
 @router.post("/simulation/chaos")
 async def inject_chaos(request: ChaosRequest):
-    """Inject a chaos event into the running simulation."""
+    """Inject a chaos event into the running simulation. Auto-starts if idle."""
+    if not simulation_engine.running:
+        await simulation_engine.start(scenario="normal")
     simulation_engine.inject_chaos(request.type, request.params)
     return {"status": "injected", "type": request.type, "params": request.params}
 
