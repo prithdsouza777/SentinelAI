@@ -115,7 +115,7 @@
 .landing-nav-sub {
   font-size: 18px;
   font-weight: 800;
-  margin-left: 6px;
+  margin-left: -4px;
   color: #64748b;
   letter-spacing: -0.02em;
 }
