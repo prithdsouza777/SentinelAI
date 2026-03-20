@@ -35,10 +35,10 @@ function renderMarkdown(text: string) {
   };
 
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
+    const line = lines[i] ?? "";
     const listMatch = line.match(/^[-*]\s+(.*)/);
     if (listMatch) {
-      listItems.push(listMatch[1]);
+      listItems.push(listMatch[1] ?? "");
     } else {
       flushList();
       if (line.trim() === "") {
