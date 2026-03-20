@@ -4,9 +4,55 @@ import { cn } from "@/lib/utils";
 import { useDashboardStore } from "../stores/dashboardStore";
 import { chatApi } from "../services/api";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { motion, AnimatePresence } from "framer-motion";
 import type { ChatMessage } from "../types";
+
+function renderMarkdown(text: string) {
+  const lines = text.split("\n");
+  const elements: React.ReactNode[] = [];
+  let listItems: string[] = [];
+
+  const flushList = () => {
+    if (listItems.length === 0) return;
+    elements.push(
+      <ul key={`ul-${elements.length}`} className="my-1.5 ml-4 list-disc space-y-0.5">
+        {listItems.map((item, i) => (
+          <li key={i}>{inlineBold(item)}</li>
+        ))}
+      </ul>
+    );
+    listItems = [];
+  };
+
+  const inlineBold = (str: string): React.ReactNode => {
+    const parts = str.split(/(\*\*[^*]+\*\*)/g);
+    return parts.map((part, i) => {
+      if (part.startsWith("**") && part.endsWith("**")) {
+        return <strong key={i} className="font-semibold text-[#1e293b]">{part.slice(2, -2)}</strong>;
+      }
+      return part;
+    });
+  };
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const listMatch = line.match(/^[-*]\s+(.*)/);
+    if (listMatch) {
+      listItems.push(listMatch[1]);
+    } else {
+      flushList();
+      if (line.trim() === "") {
+        if (elements.length > 0) {
+          elements.push(<div key={`br-${i}`} className="h-2" />);
+        }
+      } else {
+        elements.push(<p key={`p-${i}`}>{inlineBold(line)}</p>);
+      }
+    }
+  }
+  flushList();
+  return elements;
+}
 
 const quickActions = [
   { label: "Queue status", message: "What's the status of all queues?" },
@@ -66,7 +112,7 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="flex h-full gap-4 overflow-hidden">
+    <div className="flex min-h-0 flex-1 gap-4 overflow-hidden">
       {/* Main chat area */}
       <div className="flex flex-1 flex-col overflow-hidden">
         <div className="mb-4">
@@ -77,7 +123,7 @@ export default function ChatPage() {
         </div>
 
         <div className="flex flex-1 flex-col overflow-hidden rounded-xl border border-[#e2e8f0] bg-white shadow-sm">
-          <ScrollArea className="flex-1 p-4">
+          <div className="min-h-0 flex-1 overflow-y-auto p-4">
             {messages.length === 0 ? (
               <div className="flex h-full min-h-[300px] flex-col items-center justify-center gap-5 text-center">
                 <motion.div
@@ -121,7 +167,7 @@ export default function ChatPage() {
                           : "mr-auto border border-[#e2e8f0] bg-[#f8fafc] text-[#475569]"
                       )}
                     >
-                      <p className="text-sm leading-relaxed">{msg.content}</p>
+                      <div className="text-sm leading-relaxed">{renderMarkdown(msg.content)}</div>
                       {msg.reasoning && (
                         <div className="mt-2 flex items-start gap-1.5 border-t border-[#e2e8f0] pt-2">
                           <Sparkles className="mt-0.5 h-3 w-3 shrink-0 text-[#8b5cf6]" />
@@ -149,7 +195,7 @@ export default function ChatPage() {
                 <div ref={bottomRef} />
               </div>
             )}
-          </ScrollArea>
+          </div>
 
           <div className="border-t border-[#e2e8f0] p-3">
             <div className="flex gap-2">

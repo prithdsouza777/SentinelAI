@@ -13,7 +13,6 @@ import {
 import { cn } from "@/lib/utils";
 import { simulationApi } from "../services/api";
 import { useDashboardStore } from "../stores/dashboardStore";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import type { ChaosEventType } from "../types";
@@ -119,7 +118,7 @@ export default function SimulationPage() {
   };
 
   return (
-    <div className="flex h-full flex-col gap-4 overflow-auto pr-1">
+    <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pr-1">
       <div>
         <h2 className="text-lg font-bold text-[#1e293b]">Simulation Engine</h2>
         <p className="text-sm text-[#64748b]">
@@ -257,8 +256,8 @@ export default function SimulationPage() {
       </div>
 
       {/* Event Log */}
-      <div className="rounded-xl border border-[#e2e8f0] bg-white shadow-sm" style={{ maxHeight: "300px" }}>
-        <div className="flex items-center justify-between border-b border-[#e2e8f0] px-4 py-3">
+      <div className="flex max-h-[300px] flex-col rounded-xl border border-[#e2e8f0] bg-white shadow-sm">
+        <div className="flex shrink-0 items-center justify-between border-b border-[#e2e8f0] px-4 py-3">
           <div className="flex items-center gap-2">
             <Radio className="h-4 w-4 text-[#06b6d4]" />
             <span className="text-xs font-semibold uppercase tracking-wider text-[#64748b]">
@@ -272,7 +271,7 @@ export default function SimulationPage() {
             </span>
           )}
         </div>
-        <ScrollArea className="flex-1 p-3" style={{ maxHeight: "240px" }}>
+        <div className="min-h-0 flex-1 overflow-y-auto p-3">
           {!simulationActive && decisions.length === 0 && alerts.length === 0 ? (
             <div className="py-4 text-center text-sm text-[#94a3b8]">
               Start a scenario to see events in real time.
@@ -316,12 +315,12 @@ export default function SimulationPage() {
                     <span className="shrink-0 tabular-nums text-[#94a3b8]">
                       {new Date(event.time).toLocaleTimeString()}
                     </span>
-                    <span className={cn("font-medium", event.color)}>{event.label}</span>
+                    <span className={cn("min-w-0 break-words font-medium", event.color)}>{event.label}</span>
                   </motion.div>
                 ))}
             </div>
           )}
-        </ScrollArea>
+        </div>
       </div>
     </div>
   );

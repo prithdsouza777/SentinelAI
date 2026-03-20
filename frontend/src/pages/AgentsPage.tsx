@@ -11,7 +11,6 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDashboardStore } from "../stores/dashboardStore";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { motion, AnimatePresence } from "framer-motion";
 import type { AgentType } from "../types";
 
@@ -66,7 +65,7 @@ export default function AgentsPage() {
   const negotiations = useDashboardStore((s) => s.negotiations);
 
   return (
-    <div className="flex h-full flex-col gap-4 overflow-auto pr-1">
+    <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pr-1">
       <div>
         <h2 className="text-lg font-bold text-[#1e293b]">Autonomous AI Agents</h2>
         <p className="text-sm text-[#64748b]">
@@ -175,7 +174,7 @@ export default function AgentsPage() {
           </span>
         </div>
 
-        <ScrollArea className="max-h-[300px] p-3">
+        <div className="max-h-[300px] overflow-y-auto p-3">
           {negotiations.length === 0 ? (
             <p className="py-4 text-center text-xs text-[#94a3b8]">
               No inter-agent negotiations yet. Conflicts between agents will appear here.
@@ -223,7 +222,7 @@ export default function AgentsPage() {
               </AnimatePresence>
             </div>
           )}
-        </ScrollArea>
+        </div>
       </div>
     </div>
   );

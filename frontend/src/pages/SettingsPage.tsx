@@ -122,7 +122,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="flex h-full flex-col gap-4 overflow-auto pr-1">
+    <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pr-1">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-bold text-[#1e293b]">Settings</h2>

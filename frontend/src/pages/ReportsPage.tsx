@@ -17,7 +17,6 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { AnimatePresence, motion } from "framer-motion";
 import PrintReportView from "@/components/reports/PrintReportView";
 import { getValidSession } from "@/components/auth/authToken";
@@ -41,6 +40,7 @@ import {
   AreaChart,
   Legend,
 } from "recharts";
+import { useDashboardStore } from "../stores/dashboardStore";
 import type { AgentType, AlertSeverity, SessionReport } from "../types";
 
 type QueueRow = {
@@ -164,9 +164,9 @@ function Stat({
   color?: string;
 }) {
   return (
-    <div>
+    <div className="min-w-0">
       <p className="text-[10px] font-medium text-[var(--text-secondary)]">{label}</p>
-      <p className={cn("text-2xl font-extrabold tabular-nums", color || "text-[var(--text-primary)]")}>
+      <p className={cn("truncate text-2xl font-extrabold tabular-nums", color || "text-[var(--text-primary)]")} title={String(value)}>
         {value}
       </p>
     </div>
@@ -176,7 +176,8 @@ function Stat({
 /* ════════════════════════════════════════════════════════════════════════════ */
 
 export default function ReportsPage() {
-  const [report, setReport] = useState<SessionReport | null>(null);
+  const report = useDashboardStore((s) => s.sessionReport);
+  const setReport = useDashboardStore((s) => s.setSessionReport);
   const [loading, setLoading] = useState(false);
   const [severityFilter, setSeverityFilter] = useState<AlertSeverity | null>(null);
   const [agentHighlight, setAgentHighlight] = useState<AgentType | null>(null);
@@ -510,7 +511,7 @@ export default function ReportsPage() {
   };
 
   return (
-    <div className="flex h-full flex-col gap-4 overflow-auto pr-1">
+    <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pr-1">
       {/* Header */}
       <div className="relative flex items-center justify-between pl-4">
         <div className="pointer-events-none absolute left-0 top-0 h-full w-[3px] rounded bg-[var(--accent-subtle)]" />
@@ -554,13 +555,21 @@ export default function ReportsPage() {
 
           {report && (
             <Button
-              onClick={() => setPrintPreviewOpen(true)}
+              onClick={() => {
+                setPrintPreviewOpen(true);
+                // Wait for portal to render, then trigger print and auto-close
+                requestAnimationFrame(() => {
+                  setTimeout(() => {
+                    window.print();
+                  }, 300);
+                });
+              }}
               variant="secondary"
               className="print-hide gap-2"
               disabled={printPreviewOpen}
             >
               <Printer className="mr-2 h-4 w-4" />
-              Print Report
+              {printPreviewOpen ? "Generating..." : "Print Report"}
             </Button>
           )}
         </div>
@@ -580,7 +589,7 @@ export default function ReportsPage() {
           </div>
         </div>
       ) : (
-        <ScrollArea className="flex-1">
+        <div className="min-h-0 flex-1 overflow-y-auto">
           <div className="grid grid-cols-3 gap-5 pb-4 reports-page-print-grid">
             {/* ─── Row 1: KPI strip ─── */}
             <ChartCard
@@ -1211,7 +1220,7 @@ export default function ReportsPage() {
               </ChartCard>
             )}
           </div>
-        </ScrollArea>
+        </div>
       )}
 
       {printPreviewOpen && report && printRootEl
@@ -1222,33 +1231,6 @@ export default function ReportsPage() {
                 minHeight: "100vh",
               }}
             >
-              <div
-                className="print-hide"
-                style={{
-                  position: "fixed",
-                  top: 16,
-                  right: 16,
-                  zIndex: 60,
-                  display: "flex",
-                  gap: 12,
-                }}
-              >
-                <Button
-                  onClick={() => window.print()}
-                  variant="secondary"
-                  className="gap-2"
-                >
-                  <Printer className="h-4 w-4" />
-                  Print / Save as PDF
-                </Button>
-                <Button
-                  variant="ghost"
-                  onClick={() => setPrintPreviewOpen(false)}
-                >
-                  Close
-                </Button>
-              </div>
-
               <PrintReportView
                 report={report}
                 operatorRole={operatorRole}

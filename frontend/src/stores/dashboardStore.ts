@@ -7,6 +7,7 @@ import type {
   CostSummary,
   ChatMessage,
   GovernanceSnapshot,
+  SessionReport,
 } from "../types";
 
 interface DashboardState {
@@ -46,6 +47,10 @@ interface DashboardState {
   // Governance scorecard
   governance: GovernanceSnapshot;
   updateGovernance: (snapshot: Partial<GovernanceSnapshot>) => void;
+
+  // Session report (persists across page navigations)
+  sessionReport: SessionReport | null;
+  setSessionReport: (report: SessionReport | null) => void;
 }
 
 export const useDashboardStore = create<DashboardState>((set) => ({
@@ -143,4 +148,7 @@ export const useDashboardStore = create<DashboardState>((set) => ({
   },
   updateGovernance: (snapshot) =>
     set((state) => ({ governance: { ...state.governance, ...snapshot } })),
+
+  sessionReport: null,
+  setSessionReport: (report) => set({ sessionReport: report }),
 }));

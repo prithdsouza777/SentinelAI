@@ -3,7 +3,6 @@ import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { useDashboardStore } from "../../stores/dashboardStore";
 import { motion, AnimatePresence } from "framer-motion";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 const agentColors: Record<string, string> = {
   queue_balancer: "text-[#2563eb]",
@@ -50,7 +49,7 @@ export default function AgentCollaborationPanel() {
         )}
       </div>
 
-      <ScrollArea className="flex-1 p-3">
+      <div className="min-h-0 flex-1 overflow-y-auto p-3">
         <div className="space-y-3">
           <AnimatePresence initial={false}>
             {negotiations.length === 0 ? (
@@ -110,7 +109,7 @@ export default function AgentCollaborationPanel() {
             )}
           </AnimatePresence>
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 }
