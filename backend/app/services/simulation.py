@@ -14,13 +14,46 @@ from app.models import QueueMetrics
 
 logger = logging.getLogger("sentinelai.simulation")
 
-# Default simulated queues
+# Default simulated queues — enriched with skill requirements
 SIMULATED_QUEUES = [
-    {"id": "q-support", "name": "Support", "base_load": 8, "agents": 12},
-    {"id": "q-billing", "name": "Billing", "base_load": 5, "agents": 8},
-    {"id": "q-sales", "name": "Sales", "base_load": 3, "agents": 6},
-    {"id": "q-general", "name": "General", "base_load": 4, "agents": 7},
-    {"id": "q-vip", "name": "VIP", "base_load": 2, "agents": 4},
+    {"id": "q-support", "name": "Support", "base_load": 8, "agents": 12,
+     "skills": ["troubleshooting", "product_knowledge", "technical"]},
+    {"id": "q-billing", "name": "Billing", "base_load": 5, "agents": 8,
+     "skills": ["billing", "payments", "account_management"]},
+    {"id": "q-sales", "name": "Sales", "base_load": 3, "agents": 6,
+     "skills": ["sales", "product_knowledge", "upselling"]},
+    {"id": "q-general", "name": "General", "base_load": 4, "agents": 7,
+     "skills": ["general_inquiry", "product_knowledge"]},
+    {"id": "q-vip", "name": "VIP", "base_load": 2, "agents": 4,
+     "skills": ["vip_handling", "escalation", "retention"]},
+]
+
+# Simulated human agents with skill profiles and performance history
+SIMULATED_AGENTS = [
+    {"id": "agent-01", "name": "Alice", "queue_id": "q-support", "skills": ["troubleshooting", "technical", "escalation"], "experience": "senior", "perf_score": 0.95},
+    {"id": "agent-02", "name": "Bob", "queue_id": "q-support", "skills": ["troubleshooting", "product_knowledge"], "experience": "mid", "perf_score": 0.82},
+    {"id": "agent-03", "name": "Carol", "queue_id": "q-support", "skills": ["troubleshooting", "general_inquiry"], "experience": "junior", "perf_score": 0.74},
+    {"id": "agent-04", "name": "Dave", "queue_id": "q-billing", "skills": ["billing", "payments", "account_management"], "experience": "senior", "perf_score": 0.91},
+    {"id": "agent-05", "name": "Eve", "queue_id": "q-billing", "skills": ["billing", "payments"], "experience": "mid", "perf_score": 0.85},
+    {"id": "agent-06", "name": "Frank", "queue_id": "q-sales", "skills": ["sales", "upselling", "product_knowledge"], "experience": "senior", "perf_score": 0.93},
+    {"id": "agent-07", "name": "Grace", "queue_id": "q-sales", "skills": ["sales", "product_knowledge"], "experience": "mid", "perf_score": 0.79},
+    {"id": "agent-08", "name": "Hank", "queue_id": "q-general", "skills": ["general_inquiry", "product_knowledge", "troubleshooting"], "experience": "mid", "perf_score": 0.80},
+    {"id": "agent-09", "name": "Iris", "queue_id": "q-general", "skills": ["general_inquiry", "billing"], "experience": "junior", "perf_score": 0.72},
+    {"id": "agent-10", "name": "Jack", "queue_id": "q-vip", "skills": ["vip_handling", "escalation", "retention", "sales"], "experience": "senior", "perf_score": 0.97},
+    {"id": "agent-11", "name": "Kim", "queue_id": "q-vip", "skills": ["vip_handling", "retention"], "experience": "senior", "perf_score": 0.90},
+    {"id": "agent-12", "name": "Leo", "queue_id": "q-support", "skills": ["technical", "troubleshooting", "product_knowledge"], "experience": "senior", "perf_score": 0.88},
+]
+
+# Contact types with required skills (for skill-based routing)
+CONTACT_TYPES = [
+    {"type": "technical_issue", "required_skills": ["troubleshooting", "technical"], "priority": "normal"},
+    {"type": "billing_dispute", "required_skills": ["billing", "payments"], "priority": "normal"},
+    {"type": "sales_inquiry", "required_skills": ["sales", "product_knowledge"], "priority": "normal"},
+    {"type": "account_upgrade", "required_skills": ["sales", "upselling"], "priority": "normal"},
+    {"type": "vip_complaint", "required_skills": ["vip_handling", "escalation"], "priority": "high"},
+    {"type": "general_question", "required_skills": ["general_inquiry"], "priority": "low"},
+    {"type": "retention_call", "required_skills": ["retention", "sales"], "priority": "high"},
+    {"type": "payment_issue", "required_skills": ["billing", "account_management"], "priority": "normal"},
 ]
 
 # Store original agent counts for chaos reset
@@ -73,6 +106,40 @@ class SimulationEngine:
         self.tick = 0
         self._task: asyncio.Task | None = None
         self._chaos_events: list[dict] = []
+        self._routing_log: list[dict] = []  # skill routing decisions
+
+    def generate_incoming_contact(self) -> dict | None:
+        """Generate a random incoming contact with skill requirements. ~40% chance per tick."""
+        if random.random() > 0.4:
+            return None
+        contact_type = random.choice(CONTACT_TYPES)
+        return {
+            "id": f"contact-{self.tick}-{random.randint(100,999)}",
+            "type": contact_type["type"],
+            "required_skills": contact_type["required_skills"],
+            "priority": contact_type["priority"],
+        }
+
+    def get_available_agents(self) -> list[dict]:
+        """Return agents not currently at capacity (simplified availability check)."""
+        available = []
+        for agent in SIMULATED_AGENTS:
+            q = next((q for q in SIMULATED_QUEUES if q["id"] == agent["queue_id"]), None)
+            if q and q["agents"] > 0:
+                available.append(agent)
+        return available
+
+    def log_routing(self, contact_id: str, agent_id: str, score: float, reasoning: str):
+        """Log a skill-based routing decision."""
+        self._routing_log.append({
+            "contactId": contact_id,
+            "agentId": agent_id,
+            "score": round(score, 3),
+            "reasoning": reasoning,
+            "tick": self.tick,
+        })
+        if len(self._routing_log) > 100:
+            self._routing_log.pop(0)
 
     def generate_metrics(self) -> list[QueueMetrics]:
         """Generate a snapshot of queue metrics with natural variation, applying any active chaos."""

@@ -34,6 +34,7 @@ AGENT_PRIORITY = {
     "escalation_handler": 8,
     "queue_balancer": 7,
     "predictive_prevention": 6,
+    "skill_router": 5,
     "analytics": 3,
 }
 
@@ -113,6 +114,33 @@ async def predictive_prevention_node(state: OrchestratorState) -> dict:
                     executed.append(d.action or "reinforce")
                     d_dict["phase"] = "acted"
                     broadcasts.append({"event": "action:taken", "data": d_dict})
+
+    return {"decisions": decisions, "executed_actions": executed, "broadcasts": broadcasts}
+
+
+async def skill_router_node(state: OrchestratorState) -> dict:
+    """Run Skill Router agent — zero-LLM, pure threshold scoring for minimal latency."""
+    agent = _agents.get(AgentType.SKILL_ROUTER)
+    if not agent:
+        return {"decisions": [], "executed_actions": [], "broadcasts": []}
+
+    raw_decisions = await agent.evaluate(state["metrics"])
+    decisions = []
+    executed = []
+    broadcasts = []
+
+    for d in raw_decisions:
+        result = await guardrails.evaluate(d)
+        d_dict = d.model_dump(by_alias=True, mode="json")
+        broadcasts.append({"event": "agent:reasoning", "data": d_dict})
+        decisions.append(d_dict)
+
+        if result.status == GuardrailStatus.AUTO_APPROVE:
+            ok = await agent.execute({"action": d.action})
+            if ok:
+                executed.append(d.action or "route_contact")
+                d_dict["phase"] = "acted"
+                broadcasts.append({"event": "action:taken", "data": d_dict})
 
     return {"decisions": decisions, "executed_actions": executed, "broadcasts": broadcasts}
 
@@ -210,20 +238,23 @@ def _build_graph() -> StateGraph:
     graph.add_node("queue_balancer", queue_balancer_node)
     graph.add_node("predictive_prevention", predictive_prevention_node)
     graph.add_node("escalation_handler", escalation_handler_node)
+    graph.add_node("skill_router", skill_router_node)
     graph.add_node("conflict_detection", conflict_detection_node)
     graph.add_node("negotiate", negotiation_node)
     graph.add_node("auto_approve", auto_approve_node)
     graph.add_node("governance_broadcast", governance_broadcast_node)
 
-    # Fan-out from START to all 3 agents (parallel execution)
+    # Fan-out from START to all 4 agents (parallel execution)
     graph.add_edge(START, "queue_balancer")
     graph.add_edge(START, "predictive_prevention")
     graph.add_edge(START, "escalation_handler")
+    graph.add_edge(START, "skill_router")
 
     # All agents converge into conflict detection
     graph.add_edge("queue_balancer", "conflict_detection")
     graph.add_edge("predictive_prevention", "conflict_detection")
     graph.add_edge("escalation_handler", "conflict_detection")
+    graph.add_edge("skill_router", "conflict_detection")
 
     # Conditional: negotiate if conflicts, else skip to auto_approve
     graph.add_conditional_edges(
@@ -322,17 +353,19 @@ class AgentOrchestrator:
         from app.agents.queue_balancer import QueueBalancerAgent
         from app.agents.predictive_prevention import PredictivePreventionAgent
         from app.agents.escalation_handler import EscalationHandlerAgent
+        from app.agents.skill_router import SkillRouterAgent
         from app.agents.analytics import analytics_agent
 
         _agents[AgentType.QUEUE_BALANCER] = QueueBalancerAgent()
         _agents[AgentType.PREDICTIVE_PREVENTION] = PredictivePreventionAgent()
         _agents[AgentType.ESCALATION_HANDLER] = EscalationHandlerAgent()
+        _agents[AgentType.SKILL_ROUTER] = SkillRouterAgent()
         _agents[AgentType.ANALYTICS] = analytics_agent
         self._initialized = True
 
         # Pre-compile the graph
         _get_graph()
-        logger.info("LangGraph initialized: QueueBalancer, PredictivePreventionAgent, EscalationHandlerAgent, AnalyticsAgent")
+        logger.info("LangGraph initialized: QueueBalancer, PredictivePrevention, EscalationHandler, SkillRouter, Analytics")
 
     async def process_metrics(
         self,
@@ -409,7 +442,9 @@ class AgentOrchestrator:
         self._total_saved += base_amount + rescued
         self._revenue_at_risk = max(self._revenue_at_risk * 0.3, 0)
         self._actions_today += 1
-        self._prevented_abandoned += 12
+        # Dynamic abandoned-call prevention estimate based on action type
+        prevented = {"move_agents": 18, "escalate": 8, "reinforce": 14, "route_contact": 3}
+        self._prevented_abandoned += prevented.get(prefix, 5)
 
         from app.api.websocket import manager
         await manager.broadcast("cost:update", {

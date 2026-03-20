@@ -5,6 +5,7 @@ import {
   AlertTriangle,
   MessageSquare,
   FlaskConical,
+  FileBarChart,
   Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -16,15 +17,16 @@ const navItems = [
   { icon: AlertTriangle, label: "Alerts", href: "/alerts" },
   { icon: MessageSquare, label: "Chat", href: "/chat" },
   { icon: FlaskConical, label: "Simulation", href: "/simulation" },
+  { icon: FileBarChart, label: "Reports", href: "/reports" },
   { icon: Settings, label: "Settings", href: "/settings" },
 ];
 
 export default function Sidebar() {
   return (
-    <aside className="flex w-16 flex-col items-center border-r border-white/[0.06] bg-surface py-4">
+    <aside className="flex w-16 flex-col items-center bg-[#172554] py-4">
       <NavLink
         to="/"
-        className="mb-6 flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 text-xs font-bold text-white shadow-lg shadow-blue-500/20 transition-transform hover:scale-105"
+        className="mb-6 flex h-9 w-9 items-center justify-center rounded-lg bg-[#1e40af] text-xs font-bold text-white shadow-lg transition-transform hover:scale-105"
         title="SentinelAI"
       >
         AI
@@ -40,8 +42,8 @@ export default function Sidebar() {
               cn(
                 "group flex h-10 w-10 items-center justify-center rounded-lg transition-all duration-200",
                 isActive
-                  ? "bg-white/10 text-white shadow-sm shadow-blue-500/10"
-                  : "text-muted-foreground hover:bg-white/5 hover:text-white"
+                  ? "bg-[#1e3a8a] text-white shadow-sm"
+                  : "text-[#bfdbfe] hover:bg-[#1e3a8a]/60 hover:text-white"
               )
             }
             title={item.label}

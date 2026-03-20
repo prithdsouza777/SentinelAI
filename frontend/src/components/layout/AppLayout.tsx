@@ -10,7 +10,7 @@ export default function AppLayout() {
 
   return (
     <TooltipProvider>
-      <div className="flex h-screen overflow-hidden bg-surface bg-grid">
+      <div className="flex h-screen overflow-hidden bg-gradient-to-br from-[#f8fafc] to-[#f1f5f9]">
         <WebSocketProvider />
         <Sidebar />
         <div className="flex flex-1 flex-col overflow-hidden">

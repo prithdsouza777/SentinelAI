@@ -38,20 +38,20 @@ export default function Header() {
   };
 
   return (
-    <header className="relative flex h-14 items-center justify-between border-b border-white/[0.06] bg-surface-raised/80 px-6 backdrop-blur-xl">
-      {/* Subtle top glow line */}
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-500/20 to-transparent" />
+    <header className="relative flex h-14 items-center justify-between border-b border-[#e2e8f0] bg-white px-6">
+      {/* Subtle top accent line */}
+      <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-[#2563eb] via-[#3b82f6] to-[#05a6f0]" />
 
       <div className="flex items-center gap-3">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg shadow-blue-500/20">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#172554] shadow-md">
           <Activity className="h-4 w-4 text-white" />
         </div>
         <div>
-          <h1 className="text-base font-bold tracking-tight">
+          <h1 className="text-base font-bold tracking-tight text-[#1e293b]">
             Sentinel<span className="text-gradient">AI</span>
           </h1>
         </div>
-        <Badge variant="outline" className="ml-2 border-white/10 text-[10px] text-muted-foreground">
+        <Badge variant="outline" className="ml-2 border-[#e2e8f0] bg-[#f1f5f9] text-[10px] text-[#64748b]">
           AI Operations Center
         </Badge>
       </div>
@@ -69,7 +69,7 @@ export default function Header() {
                 onClick={handleStopDemo}
                 variant="destructive"
                 size="sm"
-                className="gap-2 shadow-lg shadow-red-500/20"
+                className="gap-2 bg-[#ef4444] text-white shadow-md hover:bg-[#dc2626]"
               >
                 <Square className="h-3.5 w-3.5" />
                 Stop Demo
@@ -86,7 +86,7 @@ export default function Header() {
                 onClick={handleStartDemo}
                 disabled={demoLoading}
                 size="sm"
-                className="gap-2 bg-gradient-to-r from-blue-600 to-purple-600 shadow-lg shadow-blue-500/25 hover:from-blue-500 hover:to-purple-500"
+                className="gap-2 bg-[#2563eb] text-white shadow-md hover:bg-[#1d4ed8]"
               >
                 <Play className="h-3.5 w-3.5" />
                 {demoLoading ? "Starting..." : "Start Demo"}
@@ -99,25 +99,25 @@ export default function Header() {
           <motion.div
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="flex items-center gap-1.5 rounded-full border border-amber-500/20 bg-amber-500/10 px-2.5 py-1"
+            className="flex items-center gap-1.5 rounded-full border border-[#10b981]/30 bg-[#10b981]/10 px-2.5 py-1"
           >
-            <Zap className="h-3 w-3 text-amber-400" />
-            <span className="text-xs font-medium text-amber-400">Live</span>
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400" />
+            <Zap className="h-3 w-3 text-[#10b981]" />
+            <span className="text-xs font-medium text-[#10b981]">Live</span>
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#10b981]" />
           </motion.div>
         )}
 
         {/* Connection status */}
-        <div className="flex items-center gap-1.5 rounded-full border border-white/[0.06] px-2.5 py-1">
+        <div className="flex items-center gap-1.5 rounded-full border border-[#e2e8f0] bg-[#f1f5f9] px-2.5 py-1">
           {wsConnected ? (
             <>
-              <Wifi className="h-3 w-3 text-emerald-400" />
-              <span className="text-[11px] text-muted-foreground">Connected</span>
+              <Wifi className="h-3 w-3 text-[#10b981]" />
+              <span className="text-[11px] text-[#64748b]">Connected</span>
             </>
           ) : (
             <>
-              <WifiOff className="h-3 w-3 animate-pulse text-red-400" />
-              <span className="text-[11px] text-red-400">Reconnecting...</span>
+              <WifiOff className="h-3 w-3 animate-pulse text-[#ef4444]" />
+              <span className="text-[11px] text-[#ef4444]">Reconnecting...</span>
             </>
           )}
         </div>

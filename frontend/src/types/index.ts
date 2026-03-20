@@ -39,6 +39,7 @@ export type AgentType =
   | "queue_balancer"
   | "predictive_prevention"
   | "escalation_handler"
+  | "skill_router"
   | "analytics";
 
 export type DecisionPhase =
@@ -183,4 +184,50 @@ export interface WSMessage {
   event: WSEventType;
   data: unknown;
   timestamp: string;
+}
+
+// ── Session Reports ──
+
+export interface SessionReport {
+  reportType: string;
+  generatedAt: string;
+  simulationTick: number;
+  simulationScenario: string | null;
+  alerts: {
+    total: number;
+    active: number;
+    resolved: number;
+    bySeverity: Record<string, number>;
+  };
+  decisions: {
+    total: number;
+    executed: number;
+    byAgent: Record<string, number>;
+    byGuardrailResult: Record<string, number>;
+  };
+  negotiations: { total: number };
+  costImpact: {
+    totalSaved: number;
+    revenueAtRisk: number;
+    preventedAbandoned: number;
+    actionsToday: number;
+  };
+  governance: GovernanceSnapshot;
+  queues: Record<string, unknown>;
+  skillRouting: {
+    totalRouted: number;
+    recentRoutings: Array<{
+      contactId: string;
+      agentId: string;
+      score: number;
+      reasoning: string;
+      tick: number;
+    }>;
+  };
+}
+
+// ── Metrics History ──
+
+export interface MetricsHistoryPoint extends QueueMetrics {
+  // inherits all QueueMetrics fields — each point is a snapshot in time
 }

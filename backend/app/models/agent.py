@@ -18,6 +18,7 @@ class AgentType(str, Enum):
     QUEUE_BALANCER = "queue_balancer"
     PREDICTIVE_PREVENTION = "predictive_prevention"
     ESCALATION_HANDLER = "escalation_handler"
+    SKILL_ROUTER = "skill_router"
     ANALYTICS = "analytics"
 
 

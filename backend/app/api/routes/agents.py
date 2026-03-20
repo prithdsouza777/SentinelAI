@@ -25,6 +25,12 @@ _AI_AGENTS = [
         "description": "Routes critical alerts to human supervisors and triggers emergency protocols",
     },
     {
+        "type": "skill_router",
+        "name": "Skill-Based Router",
+        "status": "active",
+        "description": "Routes incoming contacts to best-match agents using skill overlap, experience, and performance scoring",
+    },
+    {
         "type": "analytics",
         "name": "Analytics Agent",
         "status": "pending",

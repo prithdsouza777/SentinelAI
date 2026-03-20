@@ -44,11 +44,12 @@ class EscalationHandlerAgent:
         self._llm_available = None
 
     async def evaluate(
-        self, queue_states: list[dict], alerts: list[dict] = []
+        self, queue_states: list[dict], alerts: list[dict] | None = None
     ) -> list[AgentDecision]:
         """Evaluate critical alerts and generate escalation decisions."""
         decisions: list[AgentDecision] = []
         now = time.monotonic()
+        alerts = alerts or []
 
         # Build a quick lookup for queue metrics
         queue_lookup = {q.get("queueId", ""): q for q in queue_states}

@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.api.routes import alerts, agents, chat, health, queues, simulation
+from app.api.routes import reports, history
 from app.api.websocket import router as ws_router
 from app.config import settings
 
@@ -29,6 +30,7 @@ _latest_metrics: dict[str, dict] = {}       # queue_id → latest QueueMetrics (
 _recent_decisions: list[dict] = []          # newest first, max 200
 _recent_alerts: list[dict] = []             # newest first, max 100
 _recent_negotiations: list[dict] = []       # newest first, max 50
+_metrics_history: list[dict] = []           # all metrics snapshots for trending (max 600)
 
 
 # ── Simulation tick loop ───────────────────────────────────────────────────────
@@ -51,6 +53,11 @@ async def _tick():
         m_dict = m.model_dump(by_alias=True, mode="json")
         _latest_metrics[m.queue_id] = m_dict
         await manager.broadcast("queue:update", m_dict)
+
+        # Track history for trending (capped at 600 snapshots ≈ 30 min @ 3s ticks)
+        _metrics_history.append(m_dict)
+        if len(_metrics_history) > 600:
+            _metrics_history.pop(0)
 
         for a in alerts_list:
             a_dict = a.model_dump(by_alias=True, mode="json")
@@ -106,6 +113,7 @@ async def lifespan(app: FastAPI):
     app.state.recent_decisions = _recent_decisions
     app.state.recent_alerts = _recent_alerts
     app.state.recent_negotiations = _recent_negotiations
+    app.state.metrics_history = _metrics_history
 
     # Connect to Redis (graceful fallback to in-memory if unavailable)
     from app.services.redis_client import redis_client
@@ -152,6 +160,8 @@ app.include_router(agents.router, prefix="/api", tags=["agents"])
 app.include_router(alerts.router, prefix="/api", tags=["alerts"])
 app.include_router(chat.router, prefix="/api", tags=["chat"])
 app.include_router(simulation.router, prefix="/api", tags=["simulation"])
+app.include_router(reports.router, prefix="/api", tags=["reports"])
+app.include_router(history.router, prefix="/api", tags=["history"])
 
 # WebSocket
 app.include_router(ws_router)
@@ -161,6 +171,7 @@ app.state.latest_metrics = _latest_metrics
 app.state.recent_decisions = _recent_decisions
 app.state.recent_alerts = _recent_alerts
 app.state.recent_negotiations = _recent_negotiations
+app.state.metrics_history = _metrics_history
 
 # ── Serve frontend static files in production ────────────────────────────────
 # When deployed via the root Dockerfile, built frontend lives in /app/static

@@ -48,6 +48,7 @@ AGENT_SCOPES: dict[AgentType, list[str]] = {
     AgentType.QUEUE_BALANCER:        ["adjust_agents", "move_agents", "rebalance"],
     AgentType.ESCALATION_HANDLER:    ["escalate", "de_escalate"],
     AgentType.PREDICTIVE_PREVENTION: ["reinforce"],   # additive only
+    AgentType.SKILL_ROUTER:          ["route_contact", "assign_agent"],
     AgentType.ANALYTICS:             [],              # read-only: empty = no mutations
 }
 
@@ -57,7 +58,8 @@ RATE_LIMITS: dict[AgentType | str, tuple[int, int]] = {
     AgentType.QUEUE_BALANCER:        (3, 60),
     AgentType.ESCALATION_HANDLER:    (2, 300),
     AgentType.PREDICTIVE_PREVENTION: (5, 60),
-    "global":                        (10, 60),
+    AgentType.SKILL_ROUTER:          (8, 60),
+    "global":                        (15, 60),
 }
 
 # Auto-approve timeout for PENDING_HUMAN decisions (seconds)
@@ -81,6 +83,7 @@ class GuardrailsLayer:
             str(AgentType.QUEUE_BALANCER): deque(),
             str(AgentType.ESCALATION_HANDLER): deque(),
             str(AgentType.PREDICTIVE_PREVENTION): deque(),
+            str(AgentType.SKILL_ROUTER): deque(),
             "global": deque(),
         }
         # Pending decisions waiting for human approval: decision_id → AuditEntry

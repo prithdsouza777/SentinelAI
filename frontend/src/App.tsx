@@ -5,6 +5,7 @@ import AgentsPage from "./pages/AgentsPage";
 import AlertsPage from "./pages/AlertsPage";
 import ChatPage from "./pages/ChatPage";
 import SimulationPage from "./pages/SimulationPage";
+import ReportsPage from "./pages/ReportsPage";
 import SettingsPage from "./pages/SettingsPage";
 
 function App() {
@@ -16,6 +17,7 @@ function App() {
         <Route path="alerts" element={<AlertsPage />} />
         <Route path="chat" element={<ChatPage />} />
         <Route path="simulation" element={<SimulationPage />} />
+        <Route path="reports" element={<ReportsPage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>
     </Routes>

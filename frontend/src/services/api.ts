@@ -96,3 +96,20 @@ export const actionsApi = {
 export const healthApi = {
   check: () => request("/health"),
 };
+
+// ── Reports ──
+
+export const reportsApi = {
+  getSessionReport: () => request("/reports/session"),
+};
+
+// ── History ──
+
+export const historyApi = {
+  getMetrics: (queueId?: string, limit = 60) => {
+    const params = new URLSearchParams();
+    if (queueId) params.set("queue_id", queueId);
+    params.set("limit", String(limit));
+    return request(`/metrics/history?${params}`);
+  },
+};

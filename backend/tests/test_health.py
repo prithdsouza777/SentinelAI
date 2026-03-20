@@ -208,3 +208,43 @@ async def test_chaos_injection():
 
         # Clean up
         await client.post("/api/simulation/stop")
+
+
+@pytest.mark.asyncio
+async def test_session_report():
+    """Session report endpoint returns valid structure."""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        r = await client.get("/api/reports/session")
+    assert r.status_code == 200
+    data = r.json()
+    assert "alerts" in data
+    assert "decisions" in data
+    assert "costImpact" in data
+    assert "governance" in data
+    assert "skillRouting" in data
+    assert data["reportType"] == "session_summary"
+
+
+@pytest.mark.asyncio
+async def test_metrics_history():
+    """Metrics history endpoint returns a list."""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        r = await client.get("/api/metrics/history")
+    assert r.status_code == 200
+    data = r.json()
+    assert "history" in data
+    assert isinstance(data["history"], list)
+
+
+@pytest.mark.asyncio
+async def test_skill_router_in_agents():
+    """Skill Router agent is registered in agent list."""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        r = await client.get("/api/agents")
+    assert r.status_code == 200
+    agents = r.json()["agents"]
+    types = [a["type"] for a in agents]
+    assert "skill_router" in types
