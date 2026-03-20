@@ -18,7 +18,7 @@ function renderSimpleMarkdown(text: string): React.ReactNode {
   };
   return text.split("\n").map((line, i) => {
     const listMatch = line.match(/^[-*]\s+(.*)/);
-    if (listMatch) return <div key={i} className="ml-3 before:content-['·'] before:mr-1.5 before:text-[#94a3b8]">{bold(listMatch[1])}</div>;
+    if (listMatch) return <div key={i} className="ml-3 before:content-['·'] before:mr-1.5 before:text-[#94a3b8]">{bold(listMatch[1] ?? "")}</div>;
     if (line.trim() === "") return null;
     return <div key={i}>{bold(line)}</div>;
   });
