@@ -7,7 +7,7 @@ function PercentBar({ value, total, colorClass }: { value: number; total: number
   const pct = total > 0 ? Math.round((value / total) * 100) : 0;
   return (
     <div className="flex items-center gap-2">
-      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/5">
+      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[#f1f5f9]">
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${pct}%` }}
@@ -15,7 +15,7 @@ function PercentBar({ value, total, colorClass }: { value: number; total: number
           className={cn("h-full rounded-full", colorClass)}
         />
       </div>
-      <span className="w-8 text-right text-[10px] tabular-nums text-muted-foreground">
+      <span className="w-8 text-right text-[10px] font-medium tabular-nums text-[#64748b]">
         {pct}%
       </span>
     </div>
@@ -26,59 +26,59 @@ export default function GovernanceScorecardWidget() {
   const g = useDashboardStore((s) => s.governance);
 
   return (
-    <div className="rounded-xl border border-white/[0.06] bg-card/50 p-4 backdrop-blur-sm">
+    <div className="rounded-xl border border-[#e2e8f0] bg-white p-4 shadow-sm">
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Shield className="h-4 w-4 text-blue-400" />
-          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">AI Governance</span>
+          <Shield className="h-4 w-4 text-[#2563eb]" />
+          <span className="text-xs font-semibold uppercase tracking-wider text-[#64748b]">AI Governance</span>
         </div>
         {g.totalDecisions > 0 && (
-          <span className="text-[10px] tabular-nums text-muted-foreground">
+          <span className="text-[10px] font-medium tabular-nums text-[#94a3b8]">
             {g.totalDecisions} decisions
           </span>
         )}
       </div>
 
       {g.totalDecisions === 0 ? (
-        <p className="text-xs text-muted-foreground/60">No decisions yet — start the simulation.</p>
+        <p className="text-xs text-[#94a3b8]">No decisions yet - start the simulation.</p>
       ) : (
         <div className="space-y-3">
           <div>
-            <div className="mb-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-              <CheckCircle2 className="h-3 w-3 text-emerald-400" />
+            <div className="mb-1 flex items-center gap-1.5 text-[11px] font-medium text-[#475569]">
+              <CheckCircle2 className="h-3 w-3 text-[#10b981]" />
               Auto-approved ({g.autoApproved})
             </div>
-            <PercentBar value={g.autoApproved} total={g.totalDecisions} colorClass="bg-emerald-500" />
+            <PercentBar value={g.autoApproved} total={g.totalDecisions} colorClass="bg-[#10b981]" />
           </div>
 
           <div>
-            <div className="mb-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-              <UserCheck className="h-3 w-3 text-amber-400" />
+            <div className="mb-1 flex items-center gap-1.5 text-[11px] font-medium text-[#475569]">
+              <UserCheck className="h-3 w-3 text-[#f59e0b]" />
               Human-approved ({g.humanApproved})
             </div>
-            <PercentBar value={g.humanApproved} total={g.totalDecisions} colorClass="bg-amber-500" />
+            <PercentBar value={g.humanApproved} total={g.totalDecisions} colorClass="bg-[#f59e0b]" />
           </div>
 
           <div>
-            <div className="mb-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-              <XOctagon className="h-3 w-3 text-red-400" />
+            <div className="mb-1 flex items-center gap-1.5 text-[11px] font-medium text-[#475569]">
+              <XOctagon className="h-3 w-3 text-[#ef4444]" />
               Blocked ({g.blocked})
             </div>
-            <PercentBar value={g.blocked} total={g.totalDecisions} colorClass="bg-red-500" />
+            <PercentBar value={g.blocked} total={g.totalDecisions} colorClass="bg-[#ef4444]" />
           </div>
 
-          <div className="flex items-center justify-between border-t border-white/[0.06] pt-2">
-            <span className="text-[11px] text-muted-foreground">Avg confidence</span>
+          <div className="flex items-center justify-between border-t border-[#e2e8f0] pt-2">
+            <span className="text-[11px] font-medium text-[#64748b]">Avg confidence</span>
             <span className={cn(
-              "text-[11px] font-semibold tabular-nums",
-              g.avgConfidence >= 0.9 ? "text-emerald-400" :
-              g.avgConfidence >= 0.7 ? "text-amber-400" : "text-red-400"
+              "text-[12px] font-bold tabular-nums",
+              g.avgConfidence >= 0.9 ? "text-[#10b981]" :
+              g.avgConfidence >= 0.7 ? "text-[#f59e0b]" : "text-[#ef4444]"
             )}>
               {(g.avgConfidence * 100).toFixed(0)}%
               <span className={cn(
                 "ml-1.5 inline-block h-2 w-2 rounded-full",
-                g.avgConfidence >= 0.9 ? "bg-emerald-400" :
-                g.avgConfidence >= 0.7 ? "bg-amber-400" : "bg-red-400"
+                g.avgConfidence >= 0.9 ? "bg-[#10b981]" :
+                g.avgConfidence >= 0.7 ? "bg-[#f59e0b]" : "bg-[#ef4444]"
               )} />
             </span>
           </div>

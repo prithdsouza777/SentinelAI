@@ -7,18 +7,24 @@ import ChatPage from "./pages/ChatPage";
 import SimulationPage from "./pages/SimulationPage";
 import ReportsPage from "./pages/ReportsPage";
 import SettingsPage from "./pages/SettingsPage";
+import LoginPage from "./pages/LoginPage";
+import RequireAuth from "./components/auth/RequireAuth";
 
 function App() {
   return (
     <Routes>
-      <Route element={<AppLayout />}>
-        <Route index element={<OperationsCenter />} />
-        <Route path="agents" element={<AgentsPage />} />
-        <Route path="alerts" element={<AlertsPage />} />
-        <Route path="chat" element={<ChatPage />} />
-        <Route path="simulation" element={<SimulationPage />} />
-        <Route path="reports" element={<ReportsPage />} />
-        <Route path="settings" element={<SettingsPage />} />
+      <Route path="/login" element={<LoginPage />} />
+
+      <Route element={<RequireAuth />}>
+        <Route element={<AppLayout />}>
+          <Route index element={<OperationsCenter />} />
+          <Route path="agents" element={<AgentsPage />} />
+          <Route path="alerts" element={<AlertsPage />} />
+          <Route path="chat" element={<ChatPage />} />
+          <Route path="simulation" element={<SimulationPage />} />
+          <Route path="reports" element={<ReportsPage />} />
+          <Route path="settings" element={<SettingsPage />} />
+        </Route>
       </Route>
     </Routes>
   );

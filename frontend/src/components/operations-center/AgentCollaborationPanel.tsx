@@ -6,17 +6,17 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 const agentColors: Record<string, string> = {
-  queue_balancer: "text-blue-400",
-  predictive_prevention: "text-purple-400",
-  escalation_handler: "text-red-400",
-  analytics: "text-emerald-400",
+  queue_balancer: "text-[#2563eb]",
+  predictive_prevention: "text-[#8b5cf6]",
+  escalation_handler: "text-[#ef4444]",
+  analytics: "text-[#10b981]",
 };
 
 const agentBgs: Record<string, string> = {
-  queue_balancer: "bg-blue-500/10",
-  predictive_prevention: "bg-purple-500/10",
-  escalation_handler: "bg-red-500/10",
-  analytics: "bg-emerald-500/10",
+  queue_balancer: "bg-[#2563eb]/10",
+  predictive_prevention: "bg-[#8b5cf6]/10",
+  escalation_handler: "bg-[#ef4444]/10",
+  analytics: "bg-[#10b981]/10",
 };
 
 export default function AgentCollaborationPanel() {
@@ -37,14 +37,14 @@ export default function AgentCollaborationPanel() {
     Date.now() - new Date(negotiations[0].timestamp).getTime() < 8000;
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-xl border border-white/[0.06] bg-card/50 backdrop-blur-sm">
-      <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-3">
+    <div className="flex flex-col overflow-hidden rounded-xl border border-[#e2e8f0] bg-white shadow-sm">
+      <div className="flex items-center justify-between border-b border-[#e2e8f0] px-4 py-3">
         <div className="flex items-center gap-2">
-          <GitMerge className="h-4 w-4 text-orange-400" />
-          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Agent Collaboration</span>
+          <GitMerge className="h-4 w-4 text-[#f97316]" />
+          <span className="text-xs font-semibold uppercase tracking-wider text-[#64748b]">Agent Collaboration</span>
         </div>
         {negotiations.length > 0 && (
-          <span className="rounded-full border border-orange-500/20 bg-orange-500/10 px-2 py-0.5 text-[10px] font-semibold text-orange-400">
+          <span className="rounded-full border border-[#f97316]/20 bg-[#f97316]/10 px-2 py-0.5 text-[10px] font-semibold text-[#f97316]">
             {negotiations.length}
           </span>
         )}
@@ -55,9 +55,9 @@ export default function AgentCollaborationPanel() {
           <AnimatePresence initial={false}>
             {negotiations.length === 0 ? (
               <div className="flex h-40 flex-col items-center justify-center gap-2 text-center">
-                <GitMerge className="h-8 w-8 text-white/10" />
-                <p className="text-sm text-muted-foreground">No negotiations yet</p>
-                <p className="text-xs text-muted-foreground/60">Conflicts between agents will appear here</p>
+                <GitMerge className="h-8 w-8 text-[#e2e8f0]" />
+                <p className="text-sm font-medium text-[#64748b]">No negotiations yet</p>
+                <p className="text-xs text-[#94a3b8]">Conflicts between agents will appear here</p>
               </div>
             ) : (
               negotiations.map((neg) => {
@@ -68,40 +68,40 @@ export default function AgentCollaborationPanel() {
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     className={cn(
-                      "rounded-xl border bg-card/80 p-3 transition-all",
+                      "rounded-xl border bg-white p-3 transition-all",
                       isHighlighted
-                        ? "animate-conflict-pulse border-orange-500/40"
-                        : "border-white/[0.06]",
+                        ? "animate-conflict-pulse border-[#f97316]/40 shadow-md"
+                        : "border-[#e2e8f0]",
                     )}
                   >
                     <div className="mb-2 flex items-center justify-between">
-                      <span className="text-[13px] font-medium text-foreground">
+                      <span className="text-[13px] font-semibold text-[#1e293b]">
                         {neg.topic}
                       </span>
-                      <span className="text-[10px] text-muted-foreground">
+                      <span className="text-[10px] tabular-nums text-[#94a3b8]">
                         {new Date(neg.timestamp).toLocaleTimeString()}
                       </span>
                     </div>
                     <div className="space-y-1.5">
                       {neg.proposals.map((p, i) => (
-                        <div key={i} className="flex items-start gap-2 text-[11px]">
+                        <div key={i} className="flex items-start gap-2 text-[12px]">
                           <span
                             className={cn(
-                              "rounded-md px-1.5 py-0.5 font-semibold",
-                              agentColors[p.agentType] ?? "text-gray-400",
-                              agentBgs[p.agentType] ?? "bg-white/5",
+                              "rounded-md px-1.5 py-0.5 text-[11px] font-semibold",
+                              agentColors[p.agentType] ?? "text-[#64748b]",
+                              agentBgs[p.agentType] ?? "bg-[#f1f5f9]",
                             )}
                           >
                             {p.agentType.replace(/_/g, " ")}
                           </span>
-                          <span className="flex-1 text-muted-foreground">{p.proposal}</span>
-                          <span className="tabular-nums text-muted-foreground">
+                          <span className="flex-1 text-[#475569]">{p.proposal}</span>
+                          <span className="tabular-nums text-[#94a3b8]">
                             {Math.round(p.confidence * 100)}%
                           </span>
                         </div>
                       ))}
                     </div>
-                    <div className="mt-2 border-t border-white/[0.06] pt-2 text-[11px] font-medium text-emerald-400">
+                    <div className="mt-2 border-t border-[#e2e8f0] pt-2 text-[12px] font-semibold text-[#10b981]">
                       Resolution: {neg.resolution}
                     </div>
                   </motion.div>

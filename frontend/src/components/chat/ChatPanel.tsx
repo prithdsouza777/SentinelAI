@@ -49,19 +49,19 @@ export default function ChatPanel() {
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-white/[0.06] bg-card/50 backdrop-blur-sm">
-      <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-3">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-[#e2e8f0] bg-white shadow-sm">
+      <div className="flex items-center justify-between border-b border-[#e2e8f0] px-4 py-3">
         <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-purple-400" />
-          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Command Center</span>
+          <Sparkles className="h-4 w-4 text-[#8b5cf6]" />
+          <span className="text-xs font-semibold uppercase tracking-wider text-[#64748b]">Command Center</span>
         </div>
-        <MessageSquare className="h-4 w-4 text-muted-foreground" />
+        <MessageSquare className="h-4 w-4 text-[#94a3b8]" />
       </div>
 
       <ScrollArea className="flex-1 p-3">
         <div className="space-y-2">
           {messages.length === 0 ? (
-            <p className="text-xs text-muted-foreground/60">
+            <p className="text-xs text-[#94a3b8]">
               Ask about queue status, give commands, or create policies...
             </p>
           ) : (
@@ -71,8 +71,8 @@ export default function ChatPanel() {
                 className={cn(
                   "rounded-xl p-2.5 text-[12px] leading-relaxed",
                   msg.role === "user"
-                    ? "ml-4 border border-blue-500/15 bg-blue-500/10 text-foreground"
-                    : "mr-4 border border-white/[0.06] bg-white/[0.03] text-foreground/90"
+                    ? "ml-4 border border-[#2563eb]/15 bg-[#2563eb]/5 text-[#1e293b]"
+                    : "mr-4 border border-[#e2e8f0] bg-[#f8fafc] text-[#475569]"
                 )}
               >
                 {msg.content}
@@ -80,9 +80,9 @@ export default function ChatPanel() {
             ))
           )}
           {loading && (
-            <div className="mr-4 rounded-xl border border-white/[0.06] bg-white/[0.03] p-2.5 text-[12px] text-muted-foreground">
+            <div className="mr-4 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] p-2.5 text-[12px] text-[#64748b]">
               <span className="inline-flex items-center gap-1.5">
-                <Sparkles className="h-3 w-3 animate-pulse text-purple-400" />
+                <Sparkles className="h-3 w-3 animate-pulse text-[#8b5cf6]" />
                 Thinking...
               </span>
             </div>
@@ -90,7 +90,7 @@ export default function ChatPanel() {
         </div>
       </ScrollArea>
 
-      <div className="border-t border-white/[0.06] p-3">
+      <div className="border-t border-[#e2e8f0] p-3">
         <div className="flex gap-2">
           <input
             type="text"
@@ -98,13 +98,13 @@ export default function ChatPanel() {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSend()}
             placeholder="Type a command..."
-            className="flex-1 rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-sm text-foreground placeholder-muted-foreground/50 focus:border-blue-500/30 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
+            className="flex-1 rounded-lg border border-[#e2e8f0] bg-[#f8fafc] px-3 py-2 text-sm text-[#1e293b] placeholder-[#94a3b8] focus:border-[#2563eb]/40 focus:outline-none focus:ring-2 focus:ring-[#2563eb]/10"
           />
           <Button
             onClick={handleSend}
             disabled={loading || !input.trim()}
             size="icon"
-            className="h-9 w-9 bg-gradient-to-r from-blue-600 to-purple-600 shadow-lg shadow-blue-500/20 hover:from-blue-500 hover:to-purple-500"
+            className="h-9 w-9 bg-[#2563eb] shadow-md shadow-[#2563eb]/20 hover:bg-[#1d4ed8]"
           >
             <Send className="h-4 w-4" />
           </Button>

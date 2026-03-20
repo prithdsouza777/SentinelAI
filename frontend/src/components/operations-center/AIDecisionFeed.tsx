@@ -8,11 +8,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 const phaseConfig: Record<DecisionPhase, { icon: typeof Eye; color: string; bg: string; label: string }> = {
-  observed: { icon: Eye, color: "text-blue-400", bg: "bg-blue-500/10 border-blue-500/20", label: "Observed" },
-  analyzed: { icon: Search, color: "text-amber-400", bg: "bg-amber-500/10 border-amber-500/20", label: "Analyzed" },
-  decided: { icon: BrainCircuit, color: "text-purple-400", bg: "bg-purple-500/10 border-purple-500/20", label: "Decided" },
-  acted: { icon: Zap, color: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/20", label: "Acted" },
-  negotiating: { icon: CheckCircle, color: "text-orange-400", bg: "bg-orange-500/10 border-orange-500/20", label: "Negotiating" },
+  observed: { icon: Eye, color: "text-[#2563eb]", bg: "bg-[#2563eb]/10 border-[#2563eb]/20", label: "Observed" },
+  analyzed: { icon: Search, color: "text-[#f59e0b]", bg: "bg-[#f59e0b]/10 border-[#f59e0b]/20", label: "Analyzed" },
+  decided: { icon: BrainCircuit, color: "text-[#8b5cf6]", bg: "bg-[#8b5cf6]/10 border-[#8b5cf6]/20", label: "Decided" },
+  acted: { icon: Zap, color: "text-[#10b981]", bg: "bg-[#10b981]/10 border-[#10b981]/20", label: "Acted" },
+  negotiating: { icon: CheckCircle, color: "text-[#f97316]", bg: "bg-[#f97316]/10 border-[#f97316]/20", label: "Negotiating" },
 };
 
 function AutoApproveCountdown({ autoApproveAt }: { autoApproveAt: string }) {
@@ -33,7 +33,7 @@ function AutoApproveCountdown({ autoApproveAt }: { autoApproveAt: string }) {
   if (secondsLeft <= 0) return null;
 
   return (
-    <span className="flex items-center gap-1 text-[11px] text-amber-400">
+    <span className="flex items-center gap-1 text-[11px] font-medium text-[#f59e0b]">
       <Clock className="h-3 w-3" />
       Auto-approve in {secondsLeft}s
     </span>
@@ -65,8 +65,8 @@ function DecisionCard({ decision }: { decision: AgentDecision }) {
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       className={cn(
-        "rounded-xl border bg-card/50 p-3 backdrop-blur-sm transition-all",
-        isPending ? "animate-conflict-pulse border-amber-500/30" : "border-white/[0.06]",
+        "rounded-xl border bg-white p-3 shadow-sm transition-all",
+        isPending ? "animate-conflict-pulse border-[#f59e0b]/40" : "border-[#e2e8f0]",
         isRejected && "opacity-40"
       )}
     >
@@ -77,16 +77,16 @@ function DecisionCard({ decision }: { decision: AgentDecision }) {
             {phase.label}
           </span>
         </div>
-        <span className="text-[10px] text-muted-foreground">
+        <span className="text-[11px] font-medium text-[#64748b]">
           {decision.agentType.replace("_", " ")}
         </span>
 
         {decision.guardrailResult && (
           <span className={cn(
             "flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[9px] font-semibold",
-            decision.guardrailResult === "AUTO_APPROVE" && "border-emerald-500/20 bg-emerald-500/10 text-emerald-400",
-            decision.guardrailResult === "PENDING_HUMAN" && "border-amber-500/20 bg-amber-500/10 text-amber-400",
-            decision.guardrailResult === "BLOCKED" && "border-red-500/20 bg-red-500/10 text-red-400",
+            decision.guardrailResult === "AUTO_APPROVE" && "border-[#10b981]/20 bg-[#10b981]/10 text-[#10b981]",
+            decision.guardrailResult === "PENDING_HUMAN" && "border-[#f59e0b]/20 bg-[#f59e0b]/10 text-[#f59e0b]",
+            decision.guardrailResult === "BLOCKED" && "border-[#ef4444]/20 bg-[#ef4444]/10 text-[#ef4444]",
           )}>
             <Shield className="h-2.5 w-2.5" />
             {decision.guardrailResult === "AUTO_APPROVE" ? "Auto" :
@@ -94,36 +94,36 @@ function DecisionCard({ decision }: { decision: AgentDecision }) {
           </span>
         )}
 
-        <span className="ml-auto text-[10px] text-muted-foreground">
+        <span className="ml-auto text-[10px] tabular-nums text-[#94a3b8]">
           {new Date(decision.timestamp).toLocaleTimeString()}
         </span>
       </div>
 
-      <p className="text-[13px] font-medium text-foreground">{decision.summary}</p>
+      <p className="text-[13px] font-medium text-[#1e293b]">{decision.summary}</p>
 
       {decision.reasoning && (
-        <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">{decision.reasoning}</p>
+        <p className="mt-1 text-[12px] leading-relaxed text-[#64748b]">{decision.reasoning}</p>
       )}
 
       {decision.confidence != null && (
         <div className="mt-2 flex items-center gap-2">
-          <span className="text-[10px] text-muted-foreground">Confidence</span>
-          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/5">
+          <span className="text-[10px] font-medium text-[#94a3b8]">Confidence</span>
+          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[#f1f5f9]">
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: `${Math.round(decision.confidence * 100)}%` }}
               transition={{ duration: 0.8, ease: "easeOut" }}
               className={cn(
                 "h-full rounded-full",
-                decision.confidence >= 0.8 ? "bg-emerald-500" :
-                decision.confidence >= 0.5 ? "bg-amber-500" : "bg-red-500"
+                decision.confidence >= 0.8 ? "bg-[#10b981]" :
+                decision.confidence >= 0.5 ? "bg-[#f59e0b]" : "bg-[#ef4444]"
               )}
             />
           </div>
           <span className={cn(
-            "text-[10px] font-semibold tabular-nums",
-            decision.confidence >= 0.8 ? "text-emerald-400" :
-            decision.confidence >= 0.5 ? "text-amber-400" : "text-red-400"
+            "text-[10px] font-bold tabular-nums",
+            decision.confidence >= 0.8 ? "text-[#10b981]" :
+            decision.confidence >= 0.5 ? "text-[#f59e0b]" : "text-[#ef4444]"
           )}>
             {Math.round(decision.confidence * 100)}%
           </span>
@@ -133,7 +133,7 @@ function DecisionCard({ decision }: { decision: AgentDecision }) {
       {decision.policyViolations?.length > 0 && (
         <div className="mt-1.5 flex flex-wrap gap-1">
           {decision.policyViolations.map((v, i) => (
-            <span key={i} className="rounded-full border border-red-500/20 bg-red-500/10 px-2 py-0.5 text-[10px] text-red-400">
+            <span key={i} className="rounded-full border border-[#ef4444]/20 bg-[#ef4444]/10 px-2 py-0.5 text-[10px] font-medium text-[#ef4444]">
               {v}
             </span>
           ))}
@@ -141,21 +141,21 @@ function DecisionCard({ decision }: { decision: AgentDecision }) {
       )}
 
       {isPending && (
-        <div className="mt-2 flex items-center gap-2 border-t border-white/[0.06] pt-2">
+        <div className="mt-2 flex items-center gap-2 border-t border-[#e2e8f0] pt-2">
           {decision.autoApproveAt && (
             <AutoApproveCountdown autoApproveAt={decision.autoApproveAt} />
           )}
           <div className="ml-auto flex gap-2">
             <button
               onClick={handleApprove}
-              className="flex items-center gap-1 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-[11px] font-semibold text-emerald-400 transition-colors hover:bg-emerald-500/20"
+              className="flex items-center gap-1 rounded-lg border border-[#10b981]/30 bg-[#10b981]/10 px-3 py-1.5 text-[11px] font-semibold text-[#10b981] transition-colors hover:bg-[#10b981]/20"
             >
               <ThumbsUp className="h-3 w-3" />
               Approve
             </button>
             <button
               onClick={handleReject}
-              className="flex items-center gap-1 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-1.5 text-[11px] font-semibold text-red-400 transition-colors hover:bg-red-500/20"
+              className="flex items-center gap-1 rounded-lg border border-[#ef4444]/30 bg-[#ef4444]/10 px-3 py-1.5 text-[11px] font-semibold text-[#ef4444] transition-colors hover:bg-[#ef4444]/20"
             >
               <ThumbsDown className="h-3 w-3" />
               Reject
@@ -165,13 +165,13 @@ function DecisionCard({ decision }: { decision: AgentDecision }) {
       )}
 
       {isApproved && (
-        <div className="mt-1.5 flex items-center gap-1 text-[10px] text-emerald-400">
+        <div className="mt-1.5 flex items-center gap-1 text-[11px] font-medium text-[#10b981]">
           <CheckCircle className="h-3 w-3" />
           Approved & Executed
         </div>
       )}
       {isRejected && (
-        <div className="mt-1.5 flex items-center gap-1 text-[10px] text-red-400">
+        <div className="mt-1.5 flex items-center gap-1 text-[11px] font-medium text-[#ef4444]">
           <ThumbsDown className="h-3 w-3" />
           Rejected
         </div>
@@ -184,15 +184,15 @@ export default function AIDecisionFeed() {
   const decisions = useDashboardStore((s) => s.decisions);
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-xl border border-white/[0.06] bg-card/50 backdrop-blur-sm">
-      <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-3">
+    <div className="flex flex-col overflow-hidden rounded-xl border border-[#e2e8f0] bg-white shadow-sm">
+      <div className="flex items-center justify-between border-b border-[#e2e8f0] px-4 py-3">
         <div className="flex items-center gap-2">
-          <BrainCircuit className="h-4 w-4 text-purple-400" />
-          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">AI Decision Feed</span>
+          <BrainCircuit className="h-4 w-4 text-[#8b5cf6]" />
+          <span className="text-xs font-semibold uppercase tracking-wider text-[#64748b]">AI Decision Feed</span>
         </div>
         {decisions.length > 0 && (
-          <span className="flex items-center gap-1 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
+          <span className="flex items-center gap-1 rounded-full border border-[#10b981]/20 bg-[#10b981]/10 px-2 py-0.5 text-[10px] font-semibold text-[#10b981]">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#10b981]" />
             Live
           </span>
         )}
@@ -203,9 +203,9 @@ export default function AIDecisionFeed() {
           <AnimatePresence initial={false}>
             {decisions.length === 0 ? (
               <div className="flex h-40 flex-col items-center justify-center gap-2 text-center">
-                <BrainCircuit className="h-8 w-8 text-white/10" />
-                <p className="text-sm text-muted-foreground">Agents are standing by</p>
-                <p className="text-xs text-muted-foreground/60">Start a simulation to activate AI agents</p>
+                <BrainCircuit className="h-8 w-8 text-[#e2e8f0]" />
+                <p className="text-sm font-medium text-[#64748b]">Agents are standing by</p>
+                <p className="text-xs text-[#94a3b8]">Start a simulation to activate AI agents</p>
               </div>
             ) : (
               decisions.map((decision) => (

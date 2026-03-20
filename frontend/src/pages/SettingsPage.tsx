@@ -67,10 +67,9 @@ export default function SettingsPage() {
   };
 
   const redisInfo = getServiceStatus("redis");
-  // LLM provider comes as services.llm with {provider, model} structure
   const llmSvc = (health?.services as Record<string, Record<string, string>> | undefined)?.llm;
   const llmInfo = llmSvc
-    ? { status: llmSvc.provider ? "connected" : "pending", detail: `${llmSvc.provider || "none"} — ${llmSvc.model || "unknown"}` }
+    ? { status: llmSvc.provider ? "connected" : "pending", detail: `${llmSvc.provider || "none"} - ${llmSvc.model || "unknown"}` }
     : { status: "checking" as string, detail: "..." };
 
   const statusItems = [
@@ -102,33 +101,32 @@ export default function SettingsPage() {
 
   const resolveStatusDisplay = (status: string) => {
     if (status === "connected" || status === "bedrock") {
-      return { icon: CheckCircle2, color: "text-emerald-400", bg: "bg-emerald-500/10", label: "Connected" };
+      return { icon: CheckCircle2, color: "text-[#10b981]", bg: "bg-[#10b981]/10", label: "Connected" };
     }
     if (status === "mock") {
-      return { icon: CheckCircle2, color: "text-amber-400", bg: "bg-amber-500/10", label: "Mock" };
+      return { icon: CheckCircle2, color: "text-[#f59e0b]", bg: "bg-[#f59e0b]/10", label: "Mock" };
     }
     if (status === "simulation") {
-      return { icon: CheckCircle2, color: "text-blue-400", bg: "bg-blue-500/10", label: "Simulation" };
+      return { icon: CheckCircle2, color: "text-[#3b82f6]", bg: "bg-[#3b82f6]/10", label: "Simulation" };
     }
     if (status === "unavailable") {
-      return { icon: XCircle, color: "text-muted-foreground", bg: "bg-white/5", label: "Unavailable" };
+      return { icon: XCircle, color: "text-[#94a3b8]", bg: "bg-[#f1f5f9]", label: "Unavailable" };
     }
     if (status === "error") {
-      return { icon: XCircle, color: "text-red-400", bg: "bg-red-500/10", label: "Error" };
+      return { icon: XCircle, color: "text-[#ef4444]", bg: "bg-[#ef4444]/10", label: "Error" };
     }
     if (status === "checking") {
-      return { icon: RefreshCw, color: "text-muted-foreground animate-spin", bg: "bg-white/5", label: "Checking..." };
+      return { icon: RefreshCw, color: "text-[#94a3b8] animate-spin", bg: "bg-[#f1f5f9]", label: "Checking..." };
     }
-    return { icon: XCircle, color: "text-amber-400", bg: "bg-amber-500/10", label: "Pending" };
+    return { icon: XCircle, color: "text-[#f59e0b]", bg: "bg-[#f59e0b]/10", label: "Pending" };
   };
 
   return (
     <div className="flex h-full flex-col gap-4 overflow-auto pr-1">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-foreground">Settings</h2>
-          <p className="text-sm text-muted-foreground">
+          <h2 className="text-lg font-bold text-[#1e293b]">Settings</h2>
+          <p className="text-sm text-[#64748b]">
             System configuration and connection status
           </p>
         </div>
@@ -136,7 +134,7 @@ export default function SettingsPage() {
           size="sm"
           onClick={fetchHealth}
           disabled={refreshing}
-          className="h-8 bg-white/5 text-xs text-muted-foreground hover:bg-white/10 hover:text-foreground"
+          className="h-8 border border-[#e2e8f0] bg-white text-xs font-medium text-[#475569] hover:bg-[#f1f5f9]"
         >
           <RefreshCw className={cn("mr-1.5 h-3 w-3", refreshing && "animate-spin")} />
           Refresh
@@ -144,15 +142,15 @@ export default function SettingsPage() {
       </div>
 
       {/* Connection Status */}
-      <div className="rounded-xl border border-white/[0.06] bg-card/50 backdrop-blur-sm">
-        <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-3">
+      <div className="rounded-xl border border-[#e2e8f0] bg-white shadow-sm">
+        <div className="flex items-center justify-between border-b border-[#e2e8f0] px-4 py-3">
           <div className="flex items-center gap-2">
-            <Shield className="h-4 w-4 text-blue-400" />
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <Shield className="h-4 w-4 text-[#2563eb]" />
+            <span className="text-xs font-semibold uppercase tracking-wider text-[#64748b]">
               Connection Status
             </span>
           </div>
-          <Settings className="h-4 w-4 text-muted-foreground/40" />
+          <Settings className="h-4 w-4 text-[#94a3b8]" />
         </div>
         <div className="space-y-2 p-3">
           {statusItems.map((item, i) => {
@@ -165,20 +163,20 @@ export default function SettingsPage() {
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.08 }}
-                className="flex items-center justify-between rounded-lg border border-white/[0.04] bg-white/[0.02] px-4 py-3"
+                className="flex items-center justify-between rounded-lg border border-[#e2e8f0] bg-[#f8fafc] px-4 py-3"
               >
                 <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/5">
-                    <Icon className="h-4 w-4 text-muted-foreground" />
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white border border-[#e2e8f0]">
+                    <Icon className="h-4 w-4 text-[#64748b]" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-foreground">{item.label}</p>
-                    <p className="text-[11px] text-muted-foreground/70">{item.detail}</p>
+                    <p className="text-sm font-semibold text-[#1e293b]">{item.label}</p>
+                    <p className="text-[11px] text-[#64748b]">{item.detail}</p>
                   </div>
                 </div>
                 <div className={cn("flex items-center gap-1.5 rounded-full px-2.5 py-1", display.bg)}>
                   <StatusIcon className={cn("h-3.5 w-3.5", display.color)} />
-                  <span className={cn("text-[11px] font-medium", display.color)}>
+                  <span className={cn("text-[11px] font-semibold", display.color)}>
                     {display.label}
                   </span>
                 </div>
@@ -189,26 +187,26 @@ export default function SettingsPage() {
       </div>
 
       {/* Operating Mode */}
-      <div className="rounded-xl border border-white/[0.06] bg-card/50 backdrop-blur-sm">
-        <div className="flex items-center gap-2 border-b border-white/[0.06] px-4 py-3">
-          <Gauge className="h-4 w-4 text-purple-400" />
-          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+      <div className="rounded-xl border border-[#e2e8f0] bg-white shadow-sm">
+        <div className="flex items-center gap-2 border-b border-[#e2e8f0] px-4 py-3">
+          <Gauge className="h-4 w-4 text-[#8b5cf6]" />
+          <span className="text-xs font-semibold uppercase tracking-wider text-[#64748b]">
             Operating Mode
           </span>
         </div>
         <div className="p-3">
-          <div className="flex items-center justify-between rounded-lg border border-white/[0.04] bg-white/[0.02] px-4 py-3">
+          <div className="flex items-center justify-between rounded-lg border border-[#e2e8f0] bg-[#f8fafc] px-4 py-3">
             <div>
-              <p className="text-sm font-medium text-foreground">Simulation Mode</p>
-              <p className="text-[11px] text-muted-foreground/70">
+              <p className="text-sm font-semibold text-[#1e293b]">Simulation Mode</p>
+              <p className="text-[11px] text-[#64748b]">
                 Uses generated data instead of a live AWS Connect instance
               </p>
             </div>
             <span className={cn(
-              "rounded-full px-2.5 py-1 text-[11px] font-medium",
+              "rounded-full px-2.5 py-1 text-[11px] font-semibold",
               health?.simulation_mode
-                ? "bg-amber-500/10 text-amber-400"
-                : "bg-emerald-500/10 text-emerald-400"
+                ? "bg-[#f59e0b]/10 text-[#f59e0b]"
+                : "bg-[#10b981]/10 text-[#10b981]"
             )}>
               {health?.simulation_mode ? "Simulation" : "Live"}
             </span>
@@ -217,10 +215,10 @@ export default function SettingsPage() {
       </div>
 
       {/* Agent Thresholds */}
-      <div className="rounded-xl border border-white/[0.06] bg-card/50 backdrop-blur-sm">
-        <div className="flex items-center gap-2 border-b border-white/[0.06] px-4 py-3">
-          <Gauge className="h-4 w-4 text-cyan-400" />
-          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+      <div className="rounded-xl border border-[#e2e8f0] bg-white shadow-sm">
+        <div className="flex items-center gap-2 border-b border-[#e2e8f0] px-4 py-3">
+          <Gauge className="h-4 w-4 text-[#06b6d4]" />
+          <span className="text-xs font-semibold uppercase tracking-wider text-[#64748b]">
             Agent Thresholds
           </span>
         </div>
@@ -237,10 +235,10 @@ export default function SettingsPage() {
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.3 + i * 0.05 }}
-              className="flex items-center justify-between rounded-lg border border-white/[0.04] bg-white/[0.02] px-4 py-3"
+              className="flex items-center justify-between rounded-lg border border-[#e2e8f0] bg-[#f8fafc] px-4 py-3"
             >
-              <span className="text-sm text-foreground/80">{threshold.label}</span>
-              <span className="font-mono text-sm tabular-nums text-muted-foreground">
+              <span className="text-sm text-[#475569]">{threshold.label}</span>
+              <span className="font-mono text-sm font-medium tabular-nums text-[#1e293b]">
                 {threshold.value}
               </span>
             </motion.div>
