@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { ShieldCheck } from "lucide-react";
 import type { UserRole } from "@/components/auth/authToken";
 import {
@@ -19,7 +19,7 @@ const ROLES: UserRole[] = ["Operator", "Supervisor", "Read-Only"];
 
 function LogoMark() {
   return (
-    <div className="login-logo-wrap">
+    <Link to="/" className="login-logo-wrap" style={{ textDecoration: "none" }}>
       <div className="login-wordmark">
         <span className="login-wordmark-primary">Sentinel</span>
         <span className="login-wordmark-accent">AI</span>
@@ -28,7 +28,7 @@ function LogoMark() {
         <span className="login-brand">Cirrus<span className="login-brand-accent">Labs</span></span>
       </div>
       <div className="login-tagline">Autonomous Contact Center Intelligence</div>
-    </div>
+    </Link>
   );
 }
 
@@ -72,7 +72,7 @@ export default function LoginPage() {
   const existingSession = useMemo(() => getValidSession(), []);
 
   useEffect(() => {
-    if (existingSession) navigate("/", { replace: true });
+    if (existingSession) navigate("/dashboard", { replace: true });
   }, []);
 
   const signIn = (nextEmail: string, nextPassword: string, nextRole: UserRole) => {
@@ -86,7 +86,7 @@ export default function LoginPage() {
     clearSessionToken();
     const token = createMockToken(nextEmail, nextRole);
     setSessionToken(token);
-    navigate("/", { replace: true });
+    navigate("/dashboard", { replace: true });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

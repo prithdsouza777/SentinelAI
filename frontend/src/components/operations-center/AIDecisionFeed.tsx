@@ -5,7 +5,6 @@ import { wsService } from "../../services/websocket";
 import type { AgentDecision, DecisionPhase } from "../../types";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 const phaseConfig: Record<DecisionPhase, { icon: typeof Eye; color: string; bg: string; label: string }> = {
   observed: { icon: Eye, color: "text-[#2563eb]", bg: "bg-[#2563eb]/10 border-[#2563eb]/20", label: "Observed" },
@@ -198,7 +197,7 @@ export default function AIDecisionFeed() {
         )}
       </div>
 
-      <ScrollArea className="flex-1 p-3">
+      <div className="min-h-0 flex-1 overflow-y-auto p-3">
         <div className="space-y-2">
           <AnimatePresence initial={false}>
             {decisions.length === 0 ? (
@@ -214,7 +213,7 @@ export default function AIDecisionFeed() {
             )}
           </AnimatePresence>
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 }

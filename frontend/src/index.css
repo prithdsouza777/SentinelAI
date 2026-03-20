@@ -148,6 +148,16 @@
   ::-webkit-scrollbar-thumb:hover {
     background: #a8a8a8;
   }
+
+  [data-theme="dark"] ::-webkit-scrollbar-track {
+    background: #111827;
+  }
+  [data-theme="dark"] ::-webkit-scrollbar-thumb {
+    background: #334155;
+  }
+  [data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+    background: #475569;
+  }
 }
 
 @layer utilities {
@@ -226,6 +236,176 @@
   .animate-critical-flash {
     animation: criticalFlash 1.5s ease-in-out infinite;
   }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   DARK THEME — Global overrides for hardcoded Tailwind colors
+   Remaps light-mode hex values used across all components.
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Backgrounds ── */
+[data-theme="dark"] .bg-white {
+  background-color: var(--bg-card) !important;
+}
+[data-theme="dark"] .bg-\[\#ffffff\] {
+  background-color: var(--bg-card) !important;
+}
+[data-theme="dark"] .bg-\[\#f8fafc\] {
+  background-color: var(--bg-secondary) !important;
+}
+[data-theme="dark"] .bg-\[\#f1f5f9\] {
+  background-color: var(--bg-input) !important;
+}
+[data-theme="dark"] .bg-\[\#f9fafb\] {
+  background-color: var(--bg-primary) !important;
+}
+
+/* Gradient backgrounds used in AppLayout */
+[data-theme="dark"] .from-\[\#f8fafc\] {
+  --tw-gradient-from: var(--bg-primary) !important;
+}
+[data-theme="dark"] .to-\[\#f1f5f9\] {
+  --tw-gradient-to: var(--bg-secondary) !important;
+}
+
+/* bg-grid utility */
+[data-theme="dark"] .bg-grid {
+  background-image:
+    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px) !important;
+}
+
+/* ── Text colors ── */
+[data-theme="dark"] .text-\[\#0f172a\],
+[data-theme="dark"] .text-\[\#1e293b\] {
+  color: var(--text-primary) !important;
+}
+[data-theme="dark"] .text-\[\#475569\] {
+  color: var(--text-secondary) !important;
+}
+[data-theme="dark"] .text-\[\#64748b\] {
+  color: var(--text-secondary) !important;
+}
+[data-theme="dark"] .text-\[\#94a3b8\] {
+  color: var(--text-muted) !important;
+}
+
+/* Hover text */
+[data-theme="dark"] .hover\:text-\[\#1e293b\]:hover {
+  color: var(--text-primary) !important;
+}
+[data-theme="dark"] .hover\:text-\[\#475569\]:hover {
+  color: var(--text-secondary) !important;
+}
+
+/* Hover backgrounds */
+[data-theme="dark"] .hover\:bg-\[\#f1f5f9\]:hover {
+  background-color: var(--bg-input) !important;
+}
+[data-theme="dark"] .hover\:bg-white:hover {
+  background-color: var(--bg-card) !important;
+}
+
+/* bg used as dividers */
+[data-theme="dark"] .bg-\[\#e2e8f0\] {
+  background-color: var(--border) !important;
+}
+
+/* ── Borders ── */
+[data-theme="dark"] .border-\[\#e2e8f0\] {
+  border-color: var(--border) !important;
+}
+[data-theme="dark"] .border-\[\#edf2f7\] {
+  border-color: var(--border-subtle) !important;
+}
+[data-theme="dark"] .border-t-\[\#e2e8f0\] {
+  border-top-color: var(--border) !important;
+}
+[data-theme="dark"] .border-b-\[\#e2e8f0\] {
+  border-bottom-color: var(--border) !important;
+}
+[data-theme="dark"] .divide-\[\#e2e8f0\] > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--border) !important;
+}
+
+/* ── Placeholder text ── */
+[data-theme="dark"] .placeholder-\[\#94a3b8\]::placeholder {
+  color: var(--text-muted) !important;
+}
+
+/* ── Focus rings ── */
+[data-theme="dark"] .focus\:border-\[\#2563eb\]\/40:focus {
+  border-color: rgba(59, 130, 246, 0.4) !important;
+}
+[data-theme="dark"] .focus\:ring-\[\#2563eb\]\/10:focus {
+  --tw-ring-color: rgba(59, 130, 246, 0.15) !important;
+}
+
+/* ── Shadow overrides ── */
+[data-theme="dark"] .shadow-sm {
+  box-shadow: var(--shadow-card) !important;
+}
+
+/* ── Login page dark ── */
+[data-theme="dark"] .login-page-root {
+  background: radial-gradient(1200px circle at 20% 10%, rgba(59, 130, 246, 0.06), transparent 40%),
+    radial-gradient(900px circle at 80% 20%, rgba(59, 130, 246, 0.06), transparent 45%),
+    linear-gradient(180deg, #0a0f1e, #0d1526);
+}
+[data-theme="dark"] .login-animated-bg {
+  background:
+    radial-gradient(600px circle at 20% 15%, rgba(59, 130, 246, 0.06), transparent 60%),
+    radial-gradient(520px circle at 80% 25%, rgba(59, 130, 246, 0.06), transparent 65%),
+    radial-gradient(520px circle at 40% 80%, rgba(16, 185, 129, 0.06), transparent 60%);
+}
+[data-theme="dark"] .login-wordmark-primary {
+  color: #f1f5f9;
+}
+[data-theme="dark"] .login-brand {
+  color: #94a3b8;
+}
+[data-theme="dark"] .login-tagline {
+  color: #64748b;
+}
+[data-theme="dark"] .login-card {
+  background: var(--bg-card);
+  border-color: var(--border);
+  box-shadow: var(--shadow-elevated);
+}
+[data-theme="dark"] .login-form-title {
+  color: var(--text-primary);
+}
+[data-theme="dark"] .login-form-subtitle {
+  color: var(--text-secondary);
+}
+[data-theme="dark"] .login-label {
+  color: var(--text-secondary);
+}
+[data-theme="dark"] .login-input {
+  background: var(--bg-input);
+  border-color: var(--border);
+  color: var(--text-primary);
+}
+[data-theme="dark"] .login-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+[data-theme="dark"] .login-role-pill {
+  background: var(--bg-input);
+  border-color: var(--border);
+  color: var(--text-secondary);
+}
+[data-theme="dark"] .login-role-pill:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+[data-theme="dark"] .login-role-pill.is-active {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+[data-theme="dark"] .login-error {
+  color: var(--danger);
 }
 
 /* Print support */

@@ -3,7 +3,6 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useDashboardStore } from "../stores/dashboardStore";
 import { alertsApi } from "../services/api";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import type { AlertSeverity } from "../types";
@@ -49,7 +48,7 @@ export default function AlertsPage() {
   const activeCount = alerts.filter((a) => !a.resolvedAt).length;
 
   return (
-    <div className="flex h-full flex-col gap-4 overflow-hidden">
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-bold text-[#1e293b]">Alerts</h2>
@@ -100,7 +99,7 @@ export default function AlertsPage() {
       </div>
 
       {/* Alert List */}
-      <ScrollArea className="flex-1">
+      <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="space-y-2 pr-2">
           {filtered.length === 0 ? (
             <motion.div
@@ -205,7 +204,7 @@ export default function AlertsPage() {
             </AnimatePresence>
           )}
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 }

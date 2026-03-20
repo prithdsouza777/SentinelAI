@@ -1,11 +1,28 @@
 import { useState } from "react";
+import type React from "react";
 import { Send, MessageSquare, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDashboardStore } from "../../stores/dashboardStore";
 import { chatApi } from "../../services/api";
 import type { ChatMessage } from "../../types";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
+
+function renderSimpleMarkdown(text: string): React.ReactNode {
+  const bold = (s: string): React.ReactNode => {
+    const parts = s.split(/(\*\*[^*]+\*\*)/g);
+    return parts.map((p, i) =>
+      p.startsWith("**") && p.endsWith("**")
+        ? <strong key={i} className="font-semibold text-[#1e293b]">{p.slice(2, -2)}</strong>
+        : p
+    );
+  };
+  return text.split("\n").map((line, i) => {
+    const listMatch = line.match(/^[-*]\s+(.*)/);
+    if (listMatch) return <div key={i} className="ml-3 before:content-['·'] before:mr-1.5 before:text-[#94a3b8]">{bold(listMatch[1])}</div>;
+    if (line.trim() === "") return null;
+    return <div key={i}>{bold(line)}</div>;
+  });
+}
 
 export default function ChatPanel() {
   const [input, setInput] = useState("");
@@ -58,7 +75,7 @@ export default function ChatPanel() {
         <MessageSquare className="h-4 w-4 text-[#94a3b8]" />
       </div>
 
-      <ScrollArea className="flex-1 p-3">
+      <div className="min-h-0 flex-1 overflow-y-auto p-3">
         <div className="space-y-2">
           {messages.length === 0 ? (
             <p className="text-xs text-[#94a3b8]">
@@ -75,7 +92,7 @@ export default function ChatPanel() {
                     : "mr-4 border border-[#e2e8f0] bg-[#f8fafc] text-[#475569]"
                 )}
               >
-                {msg.content}
+                {msg.role === "assistant" ? renderSimpleMarkdown(msg.content) : msg.content}
               </div>
             ))
           )}
@@ -88,7 +105,7 @@ export default function ChatPanel() {
             </div>
           )}
         </div>
-      </ScrollArea>
+      </div>
 
       <div className="border-t border-[#e2e8f0] p-3">
         <div className="flex gap-2">

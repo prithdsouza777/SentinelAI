@@ -12,7 +12,7 @@ import {
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { icon: LayoutDashboard, label: "Operations", href: "/" },
+  { icon: LayoutDashboard, label: "Operations", href: "/dashboard" },
   { icon: BrainCircuit, label: "Agents", href: "/agents" },
   { icon: AlertTriangle, label: "Alerts", href: "/alerts" },
   { icon: MessageSquare, label: "Chat", href: "/chat" },
@@ -55,7 +55,7 @@ export default function Sidebar() {
           <NavLink
             key={item.label}
             to={item.href}
-            end={item.href === "/"}
+            end={item.href === "/dashboard"}
             className={({ isActive }) =>
               cn(
                 "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",

@@ -8,16 +8,20 @@ import SimulationPage from "./pages/SimulationPage";
 import ReportsPage from "./pages/ReportsPage";
 import SettingsPage from "./pages/SettingsPage";
 import LoginPage from "./pages/LoginPage";
+import LandingPage from "./pages/LandingPage";
 import RequireAuth from "./components/auth/RequireAuth";
+
+import "./pages/LandingPage.css";
 
 function App() {
   return (
     <Routes>
+      <Route index element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
 
       <Route element={<RequireAuth />}>
         <Route element={<AppLayout />}>
-          <Route index element={<OperationsCenter />} />
+          <Route path="dashboard" element={<OperationsCenter />} />
           <Route path="agents" element={<AgentsPage />} />
           <Route path="alerts" element={<AlertsPage />} />
           <Route path="chat" element={<ChatPage />} />

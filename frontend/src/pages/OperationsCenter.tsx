@@ -9,12 +9,12 @@ import ChatPanel from "../components/chat/ChatPanel";
 
 export default function OperationsCenter() {
   return (
-    <div className="grid h-full grid-cols-12 gap-3">
+    <div className="grid min-h-0 flex-1 grid-cols-12 gap-3">
       {/* Main content — AI Decision Feed + Agent Collaboration */}
-      <div className="col-span-8 flex flex-col gap-3 overflow-hidden">
+      <div className="col-span-8 flex min-h-0 flex-col gap-3 overflow-hidden">
         <CostImpactTicker />
 
-        <div className="grid flex-1 grid-cols-2 gap-3 overflow-hidden">
+        <div className="grid min-h-0 flex-1 grid-cols-2 gap-3">
           <AIDecisionFeed />
           <AgentCollaborationPanel />
         </div>
@@ -23,7 +23,7 @@ export default function OperationsCenter() {
       </div>
 
       {/* Right sidebar — Metrics + Governance + Alerts + Chat */}
-      <div className="col-span-4 flex flex-col gap-3 overflow-hidden">
+      <div className="col-span-4 flex flex-col gap-3 overflow-y-auto">
         <MetricsSidebar />
         <GovernanceScorecardWidget />
         <AlertPanel />

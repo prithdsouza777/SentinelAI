@@ -3,7 +3,6 @@ import { cn } from "@/lib/utils";
 import { useDashboardStore } from "../../stores/dashboardStore";
 import type { AlertSeverity } from "../../types";
 import { motion, AnimatePresence } from "framer-motion";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 const severityConfig: Record<AlertSeverity, { icon: typeof Info; color: string; borderColor: string; bg: string }> = {
   info: { icon: Info, color: "text-[#3b82f6]", borderColor: "border-[#3b82f6]/20", bg: "bg-[#3b82f6]/5" },
@@ -30,7 +29,7 @@ export default function AlertPanel() {
         )}
       </div>
 
-      <ScrollArea className="flex-1 p-3">
+      <div className="min-h-0 flex-1 overflow-y-auto p-3">
         <div className="space-y-2">
           <AnimatePresence initial={false}>
             {alerts.length === 0 ? (
@@ -73,7 +72,7 @@ export default function AlertPanel() {
             )}
           </AnimatePresence>
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 }
