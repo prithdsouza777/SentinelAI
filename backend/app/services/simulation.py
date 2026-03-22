@@ -62,40 +62,38 @@ _ORIGINAL_AGENTS = {q["id"]: q["agents"] for q in SIMULATED_QUEUES}
 # ── Scripted Demo Scenario (3 minutes @ 2s ticks = 90 ticks) ────────────────
 # Each entry fires once when tick matches. "clear_*" entries undo earlier chaos.
 DEMO_SCRIPT = [
-    # === Act 1: The Calm (ticks 0-14, ~30s) ===
+    # === Act 1: The Calm (ticks 0-7, ~21s) ===
     # Normal operations, no events — agents observing, cost at $0, green across the board
 
-    # === Act 2: The Storm (tick 15, ~30s mark) ===
+    # === Act 2: The Storm (tick 8, ~24s mark) ===
     # Support queue gets slammed + General loses agents — dual-point failure
-    {"tick": 15, "type": "spike_queue",   "params": {"queue_id": "q-support", "multiplier": 4.0}},
-    {"tick": 15, "type": "kill_agents",   "params": {"queue_id": "q-general", "agents_count": 4}},
+    {"tick": 8,  "type": "spike_queue",   "params": {"queue_id": "q-support", "multiplier": 5.0}},
+    {"tick": 8,  "type": "kill_agents",   "params": {"queue_id": "q-general", "agents_count": 4}},
 
-    # === Act 3: The Cascade (tick 20, ~40s) — pressure spreads ===
-    # Support overflow spills into Billing — triggers multiple agents simultaneously
-    {"tick": 20, "type": "spike_queue",   "params": {"queue_id": "q-billing", "multiplier": 2.5}},
-    # VIP starts feeling pressure too (smaller spike, triggers Predictive Prevention)
-    {"tick": 23, "type": "spike_queue",   "params": {"queue_id": "q-vip", "multiplier": 2.0}},
+    # === Act 3: The Cascade (tick 14, ~42s) — pressure spreads ===
+    {"tick": 14, "type": "spike_queue",   "params": {"queue_id": "q-billing", "multiplier": 3.0}},
+    {"tick": 18, "type": "spike_queue",   "params": {"queue_id": "q-vip", "multiplier": 2.5}},
 
-    # === Act 4: The Negotiation (tick 26, ~52s) ===
-    # Queue Balancer wants to pull from Sales -> Support
-    # Escalation Handler wants to pull from Sales -> Billing
-    # Both target Sales as donor — CONFLICT triggers negotiation protocol
-    # (This happens naturally because both agents will fire on the same tick)
+    # === Act 4: The Negotiation (tick 22+) ===
+    # Queue Balancer + Escalation Handler both target Sales as donor — CONFLICT
 
-    # === Act 5: Partial Resolution (tick 33, ~66s) — agents recovering General ===
-    {"tick": 33, "type": "restore_agents", "params": {"queue_id": "q-general"}},
-    {"tick": 35, "type": "clear_spike",   "params": {"queue_id": "q-vip"}},
+    # === Act 5: Second wave (tick 30) — just when things seem stable ===
+    {"tick": 30, "type": "spike_queue",   "params": {"queue_id": "q-sales", "multiplier": 3.0}},
 
-    # === Act 6: Stabilization (tick 40, ~80s) — crisis subsiding ===
-    {"tick": 40, "type": "clear_spike",   "params": {"queue_id": "q-billing"}},
+    # === Act 6: Partial Resolution (tick 45) — agents recovering General ===
+    {"tick": 45, "type": "restore_agents", "params": {"queue_id": "q-general"}},
+    {"tick": 48, "type": "clear_spike",   "params": {"queue_id": "q-vip"}},
 
-    # === Act 7: Full Resolution (tick 48, ~96s) — clear the main spike ===
-    {"tick": 48, "type": "clear_spike",   "params": {"queue_id": "q-support"}},
+    # === Act 7: Stabilization (tick 55) — crisis subsiding ===
+    {"tick": 55, "type": "clear_spike",   "params": {"queue_id": "q-sales"}},
+    {"tick": 58, "type": "clear_spike",   "params": {"queue_id": "q-billing"}},
 
-    # === Act 8: The Intelligence (ticks 55+, ~110s+) ===
+    # === Act 8: Full Resolution (tick 65) — clear the main spike ===
+    {"tick": 65, "type": "clear_spike",   "params": {"queue_id": "q-support"}},
+
+    # === Act 9: The Intelligence (ticks 70+) ===
     # Metrics normalize. User asks "What just happened?" in chat.
-    # Cost ticker shows total savings. Governance scorecard shows decisions.
-    # No scripted events — calm operations for the final ~70s of demo.
+    # No scripted events — calm operations for the final stretch.
 ]
 
 
@@ -109,8 +107,8 @@ class SimulationEngine:
         self._routing_log: list[dict] = []  # skill routing decisions
 
     def generate_incoming_contact(self) -> dict | None:
-        """Generate a random incoming contact with skill requirements. ~40% chance per tick."""
-        if random.random() > 0.4:
+        """Generate a random incoming contact with skill requirements. ~15% chance per tick."""
+        if random.random() > 0.15:
             return None
         contact_type = random.choice(CONTACT_TYPES)
         return {

@@ -116,13 +116,13 @@ export default function ChatPage() {
       {/* Main chat area */}
       <div className="flex flex-1 flex-col overflow-hidden">
         <div className="mb-4">
-          <h2 className="text-lg font-bold text-[#1e293b]">Conversational Command Center</h2>
-          <p className="text-sm text-[#64748b]">
+          <h2 className="text-xl font-bold text-[#1e293b]">Conversational Command Center</h2>
+          <p className="mt-1 text-sm text-[#64748b]">
             Query status, issue commands, or create policy rules using natural language
           </p>
         </div>
 
-        <div className="flex flex-1 flex-col overflow-hidden rounded-xl border border-[#e2e8f0] bg-white shadow-sm">
+        <div className="flex flex-1 flex-col overflow-hidden rounded-2xl border border-[#e2e8f0] bg-white shadow-sm">
           <div className="min-h-0 flex-1 overflow-y-auto p-4">
             {messages.length === 0 ? (
               <div className="flex h-full min-h-[300px] flex-col items-center justify-center gap-5 text-center">
@@ -221,7 +221,7 @@ export default function ChatPage() {
 
       {/* Policies sidebar */}
       <div className="hidden w-72 flex-col gap-4 overflow-auto lg:flex">
-        <div className="flex-1 rounded-xl border border-[#e2e8f0] bg-white p-4 shadow-sm">
+        <div className="flex-1 rounded-2xl border border-[#e2e8f0] bg-white p-4 shadow-sm">
           <div className="mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <BookOpen className="h-4 w-4 text-[#2563eb]" />
@@ -241,7 +241,7 @@ export default function ChatPage() {
           </div>
         </div>
 
-        <div className="rounded-xl border border-[#e2e8f0] bg-white p-4 shadow-sm">
+        <div className="rounded-2xl border border-[#e2e8f0] bg-white p-4 shadow-sm">
           <div className="mb-3 flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-[#8b5cf6]" />
             <span className="text-xs font-semibold uppercase tracking-wider text-[#64748b]">

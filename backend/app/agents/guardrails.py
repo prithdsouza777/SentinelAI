@@ -5,9 +5,9 @@ It enforces hard policies, rate limits, scope isolation, and auto-approval
 timeouts, producing a GuardrailResult that the orchestrator acts on.
 
 GuardrailStatus logic:
-  AUTO_APPROVE   confidence >= 0.9 AND no policy violations
-  PENDING_HUMAN  0.7 <= confidence < 0.9  (auto-approve after 30s in demo mode)
-  BLOCKED        confidence < 0.7 OR any policy violation
+  AUTO_APPROVE   confidence >= 0.8 AND no policy violations
+  PENDING_HUMAN  0.5 <= confidence < 0.8  (auto-approve after 30s in demo mode)
+  BLOCKED        confidence < 0.5 OR any policy violation
 """
 
 import uuid
@@ -55,11 +55,11 @@ AGENT_SCOPES: dict[AgentType, list[str]] = {
 # ── Rate limits (max_actions, window_seconds) ────────────────────────────────
 
 RATE_LIMITS: dict[AgentType | str, tuple[int, int]] = {
-    AgentType.QUEUE_BALANCER:        (3, 60),
-    AgentType.ESCALATION_HANDLER:    (2, 300),
-    AgentType.PREDICTIVE_PREVENTION: (5, 60),
-    AgentType.SKILL_ROUTER:          (8, 60),
-    "global":                        (15, 60),
+    AgentType.QUEUE_BALANCER:        (10, 60),
+    AgentType.ESCALATION_HANDLER:    (6, 300),
+    AgentType.PREDICTIVE_PREVENTION: (12, 60),
+    AgentType.SKILL_ROUTER:          (15, 60),
+    "global":                        (50, 60),
 }
 
 # Auto-approve timeout for PENDING_HUMAN decisions (seconds)
@@ -128,10 +128,10 @@ class GuardrailsLayer:
             )
 
         # 5. Determine status
-        if violations or decision.confidence < 0.7:
+        if violations or decision.confidence < 0.5:
             status = GuardrailStatus.BLOCKED
-            reason = "; ".join(violations) if violations else "confidence below 0.7 threshold"
-        elif decision.confidence < 0.9:
+            reason = "; ".join(violations) if violations else "confidence below 0.5 threshold"
+        elif decision.confidence < 0.8:
             status = GuardrailStatus.PENDING_HUMAN
             reason = f"confidence {decision.confidence:.2f} requires human review"
         else:
@@ -314,9 +314,9 @@ class GuardrailsLayer:
                     window_count = self._count_recent_actions(
                         AgentType.ESCALATION_HANDLER, window_seconds=300
                     )
-                    if window_count >= 2:
+                    if window_count >= 6:
                         violations.append(
-                            "escalation_rate: max 2 escalations per 5-minute window reached"
+                            "escalation_rate: max 6 escalations per 5-minute window reached"
                         )
 
             elif policy.name == "analytics_readonly":

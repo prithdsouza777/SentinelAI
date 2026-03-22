@@ -422,7 +422,7 @@ class AgentOrchestrator:
     async def tick_revenue_at_risk(self, critical_count: int):
         """Called from main.py each tick. Accumulates revenue-at-risk during crises."""
         if critical_count > 0:
-            self._revenue_at_risk += 15.0 * critical_count
+            self._revenue_at_risk += 35.0 * critical_count
             from app.api.websocket import manager
             await manager.broadcast("cost:update", {
                 "totalSaved": round(self._total_saved, 2),
@@ -438,9 +438,9 @@ class AgentOrchestrator:
         prefix = action_str.split(":")[0]
         base_amount = savings_map.get(prefix, 20.0)
 
-        rescued = self._revenue_at_risk * 0.7
+        rescued = self._revenue_at_risk * 0.3
         self._total_saved += base_amount + rescued
-        self._revenue_at_risk = max(self._revenue_at_risk * 0.3, 0)
+        self._revenue_at_risk = max(self._revenue_at_risk * 0.85, 0)
         self._actions_today += 1
         # Dynamic abandoned-call prevention estimate based on action type
         prevented = {"move_agents": 18, "escalate": 8, "reinforce": 14, "route_contact": 3}

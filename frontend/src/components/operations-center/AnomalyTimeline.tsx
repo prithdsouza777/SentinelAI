@@ -25,23 +25,23 @@ export default function AnomalyTimeline() {
   ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
   return (
-    <div className="rounded-xl border border-[#e2e8f0] bg-white shadow-sm">
-      <div className="flex items-center justify-between border-b border-[#e2e8f0] px-4 py-3">
-        <div className="flex items-center gap-2">
-          <Clock className="h-4 w-4 text-[#06b6d4]" />
-          <span className="text-xs font-semibold uppercase tracking-wider text-[#64748b]">Anomaly Timeline</span>
+    <div className="rounded-2xl border border-[#e2e8f0] bg-white shadow-sm">
+      <div className="flex items-center justify-between border-b border-[#e2e8f0] px-5 py-3.5">
+        <div className="flex items-center gap-2.5">
+          <Clock className="h-5 w-5 text-[#06b6d4]" />
+          <span className="text-sm font-bold uppercase tracking-wider text-[#475569]">Anomaly Timeline</span>
         </div>
         {timelineEvents.length > 0 && (
-          <span className="text-[10px] font-medium tabular-nums text-[#94a3b8]">
+          <span className="text-xs font-medium tabular-nums text-[#94a3b8]">
             {timelineEvents.length} events
           </span>
         )}
       </div>
 
-      <div className="flex gap-2 overflow-x-auto p-3">
+      <div className="flex gap-3 overflow-x-auto p-4">
         {timelineEvents.length === 0 ? (
-          <div className="flex w-full items-center justify-center gap-2 py-3 text-sm text-[#94a3b8]">
-            <Clock className="h-4 w-4 text-[#e2e8f0]" />
+          <div className="flex w-full items-center justify-center gap-2 py-4 text-sm text-[#94a3b8]">
+            <Clock className="h-5 w-5 text-[#e2e8f0]" />
             <span>Timeline will populate when agents detect anomalies</span>
           </div>
         ) : (
@@ -52,7 +52,7 @@ export default function AnomalyTimeline() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.03 }}
               className={cn(
-                "flex min-w-[150px] shrink-0 flex-col rounded-lg border p-2.5",
+                "flex min-w-[170px] shrink-0 flex-col rounded-xl border p-3",
                 event.type === "alert"
                   ? "border-[#ef4444]/15 bg-[#ef4444]/5"
                   : "border-[#e2e8f0] bg-[#f8fafc]"
@@ -60,18 +60,18 @@ export default function AnomalyTimeline() {
             >
               <div className="flex items-center gap-1.5">
                 {event.type === "alert" ? (
-                  <AlertTriangle className="h-3 w-3 text-[#ef4444]" />
+                  <AlertTriangle className="h-3.5 w-3.5 text-[#ef4444]" />
                 ) : (
-                  <BrainCircuit className="h-3 w-3 text-[#8b5cf6]" />
+                  <BrainCircuit className="h-3.5 w-3.5 text-[#8b5cf6]" />
                 )}
-                <span className="text-[10px] tabular-nums text-[#94a3b8]">
+                <span className="text-[11px] tabular-nums text-[#94a3b8]">
                   {new Date(event.timestamp).toLocaleTimeString()}
                 </span>
               </div>
-              <span className="mt-1 text-[11px] font-semibold text-[#1e293b]">
+              <span className="mt-1.5 text-xs font-bold text-[#1e293b]">
                 {event.label}
               </span>
-              <span className="mt-0.5 truncate text-[10px] text-[#64748b]">
+              <span className="mt-1 truncate text-[11px] text-[#64748b]">
                 {event.detail}
               </span>
             </motion.div>

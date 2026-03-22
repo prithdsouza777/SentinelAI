@@ -48,11 +48,11 @@ export default function AlertsPage() {
   const activeCount = alerts.filter((a) => !a.resolvedAt).length;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4">
+    <div className="flex min-h-0 flex-1 flex-col gap-5">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-bold text-[#1e293b]">Alerts</h2>
-          <p className="text-sm text-[#64748b]">
+          <h2 className="text-xl font-bold text-[#1e293b]">Alerts</h2>
+          <p className="mt-1 text-sm text-[#64748b]">
             {activeCount > 0 && (
               <span className="mr-1 inline-flex items-center gap-1 text-[#ef4444]">
                 <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[#ef4444]" />
@@ -105,7 +105,7 @@ export default function AlertsPage() {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="flex flex-col items-center gap-3 rounded-xl border border-[#e2e8f0] bg-white py-16 text-center shadow-sm"
+              className="flex flex-col items-center gap-3 rounded-2xl border border-[#e2e8f0] bg-white py-16 text-center shadow-sm"
             >
               <CheckCircle2 className="h-10 w-10 text-[#10b981]/40" />
               <p className="text-sm text-[#64748b]">
@@ -126,7 +126,7 @@ export default function AlertsPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.03 }}
                     className={cn(
-                      "flex gap-4 rounded-xl border bg-white p-4 shadow-sm transition-all",
+                      "flex gap-4 rounded-2xl border bg-white p-4 shadow-sm transition-all",
                       alert.resolvedAt
                         ? "border-[#e2e8f0] opacity-50"
                         : config.border,

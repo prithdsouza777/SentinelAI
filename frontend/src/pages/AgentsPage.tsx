@@ -65,11 +65,11 @@ export default function AgentsPage() {
   const negotiations = useDashboardStore((s) => s.negotiations);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pr-1">
+    <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto pr-1">
       <div>
-        <h2 className="text-lg font-bold text-[#1e293b]">Autonomous AI Agents</h2>
-        <p className="text-sm text-[#64748b]">
-          Four specialized agents observe, reason, and act on your contact center
+        <h2 className="text-xl font-bold text-[#1e293b]">Autonomous AI Agents</h2>
+        <p className="mt-1 text-sm text-[#64748b]">
+          Five specialized agents observe, reason, and act on your contact center in real time
         </p>
       </div>
 
@@ -85,7 +85,7 @@ export default function AgentsPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
-                className="rounded-xl border border-[#e2e8f0] bg-white p-5 shadow-sm transition-shadow hover:shadow-md"
+                className="rounded-2xl border border-[#e2e8f0] bg-white p-5 shadow-sm transition-shadow hover:shadow-md"
               >
                 <div className="mb-4 flex items-center gap-3">
                   <div className={cn("flex h-11 w-11 items-center justify-center rounded-xl", info.iconBg)}>
@@ -161,15 +161,15 @@ export default function AgentsPage() {
       </div>
 
       {/* Negotiation Log */}
-      <div className="rounded-xl border border-[#e2e8f0] bg-white shadow-sm">
-        <div className="flex items-center justify-between border-b border-[#e2e8f0] px-4 py-3">
-          <div className="flex items-center gap-2">
-            <BrainCircuit className="h-4 w-4 text-[#8b5cf6]" />
-            <span className="text-xs font-semibold uppercase tracking-wider text-[#64748b]">
+      <div className="rounded-2xl border border-[#e2e8f0] bg-white shadow-sm">
+        <div className="flex items-center justify-between border-b border-[#e2e8f0] px-5 py-4">
+          <div className="flex items-center gap-2.5">
+            <BrainCircuit className="h-5 w-5 text-[#8b5cf6]" />
+            <span className="text-sm font-bold uppercase tracking-wider text-[#475569]">
               Negotiation Log
             </span>
           </div>
-          <span className="text-[11px] font-medium tabular-nums text-[#94a3b8]">
+          <span className="text-xs font-medium tabular-nums text-[#94a3b8]">
             {negotiations.length} negotiations
           </span>
         </div>

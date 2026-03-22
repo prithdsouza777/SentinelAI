@@ -82,7 +82,7 @@ class QueueBalancerAgent:
         }
         max_p = max(pressures.values()) if pressures else 0
         min_p = min(pressures.values()) if pressures else 0
-        if max_p - min_p < 1.5:  # slightly lower threshold for LLM — let it reason on borderline cases
+        if max_p - min_p < 1.0:  # lower threshold — trigger on moderate imbalances
             return []
 
         # Build prompt with live data
@@ -119,6 +119,9 @@ class QueueBalancerAgent:
             return await self._evaluate_threshold(queue_states)
 
         if not parsed.get("should_act", False):
+            # If LLM returned empty/timeout response, fall back to threshold
+            if "reasoning" not in parsed:
+                return await self._evaluate_threshold(queue_states)
             return []
 
         # Validate the LLM's suggestion against our hard constraints
@@ -184,7 +187,7 @@ class QueueBalancerAgent:
         max_pressure = max(pressures.values())
         min_pressure = min(pressures.values())
 
-        if max_pressure - min_pressure < 2.0:
+        if max_pressure - min_pressure < 1.5:
             return []
 
         overloaded_id = max(pressures, key=pressures.__getitem__)

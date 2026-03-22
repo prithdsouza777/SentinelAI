@@ -68,7 +68,11 @@ export const useDashboardStore = create<DashboardState>((set) => ({
 
   alerts: [],
   addAlert: (alert) =>
-    set((state) => ({ alerts: [alert, ...state.alerts].slice(0, 100) })),
+    set((state) => {
+      // Deduplicate by ID
+      if (state.alerts.some((a) => a.id === alert.id)) return state;
+      return { alerts: [alert, ...state.alerts].slice(0, 100) };
+    }),
   resolveAlert: (id) =>
     set((state) => ({
       alerts: state.alerts.map((a) =>
@@ -78,9 +82,21 @@ export const useDashboardStore = create<DashboardState>((set) => ({
 
   decisions: [],
   addDecision: (decision) =>
-    set((state) => ({
-      decisions: [decision, ...state.decisions].slice(0, 200),
-    })),
+    set((state) => {
+      // Deduplicate by ID, but update if phase changed (e.g. decided → acted)
+      const existing = state.decisions.find((d) => d.id === decision.id);
+      if (existing) {
+        if (existing.phase !== decision.phase) {
+          return {
+            decisions: state.decisions.map((d) =>
+              d.id === decision.id ? { ...d, ...decision } : d
+            ),
+          };
+        }
+        return state;
+      }
+      return { decisions: [decision, ...state.decisions].slice(0, 200) };
+    }),
   approveDecision: (id) =>
     set((state) => ({
       decisions: state.decisions.map((d) =>

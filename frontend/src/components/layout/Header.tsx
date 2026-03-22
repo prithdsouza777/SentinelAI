@@ -47,15 +47,15 @@ export default function Header() {
   };
 
   return (
-    <header className="relative flex h-14 items-center justify-between border-b border-[#e2e8f0] bg-white px-6">
+    <header className="relative flex h-16 items-center justify-between border-b border-[#e2e8f0] bg-white px-6">
       {/* Top accent line */}
       <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-[#2563eb] via-[#3b82f6] to-[#05a6f0]" />
 
       <div className="flex items-center gap-3">
-        <h1 className="text-base font-bold tracking-tight text-[#1e293b]">
+        <h1 className="text-lg font-bold tracking-tight text-[#1e293b]">
           AI Operations Center
         </h1>
-        <Badge variant="outline" className="border-[#e2e8f0] bg-[#f1f5f9] text-[11px] font-medium text-[#64748b]">
+        <Badge variant="outline" className="border-[#e2e8f0] bg-[#f1f5f9] text-xs font-medium text-[#64748b]">
           AWS Connect
         </Badge>
       </div>

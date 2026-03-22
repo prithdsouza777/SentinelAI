@@ -22,10 +22,8 @@ async def health_check():
             "llm": {
                 "provider": provider,
                 "model": {
-                    "gemini": settings.gemini_model,
                     "anthropic": settings.anthropic_model,
-                    "bedrock": settings.bedrock_model_id,
-                    "mock": "MockBedrockLLM",
+                    "mock": "MockLLM",
                 }.get(provider, "unknown"),
             },
         },

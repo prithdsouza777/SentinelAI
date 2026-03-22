@@ -19,11 +19,11 @@ function StatBlock({
 }) {
   return (
     <div className="flex items-center gap-3">
-      <div className={cn("flex h-10 w-10 items-center justify-center rounded-xl", iconBg)}>
-        <Icon className={cn("h-5 w-5", iconColor)} />
+      <div className={cn("flex h-12 w-12 items-center justify-center rounded-xl", iconBg)}>
+        <Icon className={cn("h-6 w-6", iconColor)} />
       </div>
       <div>
-        <p className="text-[11px] font-medium text-[#64748b]">{label}</p>
+        <p className="text-xs font-medium text-[#64748b]">{label}</p>
         {children}
       </div>
     </div>
@@ -37,8 +37,8 @@ export default function CostImpactTicker() {
 
   if (!simulationActive && !hasSavings) {
     return (
-      <div className="flex items-center gap-4 rounded-xl border border-[#e2e8f0] bg-white p-4 shadow-sm">
-        <DollarSign className="h-5 w-5 text-[#94a3b8]" />
+      <div className="flex items-center gap-4 rounded-2xl border border-[#e2e8f0] bg-white p-5 shadow-sm">
+        <DollarSign className="h-6 w-6 text-[#94a3b8]" />
         <span className="text-sm text-[#64748b]">Cost impact will appear when simulation is active</span>
       </div>
     );
@@ -49,7 +49,7 @@ export default function CostImpactTicker() {
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       className={cn(
-        "relative flex items-center gap-6 overflow-hidden rounded-xl border bg-white p-4 shadow-sm",
+        "relative flex items-center justify-between overflow-hidden rounded-2xl border bg-white px-6 py-5 shadow-sm",
         hasSavings ? "border-[#10b981]/30 glow-green" : "border-[#e2e8f0]"
       )}
     >
@@ -63,7 +63,7 @@ export default function CostImpactTicker() {
             className="relative"
           >
             <StatBlock icon={AlertTriangle} label="Revenue at Risk" iconColor="text-[#ef4444]" iconBg="bg-[#ef4444]/10">
-              <p className="text-xl font-bold tabular-nums text-[#ef4444]">
+              <p className="text-2xl font-bold tabular-nums text-[#ef4444]">
                 <AnimatedCounter value={cost.revenueAtRisk ?? 0} prefix="$" />
               </p>
             </StatBlock>
@@ -71,31 +71,29 @@ export default function CostImpactTicker() {
         )}
       </AnimatePresence>
 
-      {(cost.revenueAtRisk ?? 0) > 0 && <div className="relative h-8 w-px bg-[#e2e8f0]" />}
-
       <div className="relative">
         <StatBlock icon={DollarSign} label="Total Saved" iconColor="text-[#10b981]" iconBg="bg-[#10b981]/10">
-          <p className="text-xl font-bold tabular-nums text-[#10b981]">
+          <p className="text-2xl font-bold tabular-nums text-[#10b981]">
             <AnimatedCounter value={cost.totalSaved} prefix="$" />
           </p>
         </StatBlock>
       </div>
 
-      <div className="relative h-8 w-px bg-[#e2e8f0]" />
+      <div className="relative h-10 w-px bg-[#e2e8f0]" />
 
       <div className="relative">
         <StatBlock icon={ShieldCheck} label="Prevented Abandoned" iconColor="text-[#2563eb]" iconBg="bg-[#2563eb]/10">
-          <p className="text-lg font-semibold tabular-nums text-[#1e293b]">
+          <p className="text-2xl font-bold tabular-nums text-[#1e293b]">
             <AnimatedCounter value={cost.totalPreventedAbandoned} />
           </p>
         </StatBlock>
       </div>
 
-      <div className="relative h-8 w-px bg-[#e2e8f0]" />
+      <div className="relative h-10 w-px bg-[#e2e8f0]" />
 
       <div className="relative">
         <StatBlock icon={TrendingUp} label="AI Actions" iconColor="text-[#8b5cf6]" iconBg="bg-[#8b5cf6]/10">
-          <p className="text-lg font-semibold tabular-nums text-[#1e293b]">
+          <p className="text-2xl font-bold tabular-nums text-[#1e293b]">
             <AnimatedCounter value={cost.actionsToday} />
           </p>
         </StatBlock>
