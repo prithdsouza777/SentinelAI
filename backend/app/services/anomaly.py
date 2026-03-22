@@ -19,7 +19,7 @@ class AnomalyEngine:
         self.baseline_window = 60  # Number of samples for rolling average
         # Per-queue alert cooldowns: (queue_id, alert_type) -> last fire time
         self._cooldowns: dict[tuple[str, str], float] = {}
-        self._cooldown_seconds = 12.0  # Min seconds between same alert for same queue
+        self._cooldown_seconds = 18.0  # Min seconds between same alert for same queue
 
     def reset(self):
         """Reset all state for a fresh simulation session."""

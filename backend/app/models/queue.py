@@ -1,4 +1,6 @@
-from datetime import datetime
+from datetime import datetime, timezone
+
+from pydantic import Field
 
 from app.models.agent import CamelModel
 
@@ -15,4 +17,4 @@ class QueueMetrics(CamelModel):
     abandonment_rate: float = 0.0
     service_level: float = 0.0
     contacts_handled: int = 0
-    timestamp: datetime = datetime.now()
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

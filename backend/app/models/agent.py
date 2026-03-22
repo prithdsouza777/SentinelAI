@@ -1,7 +1,7 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
 
@@ -37,7 +37,7 @@ class AgentDecision(CamelModel):
     summary: str
     reasoning: str = ""
     action: str | None = None
-    timestamp: datetime = datetime.now()
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     # ── Governance fields (SentinelAI-inspired) ──────────────────────────
     confidence: float = 1.0             # 0.0–1.0 signal certainty
@@ -63,4 +63,4 @@ class AgentNegotiation(CamelModel):
     topic: str
     proposals: list[NegotiationProposal]
     resolution: str = ""
-    timestamp: datetime = datetime.now()
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

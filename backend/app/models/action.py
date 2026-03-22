@@ -1,6 +1,6 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class CostImpact(BaseModel):
@@ -16,4 +16,4 @@ class ActionLog(BaseModel):
     action: str
     description: str
     cost_impact: CostImpact | None = None
-    timestamp: datetime = datetime.now()
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

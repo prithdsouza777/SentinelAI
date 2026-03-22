@@ -134,33 +134,41 @@ export default function SimulationPage() {
   const criticalAlerts = activeAlerts.filter((a) => a.severity === "critical");
   const totalContacts = queues.reduce((sum, q) => sum + q.contactsInQueue, 0);
   const actedDecisions = decisions.filter((d) => d.phase === "acted").length;
-  const blockedDecisions = decisions.filter((d) => d.guardrailResult === "blocked").length;
+  const blockedDecisions = decisions.filter((d) => d.guardrailResult === "BLOCKED").length;
 
-  // Build event log entries (deduplicated by ID)
+  // Build event log entries — prioritize decisions, deduplicate alerts by title
   const seenIds = new Set<string>();
-  const rawEvents = [
-    ...decisions.slice(0, 20).map((d) => ({
-      id: d.id,
-      type: "decision" as const,
-      time: d.timestamp,
-      icon: BrainCircuit,
-      label: d.agentType.replace(/_/g, " "),
-      detail: d.summary,
-      phase: d.phase,
-      color:
-        d.phase === "acted"
-          ? "text-[#10b981]"
-          : d.phase === "decided"
-            ? "text-[#8b5cf6]"
-            : "text-[#f59e0b]",
-      bg:
-        d.phase === "acted"
-          ? "bg-[#10b981]/5"
-          : d.phase === "decided"
-            ? "bg-[#8b5cf6]/5"
-            : "bg-transparent",
-    })),
-    ...alerts.slice(0, 15).map((a) => ({
+  const seenAlertTitles = new Set<string>();
+  const decisionEvents = decisions.slice(0, 25).map((d) => ({
+    id: d.id,
+    type: "decision" as const,
+    time: d.timestamp,
+    icon: BrainCircuit,
+    label: d.agentType.replace(/_/g, " "),
+    detail: d.summary,
+    phase: d.phase,
+    color:
+      d.phase === "acted"
+        ? "text-[#10b981]"
+        : d.phase === "decided"
+          ? "text-[#8b5cf6]"
+          : "text-[#f59e0b]",
+    bg:
+      d.phase === "acted"
+        ? "bg-[#10b981]/5"
+        : d.phase === "decided"
+          ? "bg-[#8b5cf6]/5"
+          : "bg-transparent",
+  }));
+  // Deduplicate alerts by title (keep only the latest per title)
+  const alertEvents = alerts.slice(0, 30)
+    .filter((a) => {
+      if (seenAlertTitles.has(a.title)) return false;
+      seenAlertTitles.add(a.title);
+      return true;
+    })
+    .slice(0, 10)
+    .map((a) => ({
       id: a.id,
       type: "alert" as const,
       time: a.timestamp,
@@ -175,9 +183,8 @@ export default function SimulationPage() {
             ? "text-[#f59e0b]"
             : "text-[#3b82f6]",
       bg: a.severity === "critical" ? "bg-[#ef4444]/5" : "bg-transparent",
-    })),
-  ];
-  const eventLog = rawEvents
+    }));
+  const eventLog = [...decisionEvents, ...alertEvents]
     .filter((e) => {
       if (seenIds.has(e.id)) return false;
       seenIds.add(e.id);

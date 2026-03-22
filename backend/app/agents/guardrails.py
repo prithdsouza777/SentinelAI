@@ -35,6 +35,7 @@ POLICIES: list[GuardrailPolicy] = [
     GuardrailPolicy(
         name="escalation_rate",
         description="Max 2 escalations per 5-minute window",
+        enabled=False,  # Covered by RATE_LIMITS; policy counting includes blocked entries causing death spiral
     ),
     GuardrailPolicy(
         name="analytics_readonly",
@@ -56,7 +57,7 @@ AGENT_SCOPES: dict[AgentType, list[str]] = {
 
 RATE_LIMITS: dict[AgentType | str, tuple[int, int]] = {
     AgentType.QUEUE_BALANCER:        (20, 60),
-    AgentType.ESCALATION_HANDLER:    (12, 300),
+    AgentType.ESCALATION_HANDLER:    (40, 300),
     AgentType.PREDICTIVE_PREVENTION: (20, 60),
     AgentType.SKILL_ROUTER:          (30, 60),
     "global":                        (100, 60),
@@ -321,9 +322,9 @@ class GuardrailsLayer:
                     window_count = self._count_recent_actions(
                         AgentType.ESCALATION_HANDLER, window_seconds=300
                     )
-                    if window_count >= 6:
+                    if window_count >= 20:
                         violations.append(
-                            "escalation_rate: max 6 escalations per 5-minute window reached"
+                            "escalation_rate: max 20 escalations per 5-minute window reached"
                         )
 
             elif policy.name == "analytics_readonly":

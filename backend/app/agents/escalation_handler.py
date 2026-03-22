@@ -40,7 +40,7 @@ class EscalationHandlerAgent:
     def __init__(self):
         self.escalation_channels: list[str] = ["dashboard", "webhook"]
         self._warned_queues: dict[str, float] = {}  # queue_id -> last warn timestamp
-        self._cooldown_seconds = 15.0
+        self._cooldown_seconds = 30.0
         self._llm_available = None
 
     async def evaluate(

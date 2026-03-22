@@ -1,5 +1,7 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
+
+from pydantic import Field
 
 from app.models.agent import CamelModel
 
@@ -19,6 +21,6 @@ class Alert(CamelModel):
     queue_name: str
     anomaly_velocity: float | None = None
     recommended_action: str = ""
-    timestamp: datetime = datetime.now()
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     resolved_at: datetime | None = None
     resolved_by: str | None = None
