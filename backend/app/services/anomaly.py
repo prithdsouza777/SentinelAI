@@ -21,6 +21,11 @@ class AnomalyEngine:
         self._cooldowns: dict[tuple[str, str], float] = {}
         self._cooldown_seconds = 12.0  # Min seconds between same alert for same queue
 
+    def reset(self):
+        """Reset all state for a fresh simulation session."""
+        self.baselines.clear()
+        self._cooldowns.clear()
+
     def update_baseline(self, queue_id: str, metric: str, value: float):
         """Add a new value to the rolling baseline (with spike protection)."""
         history = self.baselines[queue_id][metric]

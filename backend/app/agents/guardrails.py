@@ -55,11 +55,11 @@ AGENT_SCOPES: dict[AgentType, list[str]] = {
 # ── Rate limits (max_actions, window_seconds) ────────────────────────────────
 
 RATE_LIMITS: dict[AgentType | str, tuple[int, int]] = {
-    AgentType.QUEUE_BALANCER:        (10, 60),
-    AgentType.ESCALATION_HANDLER:    (6, 300),
-    AgentType.PREDICTIVE_PREVENTION: (12, 60),
-    AgentType.SKILL_ROUTER:          (15, 60),
-    "global":                        (50, 60),
+    AgentType.QUEUE_BALANCER:        (20, 60),
+    AgentType.ESCALATION_HANDLER:    (12, 300),
+    AgentType.PREDICTIVE_PREVENTION: (20, 60),
+    AgentType.SKILL_ROUTER:          (30, 60),
+    "global":                        (100, 60),
 }
 
 # Auto-approve timeout for PENDING_HUMAN decisions (seconds)
@@ -90,6 +90,13 @@ class GuardrailsLayer:
         self._pending: dict[str, AuditEntry] = {}
 
     # ── Public API ───────────────────────────────────────────────────────────
+
+    def reset(self):
+        """Reset all state for a fresh simulation session."""
+        self._audit_log.clear()
+        self._pending.clear()
+        for counter in self._rate_counters.values():
+            counter.clear()
 
     async def evaluate(
         self,

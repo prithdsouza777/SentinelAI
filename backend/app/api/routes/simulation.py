@@ -67,8 +67,21 @@ async def list_scenarios():
 
 
 @router.post("/simulation/start")
-async def start_simulation(request: SimulationStartRequest):
+async def start_simulation(request: SimulationStartRequest, req: Request):
     """Start a simulation scenario."""
+    from app.agents.guardrails import guardrails
+    from app.agents.orchestrator import orchestrator
+    from app.services.anomaly import anomaly_engine
+    # Reset all state for a clean demo
+    guardrails.reset()
+    anomaly_engine.reset()
+    orchestrator._total_saved = 0.0
+    orchestrator._revenue_at_risk = 0.0
+    orchestrator._prevented_abandoned = 0
+    orchestrator._actions_today = 0
+    req.app.state.recent_decisions.clear()
+    req.app.state.recent_alerts.clear()
+    req.app.state.recent_negotiations.clear()
     await simulation_engine.start(scenario=request.scenario_id)
     return {"status": "started", "scenario_id": request.scenario_id}
 
@@ -82,8 +95,10 @@ async def stop_simulation(request: Request):
     request.app.state.recent_decisions.clear()
     request.app.state.recent_alerts.clear()
     request.app.state.recent_negotiations.clear()
-    # Reset orchestrator cost accumulators
+    # Reset guardrails + orchestrator cost accumulators
+    from app.agents.guardrails import guardrails
     from app.agents.orchestrator import orchestrator
+    guardrails.reset()
     orchestrator._total_saved = 0.0
     orchestrator._revenue_at_risk = 0.0
     orchestrator._prevented_abandoned = 0
