@@ -30,6 +30,7 @@ frontend/dist/
 
 # Python
 .venv/
+.venv310/
 venv/
 .mypy_cache/
 .ruff_cache/
