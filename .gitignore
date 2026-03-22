@@ -50,3 +50,7 @@ docker-compose.override.yml
 # Logs
 *.log
 logs/
+
+# Claude Code
+CLAUDE.md
+.claude/
