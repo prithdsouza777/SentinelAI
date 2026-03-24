@@ -177,13 +177,18 @@ class QueueBalancerAgent:
             parsed["from_queue_name"], parsed["to_queue_name"] = parsed.get("to_queue_name", to_id), parsed.get("from_queue_name", from_id)
 
         min_agents = self.min_staffing.get(from_id, 2)
-        if from_q.get("agentsOnline", 0) - count < min_agents:
+        from_available = from_q.get("agentsAvailable", from_q.get("agentsOnline", 0))
+        if from_available - count < min_agents:
             return []
 
         from_name = parsed.get("from_queue_name", from_id)
         to_name = parsed.get("to_queue_name", to_id)
         confidence = min(max(float(parsed.get("confidence", 0.85)), 0.5), 0.95)
-        reasoning = parsed.get("reasoning", "LLM-generated decision")
+        llm_reasoning = parsed.get("reasoning", "LLM-generated decision")
+
+        # Build source queue impact analysis
+        impact = self._analyze_source_impact(from_q, count)
+        reasoning = f"{llm_reasoning} | Source impact: {impact}"
 
         decisions = [AgentDecision(
             id=f"qb-{datetime.now(timezone.utc).timestamp():.0f}",
@@ -233,12 +238,15 @@ class QueueBalancerAgent:
             return []
 
         min_agents = self.min_staffing.get(idle_id, 2)
-        agents_online_idle = idle_q.get("agentsOnline", 0)
-        if agents_online_idle - 2 < min_agents:
+        agents_available_idle = idle_q.get("agentsAvailable", idle_q.get("agentsOnline", 0))
+        if agents_available_idle - 2 < min_agents:
             return []
 
         overloaded_name = overloaded_q.get("queueName", overloaded_id)
         idle_name = idle_q.get("queueName", idle_id)
+
+        # Source queue impact analysis
+        impact = self._analyze_source_impact(idle_q, 2)
 
         return [AgentDecision(
             id=f"qb-{datetime.now(timezone.utc).timestamp():.0f}",
@@ -248,14 +256,48 @@ class QueueBalancerAgent:
             reasoning=(
                 f"Pressure imbalance detected: {overloaded_name} at {max_pressure:.1f}x load, "
                 f"{idle_name} at {min_pressure:.1f}x load. "
-                f"Differential {max_pressure - min_pressure:.1f}x exceeds threshold 2.0x. "
+                f"Differential {max_pressure - min_pressure:.1f}x exceeds threshold 1.5x. "
                 f"Moving 2 agents will reduce imbalance by ~{(max_pressure - min_pressure) * 0.4:.1f}x. "
-                f"{idle_name} retains {agents_online_idle - 2} agents (above min staffing of {min_agents})."
+                f"{idle_name} retains {agents_available_idle - 2} available agents (above min staffing of {min_agents}). "
+                f"Source impact: {impact}"
             ),
             action=f"move_agents:from={idle_id}:to={overloaded_id}:count=2",
             confidence=0.85,
             impact_score=0.5,
         )]
+
+    def _analyze_source_impact(self, source_queue: dict, count: int) -> str:
+        """Analyze the impact of pulling agents from the source queue.
+
+        Returns a human-readable impact summary that goes into the decision reasoning.
+        """
+        contacts = source_queue.get("contactsInQueue", 0)
+        agents_online = max(source_queue.get("agentsOnline", 1), 1)
+        agents_available = source_queue.get("agentsAvailable", agents_online)
+        wait_time = source_queue.get("avgWaitTime", 0)
+        abandon_rate = source_queue.get("abandonmentRate", 0)
+        sla = source_queue.get("serviceLevel", 100)
+        queue_name = source_queue.get("queueName", "?")
+
+        remaining_available = agents_available - count
+        current_pressure = contacts / agents_online
+        projected_pressure = contacts / max(agents_online - count, 1)
+
+        parts = []
+        parts.append(f"{queue_name} will have {remaining_available} available agents after move")
+        parts.append(f"pressure {current_pressure:.1f}x -> {projected_pressure:.1f}x")
+
+        # Flag risks
+        if projected_pressure > 2.0:
+            parts.append("WARNING: source queue will be under pressure after move")
+        if abandon_rate > 10:
+            parts.append(f"source abandonment already at {abandon_rate:.1f}%")
+        if sla < 80:
+            parts.append(f"source SLA already degraded to {sla:.0f}%")
+        if remaining_available <= 2:
+            parts.append("source at minimum staffing after move")
+
+        return "; ".join(parts)
 
     async def execute(self, action: dict) -> bool:
         """Execute a queue rebalancing action by picking the best-fit agents."""

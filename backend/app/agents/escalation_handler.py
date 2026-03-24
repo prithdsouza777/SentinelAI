@@ -167,8 +167,10 @@ class EscalationHandlerAgent:
         try:
             from app.services.agent_database import agent_database
             if agent_database._initialized:
+                from app.agents.orchestrator import QUEUE_MIN_STAFFING
+                min_remaining = QUEUE_MIN_STAFFING.get(target_queue_id, 2)
                 best = agent_database.get_best_agents_for_department(
-                    target_queue_id, count=2, min_remaining=2,
+                    target_queue_id, count=2, min_remaining=min_remaining,
                 )
                 for agent in best:
                     old_queue = agent.current_queue_id

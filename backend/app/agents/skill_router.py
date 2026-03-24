@@ -143,5 +143,32 @@ class SkillRouterAgent:
         )]
 
     async def execute(self, action: dict) -> bool:
-        """Execute a routing decision (log only — simulation handles actual routing)."""
+        """Execute a routing decision — assign contact to the matched agent.
+
+        Parses the action string and updates the agent's status to 'busy'
+        in the proficiency database, simulating the contact being handled.
+        """
+        action_str = action.get("action", "")
+        if not action_str.startswith("route_contact"):
+            return True
+
+        # Parse action string: route_contact:{contact_id}:agent={agent_id}:queue={queue_id}
+        parts: dict[str, str] = {}
+        for segment in action_str.split(":"):
+            if "=" in segment:
+                k, v = segment.split("=", 1)
+                parts[k] = v
+
+        agent_id = parts.get("agent")
+        if not agent_id:
+            return True
+
+        try:
+            from app.services.agent_database import agent_database
+            if agent_database._initialized:
+                agent_database.update_statuses_bulk([agent_id], "busy")
+                logger.info("Routed contact to agent %s (now busy)", agent_id)
+        except Exception as e:
+            logger.warning("Skill router execute failed: %s", e)
+
         return True
