@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 import { simulationApi } from "../services/api";
 import { useDashboardStore } from "../stores/dashboardStore";
 import { Button } from "@/components/ui/button";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import type { ChaosEventType } from "../types";
 
 interface Scenario {
@@ -193,13 +193,8 @@ export default function SimulationPage() {
     .sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
     .slice(0, 30);
 
-  // Show top 2 scenarios (featured first) when collapsed, all when expanded
-  const featuredScenario = scenarios.find((s) => s.featured);
   const otherScenarios = scenarios.filter((s) => !s.featured);
-  const visibleScenarios = showAllScenarios
-    ? [featuredScenario, ...otherScenarios].filter(Boolean) as Scenario[]
-    : [featuredScenario, otherScenarios[0]].filter(Boolean) as Scenario[];
-  const hiddenCount = scenarios.length - visibleScenarios.length;
+
 
   // ─── IDLE MODE ───────────────────────────────────────────────────────────
   if (!simulationActive) {
