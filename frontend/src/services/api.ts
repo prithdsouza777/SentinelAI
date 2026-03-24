@@ -103,6 +103,21 @@ export const reportsApi = {
   getSessionReport: () => request("/reports/session"),
 };
 
+// ── Notifications ──
+
+export const notificationsApi = {
+  getConfig: () => request("/notifications/config"),
+  updateConfig: (config: Record<string, unknown>) =>
+    request("/notifications/config", {
+      method: "PUT",
+      body: JSON.stringify(config),
+    }),
+  testTeams: () =>
+    request("/notifications/test/teams", { method: "POST" }),
+  testEmail: () =>
+    request("/notifications/test/email", { method: "POST" }),
+};
+
 // ── History ──
 
 export const historyApi = {

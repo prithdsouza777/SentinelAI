@@ -21,6 +21,22 @@ class Settings(BaseSettings):
     anthropic_model: str = "claude-sonnet-4-20250514"
     temperature: float = 0.01
 
+    # Notifications — Microsoft Teams
+    teams_webhook_url: str = ""
+    teams_notify_on: str = "critical"  # "critical", "warning", "all", "none"
+
+    # Notifications — Outlook / SMTP email
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = ""
+    smtp_to: str = ""  # comma-separated recipient emails
+    email_notify_on: str = "critical"  # "critical", "warning", "all", "none"
+
+    # Notification cooldown (seconds) — prevents spam for repeated alerts
+    notification_cooldown: int = 60
+
     # CORS
     cors_origins: str = "http://localhost:5173"
 

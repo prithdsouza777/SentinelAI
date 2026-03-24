@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Settings,
   Server,
@@ -10,9 +10,15 @@ import {
   RefreshCw,
   Shield,
   Gauge,
+  MessageSquare,
+  Mail,
+  Send,
+  Save,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { healthApi } from "../services/api";
+import { healthApi, notificationsApi } from "../services/api";
 import { wsService } from "../services/websocket";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
@@ -39,6 +45,24 @@ export default function SettingsPage() {
   const [wsConnected, setWsConnected] = useState(wsService.connected);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Notification config state
+  const [teamsWebhookUrl, setTeamsWebhookUrl] = useState("");
+  const [teamsNotifyOn, setTeamsNotifyOn] = useState("critical");
+  const [smtpHost, setSmtpHost] = useState("");
+  const [smtpPort, setSmtpPort] = useState(587);
+  const [smtpUser, setSmtpUser] = useState("");
+  const [smtpPassword, setSmtpPassword] = useState("");
+  const [smtpFrom, setSmtpFrom] = useState("");
+  const [smtpTo, setSmtpTo] = useState("");
+  const [emailNotifyOn, setEmailNotifyOn] = useState("critical");
+  const [notifCooldown, setNotifCooldown] = useState(60);
+  const [showSmtpPassword, setShowSmtpPassword] = useState(false);
+  const [notifSaving, setNotifSaving] = useState(false);
+  const [notifSaved, setNotifSaved] = useState(false);
+  const [testingTeams, setTestingTeams] = useState(false);
+  const [testingEmail, setTestingEmail] = useState(false);
+  const [testResult, setTestResult] = useState<{ channel: string; status: string; message: string } | null>(null);
+
   const fetchHealth = () => {
     setRefreshing(true);
     healthApi
@@ -51,13 +75,81 @@ export default function SettingsPage() {
       .finally(() => setRefreshing(false));
   };
 
+  const fetchNotifConfig = useCallback(() => {
+    notificationsApi.getConfig().then((raw: unknown) => {
+      const data = raw as Record<string, unknown>;
+      setTeamsWebhookUrl((data.teamsWebhookUrl as string) || "");
+      setTeamsNotifyOn((data.teamsNotifyOn as string) || "critical");
+      setSmtpHost((data.smtpHost as string) || "");
+      setSmtpPort((data.smtpPort as number) || 587);
+      setSmtpUser((data.smtpUser as string) || "");
+      setSmtpPassword((data.smtpPassword as string) || "");
+      setSmtpFrom((data.smtpFrom as string) || "");
+      setSmtpTo((data.smtpTo as string) || "");
+      setEmailNotifyOn((data.emailNotifyOn as string) || "critical");
+      setNotifCooldown((data.notificationCooldown as number) || 60);
+    }).catch(() => {});
+  }, []);
+
   useEffect(() => {
     fetchHealth();
+    fetchNotifConfig();
     const unsub = wsService.onConnectionChange((connected) => {
       setWsConnected(connected);
     });
     return unsub;
-  }, []);
+  }, [fetchNotifConfig]);
+
+  const saveNotifConfig = async () => {
+    setNotifSaving(true);
+    setNotifSaved(false);
+    try {
+      await notificationsApi.updateConfig({
+        teams_webhook_url: teamsWebhookUrl,
+        teams_notify_on: teamsNotifyOn,
+        smtp_host: smtpHost,
+        smtp_port: smtpPort,
+        smtp_user: smtpUser,
+        smtp_password: smtpPassword,
+        smtp_from: smtpFrom,
+        smtp_to: smtpTo,
+        email_notify_on: emailNotifyOn,
+        notification_cooldown: notifCooldown,
+      });
+      setNotifSaved(true);
+      setTimeout(() => setNotifSaved(false), 3000);
+    } catch {
+      setTestResult({ channel: "config", status: "error", message: "Failed to save configuration" });
+    } finally {
+      setNotifSaving(false);
+    }
+  };
+
+  const handleTestTeams = async () => {
+    setTestingTeams(true);
+    setTestResult(null);
+    try {
+      const res = await notificationsApi.testTeams() as { status: string; message: string };
+      setTestResult({ channel: "teams", ...res });
+    } catch {
+      setTestResult({ channel: "teams", status: "error", message: "Request failed" });
+    } finally {
+      setTestingTeams(false);
+    }
+  };
+
+  const handleTestEmail = async () => {
+    setTestingEmail(true);
+    setTestResult(null);
+    try {
+      const res = await notificationsApi.testEmail() as { status: string; message: string };
+      setTestResult({ channel: "email", ...res });
+    } catch {
+      setTestResult({ channel: "email", status: "error", message: "Request failed" });
+    } finally {
+      setTestingEmail(false);
+    }
+  };
 
   const getServiceStatus = (key: string): { status: string; detail: string } => {
     if (!health?.services) return { status: "checking", detail: "..." };
@@ -244,6 +336,228 @@ export default function SettingsPage() {
             </motion.div>
           ))}
         </div>
+      </div>
+
+      {/* Microsoft Teams Notifications */}
+      <div className="rounded-xl border border-[#e2e8f0] bg-white shadow-sm">
+        <div className="flex items-center justify-between border-b border-[#e2e8f0] px-4 py-3">
+          <div className="flex items-center gap-2">
+            <MessageSquare className="h-4 w-4 text-[#7c3aed]" />
+            <span className="text-xs font-semibold uppercase tracking-wider text-[#64748b]">
+              Microsoft Teams Notifications
+            </span>
+          </div>
+          <Button
+            size="sm"
+            onClick={handleTestTeams}
+            disabled={testingTeams || !teamsWebhookUrl}
+            className="h-7 border border-[#e2e8f0] bg-white px-2.5 text-[11px] font-medium text-[#475569] hover:bg-[#f1f5f9]"
+          >
+            <Send className={cn("mr-1 h-3 w-3", testingTeams && "animate-spin")} />
+            Test
+          </Button>
+        </div>
+        <div className="space-y-3 p-4">
+          <div>
+            <label className="mb-1 block text-xs font-medium text-[#475569]">Webhook URL</label>
+            <input
+              type="url"
+              value={teamsWebhookUrl}
+              onChange={(e) => setTeamsWebhookUrl(e.target.value)}
+              placeholder="https://outlook.office.com/webhook/..."
+              className="w-full rounded-lg border border-[#e2e8f0] bg-[#f8fafc] px-3 py-2 text-sm text-[#1e293b] placeholder:text-[#94a3b8] focus:border-[#7c3aed] focus:outline-none focus:ring-1 focus:ring-[#7c3aed]"
+            />
+            <p className="mt-1 text-[10px] text-[#94a3b8]">Create an Incoming Webhook connector in your Teams channel</p>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-[#475569]">Notify on</label>
+            <select
+              value={teamsNotifyOn}
+              onChange={(e) => setTeamsNotifyOn(e.target.value)}
+              className="w-full rounded-lg border border-[#e2e8f0] bg-[#f8fafc] px-3 py-2 text-sm text-[#1e293b] focus:border-[#7c3aed] focus:outline-none focus:ring-1 focus:ring-[#7c3aed]"
+            >
+              <option value="critical">Critical alerts only</option>
+              <option value="warning">Warning + Critical</option>
+              <option value="all">All alerts</option>
+              <option value="none">Disabled</option>
+            </select>
+          </div>
+          {testResult?.channel === "teams" && (
+            <motion.div
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={cn(
+                "rounded-lg px-3 py-2 text-xs font-medium",
+                testResult.status === "ok"
+                  ? "bg-[#10b981]/10 text-[#10b981]"
+                  : "bg-[#ef4444]/10 text-[#ef4444]"
+              )}
+            >
+              {testResult.message}
+            </motion.div>
+          )}
+        </div>
+      </div>
+
+      {/* Outlook / Email Notifications */}
+      <div className="rounded-xl border border-[#e2e8f0] bg-white shadow-sm">
+        <div className="flex items-center justify-between border-b border-[#e2e8f0] px-4 py-3">
+          <div className="flex items-center gap-2">
+            <Mail className="h-4 w-4 text-[#2563eb]" />
+            <span className="text-xs font-semibold uppercase tracking-wider text-[#64748b]">
+              Outlook / Email Notifications
+            </span>
+          </div>
+          <Button
+            size="sm"
+            onClick={handleTestEmail}
+            disabled={testingEmail || !smtpHost || !smtpTo}
+            className="h-7 border border-[#e2e8f0] bg-white px-2.5 text-[11px] font-medium text-[#475569] hover:bg-[#f1f5f9]"
+          >
+            <Send className={cn("mr-1 h-3 w-3", testingEmail && "animate-spin")} />
+            Test
+          </Button>
+        </div>
+        <div className="space-y-3 p-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-[#475569]">SMTP Host</label>
+              <input
+                type="text"
+                value={smtpHost}
+                onChange={(e) => setSmtpHost(e.target.value)}
+                placeholder="smtp.office365.com"
+                className="w-full rounded-lg border border-[#e2e8f0] bg-[#f8fafc] px-3 py-2 text-sm text-[#1e293b] placeholder:text-[#94a3b8] focus:border-[#2563eb] focus:outline-none focus:ring-1 focus:ring-[#2563eb]"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-[#475569]">SMTP Port</label>
+              <input
+                type="number"
+                value={smtpPort}
+                onChange={(e) => setSmtpPort(Number(e.target.value))}
+                className="w-full rounded-lg border border-[#e2e8f0] bg-[#f8fafc] px-3 py-2 text-sm text-[#1e293b] focus:border-[#2563eb] focus:outline-none focus:ring-1 focus:ring-[#2563eb]"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-[#475569]">Username</label>
+              <input
+                type="email"
+                value={smtpUser}
+                onChange={(e) => setSmtpUser(e.target.value)}
+                placeholder="alerts@company.com"
+                className="w-full rounded-lg border border-[#e2e8f0] bg-[#f8fafc] px-3 py-2 text-sm text-[#1e293b] placeholder:text-[#94a3b8] focus:border-[#2563eb] focus:outline-none focus:ring-1 focus:ring-[#2563eb]"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-[#475569]">Password</label>
+              <div className="relative">
+                <input
+                  type={showSmtpPassword ? "text" : "password"}
+                  value={smtpPassword}
+                  onChange={(e) => setSmtpPassword(e.target.value)}
+                  placeholder="App password"
+                  className="w-full rounded-lg border border-[#e2e8f0] bg-[#f8fafc] px-3 py-2 pr-9 text-sm text-[#1e293b] placeholder:text-[#94a3b8] focus:border-[#2563eb] focus:outline-none focus:ring-1 focus:ring-[#2563eb]"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowSmtpPassword(!showSmtpPassword)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#94a3b8] hover:text-[#475569]"
+                >
+                  {showSmtpPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                </button>
+              </div>
+            </div>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-[#475569]">From address</label>
+            <input
+              type="email"
+              value={smtpFrom}
+              onChange={(e) => setSmtpFrom(e.target.value)}
+              placeholder="sentinelai-alerts@company.com"
+              className="w-full rounded-lg border border-[#e2e8f0] bg-[#f8fafc] px-3 py-2 text-sm text-[#1e293b] placeholder:text-[#94a3b8] focus:border-[#2563eb] focus:outline-none focus:ring-1 focus:ring-[#2563eb]"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-[#475569]">Recipients (comma-separated)</label>
+            <input
+              type="text"
+              value={smtpTo}
+              onChange={(e) => setSmtpTo(e.target.value)}
+              placeholder="ops-team@company.com, manager@company.com"
+              className="w-full rounded-lg border border-[#e2e8f0] bg-[#f8fafc] px-3 py-2 text-sm text-[#1e293b] placeholder:text-[#94a3b8] focus:border-[#2563eb] focus:outline-none focus:ring-1 focus:ring-[#2563eb]"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-[#475569]">Notify on</label>
+              <select
+                value={emailNotifyOn}
+                onChange={(e) => setEmailNotifyOn(e.target.value)}
+                className="w-full rounded-lg border border-[#e2e8f0] bg-[#f8fafc] px-3 py-2 text-sm text-[#1e293b] focus:border-[#2563eb] focus:outline-none focus:ring-1 focus:ring-[#2563eb]"
+              >
+                <option value="critical">Critical alerts only</option>
+                <option value="warning">Warning + Critical</option>
+                <option value="all">All alerts</option>
+                <option value="none">Disabled</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-[#475569]">Cooldown (seconds)</label>
+              <input
+                type="number"
+                value={notifCooldown}
+                onChange={(e) => setNotifCooldown(Number(e.target.value))}
+                min={10}
+                max={600}
+                className="w-full rounded-lg border border-[#e2e8f0] bg-[#f8fafc] px-3 py-2 text-sm text-[#1e293b] focus:border-[#2563eb] focus:outline-none focus:ring-1 focus:ring-[#2563eb]"
+              />
+              <p className="mt-1 text-[10px] text-[#94a3b8]">Minimum seconds between notifications per channel</p>
+            </div>
+          </div>
+          {testResult?.channel === "email" && (
+            <motion.div
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={cn(
+                "rounded-lg px-3 py-2 text-xs font-medium",
+                testResult.status === "ok"
+                  ? "bg-[#10b981]/10 text-[#10b981]"
+                  : "bg-[#ef4444]/10 text-[#ef4444]"
+              )}
+            >
+              {testResult.message}
+            </motion.div>
+          )}
+        </div>
+      </div>
+
+      {/* Save Notification Settings */}
+      <div className="flex items-center gap-3">
+        <Button
+          onClick={saveNotifConfig}
+          disabled={notifSaving}
+          className="h-9 bg-[#2563eb] px-4 text-xs font-semibold text-white hover:bg-[#1d4ed8]"
+        >
+          <Save className={cn("mr-1.5 h-3.5 w-3.5", notifSaving && "animate-spin")} />
+          {notifSaving ? "Saving..." : "Save Notification Settings"}
+        </Button>
+        {notifSaved && (
+          <motion.span
+            initial={{ opacity: 0, x: -8 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="flex items-center gap-1 text-xs font-medium text-[#10b981]"
+          >
+            <CheckCircle2 className="h-3.5 w-3.5" />
+            Saved
+          </motion.span>
+        )}
+        {testResult?.channel === "config" && (
+          <span className="text-xs font-medium text-[#ef4444]">{testResult.message}</span>
+        )}
       </div>
     </div>
   );
