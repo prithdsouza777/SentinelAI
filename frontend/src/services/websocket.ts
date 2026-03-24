@@ -51,7 +51,13 @@ class WebSocketService {
     };
 
     this.ws.onmessage = (event) => {
-      this.dispatchMessage(JSON.parse(event.data));
+      const message = JSON.parse(event.data);
+      // Respond to server pings to keep connection alive
+      if (message.event === "ping") {
+        this.ws?.send(JSON.stringify({ event: "pong", data: {}, timestamp: new Date().toISOString() }));
+        return;
+      }
+      this.dispatchMessage(message);
     };
 
     this.ws.onclose = (event) => {

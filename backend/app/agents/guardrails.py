@@ -66,6 +66,10 @@ RATE_LIMITS: dict[AgentType | str, tuple[int, int]] = {
 # Auto-approve timeout for PENDING_HUMAN decisions (seconds)
 AUTO_APPROVE_TIMEOUT = 30
 
+# ── Configurable confidence threshold ─────────────────────────────────────────
+# Default auto-approve threshold; can be changed at runtime via the API.
+DEFAULT_AUTO_APPROVE_THRESHOLD = 0.8
+
 
 class GuardrailsLayer:
     """Middleware between orchestrator evaluate() and agent execute().
@@ -89,6 +93,8 @@ class GuardrailsLayer:
         }
         # Pending decisions waiting for human approval: decision_id → AuditEntry
         self._pending: dict[str, AuditEntry] = {}
+        # Configurable confidence threshold
+        self.auto_approve_threshold: float = DEFAULT_AUTO_APPROVE_THRESHOLD
 
     # ── Public API ───────────────────────────────────────────────────────────
 
@@ -135,11 +141,11 @@ class GuardrailsLayer:
                 f"rate_limit: {decision.agent_type} exceeded its action rate limit"
             )
 
-        # 5. Determine status
+        # 5. Determine status (using configurable threshold)
         if violations or decision.confidence < 0.5:
             status = GuardrailStatus.BLOCKED
             reason = "; ".join(violations) if violations else "confidence below 0.5 threshold"
-        elif decision.confidence < 0.8:
+        elif decision.confidence < self.auto_approve_threshold:
             status = GuardrailStatus.PENDING_HUMAN
             reason = f"confidence {decision.confidence:.2f} requires human review"
         else:

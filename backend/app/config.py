@@ -16,7 +16,13 @@ class Settings(BaseSettings):
     connect_instance_id: str = ""
     connect_region: str = "us-east-1"
 
-    # Anthropic API
+    # AWS Bedrock (primary LLM)
+    aws_access_key_id: str = ""
+    aws_secret_access_key: str = ""
+    aws_region: str = "us-east-1"
+    bedrock_model_id: str = "us.anthropic.claude-sonnet-4-6"
+
+    # Anthropic API (fallback)
     anthropic_api_key: str = ""
     anthropic_model: str = "claude-sonnet-4-20250514"
     temperature: float = 0.01

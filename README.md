@@ -33,7 +33,7 @@ A live feed of AI agent activity, reasoning chains, and cost impact. Not a metri
 Statistical detection that catches problems before they become crises. Tracks velocity (how fast conditions are deteriorating), predicts cascade failures across queues, and fires alerts with severity levels.
 
 ### 3. Autonomous AI Agents
-Five specialized agents powered by Anthropic Claude (with MockLLM fallback):
+Five specialized agents powered by AWS Bedrock / Anthropic Claude (with NoKeyLLM fallback):
 
 | Agent | Role |
 |-------|------|
@@ -86,8 +86,8 @@ You can also inject chaos events manually (Kill Agents, Spike Queue, Network Del
 |-------|-----------|
 | **Frontend** | React 18, TypeScript, Zustand 5, TailwindCSS, shadcn/ui, Aceternity UI, Framer Motion |
 | **Backend** | Python 3.10, FastAPI, LangGraph (parallel agent orchestration) |
-| **AI/LLM** | Anthropic Claude (claude-sonnet-4-20250514, primary), Mock LLM (context-aware fallback) |
-| **Real-time** | WebSocket (bidirectional), Server-Sent Events pattern |
+| **AI/LLM** | AWS Bedrock (primary), Anthropic Claude API (fallback), NoKeyLLM (no-key fallback) |
+| **Real-time** | WebSocket (bidirectional, ping/pong keep-alive) + SSE fallback + HTTP action fallback |
 | **State** | Redis (optional, graceful in-memory fallback) |
 | **Target Platform** | AWS Connect (simulation-first, real integration optional) |
 
@@ -126,7 +126,16 @@ cd backend
 cp .env.example .env
 ```
 
-Required for AI features (optional — falls back to mock responses):
+Required for AI features (set one — falls back to NoKeyLLM without either):
+
+**Option 1 — AWS Bedrock (recommended):**
+```
+AWS_ACCESS_KEY_ID=your-aws-access-key
+AWS_SECRET_ACCESS_KEY=your-aws-secret-key
+AWS_REGION=us-east-1
+```
+
+**Option 2 — Anthropic API:**
 ```
 ANTHROPIC_API_KEY=your-anthropic-api-key
 ```
@@ -192,7 +201,7 @@ SentinelAI/
 │   │   ├── models/                    # Pydantic data models (incl. proficiency.py)
 │   │   │   └── proficiency.py         # SkillProficiency, DepartmentFitness, HumanAgentProfile
 │   │   ├── services/                  # External service integrations
-│   │   │   ├── bedrock.py             # LLM service (Anthropic Claude / MockLLM)
+│   │   │   ├── bedrock.py             # LLM service (Bedrock > Anthropic API > NoKeyLLM)
 │   │   │   ├── simulation.py          # Contact center simulation engine
 │   │   │   ├── anomaly.py             # Statistical anomaly detection
 │   │   │   ├── sanitizer.py           # PII sanitizer
@@ -251,7 +260,7 @@ Every 3 seconds, the system runs a "tick":
   React dashboard updates instantly (Zustand state management)
 ```
 
-The LLM (Anthropic Claude) powers each agent's reasoning — analyzing metrics, generating explanations, and producing confidence scores. A 2-tier fallback ensures the system always works: Anthropic Claude > Mock responses (context-aware, dynamic).
+The LLM powers each agent's reasoning — analyzing metrics, generating explanations, and producing confidence scores. A 3-tier fallback ensures the system always works: AWS Bedrock (Converse API with native tool-use) > Anthropic Claude API > NoKeyLLM (shows setup instructions).
 
 ---
 
@@ -275,8 +284,11 @@ The LLM (Anthropic Claude) powers each agent's reasoning — analyzing metrics, 
 | POST | `/api/simulation/stop` | Stop simulation |
 | POST | `/api/simulation/chaos` | Inject chaos event |
 | POST | `/api/simulation/whatif` | Run what-if analysis |
+| POST | `/api/ws-action` | HTTP fallback for client-to-server actions |
+| GET | `/api/stream` | SSE fallback for real-time events |
 
-WebSocket: `ws://localhost:8000/ws/dashboard` — bidirectional real-time events.
+WebSocket: `ws://localhost:8000/ws/dashboard` — bidirectional real-time events with ping/pong keep-alive.
+SSE fallback: `http://localhost:8000/api/stream` — for environments that block WebSocket (e.g., App Runner).
 
 ---
 
@@ -301,7 +313,7 @@ All 19 tests pass. Tests cover health endpoints, simulation lifecycle, agent orc
 | **Real-time reasoning visibility** | Every AI decision shows its reasoning chain — full transparency |
 | **Cost impact quantification** | Dollar amounts ($1,240 saved), not just metrics — clear business value |
 | **Simulation-first architecture** | Demo always works, no AWS dependency — reliable under any conditions |
-| **LLM with smart fallback** | Anthropic Claude > context-aware MockLLM — never fails, always responds |
+| **LLM with smart fallback** | AWS Bedrock > Anthropic API > NoKeyLLM — 3-tier resilience |
 
 ---
 

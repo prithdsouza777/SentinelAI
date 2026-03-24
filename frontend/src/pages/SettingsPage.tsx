@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Settings,
   Server,
@@ -13,12 +13,14 @@ import {
   MessageSquare,
   Send,
   Save,
+  AlertTriangle,
+  Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { healthApi, notificationsApi } from "../services/api";
+import { healthApi, notificationsApi, agentsApi } from "../services/api";
 import { wsService } from "../services/websocket";
 import { Button } from "@/components/ui/button";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface ServiceStatus {
   status: string;
@@ -51,6 +53,15 @@ export default function SettingsPage() {
   const [testingEmail, setTestingEmail] = useState(false);
   const [testResult, setTestResult] = useState<{ channel: string; status: string; message: string } | null>(null);
 
+  // Guardrail threshold state
+  const [autoApproveThreshold, setAutoApproveThreshold] = useState(0.8);
+  const [savedThreshold, setSavedThreshold] = useState(0.8);
+  const [thresholdDirty, setThresholdDirty] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [thresholdSaving, setThresholdSaving] = useState(false);
+  const [thresholdSaved, setThresholdSaved] = useState(false);
+  const sliderRef = useRef<HTMLDivElement>(null);
+
   const fetchHealth = () => {
     setRefreshing(true);
     healthApi
@@ -71,14 +82,23 @@ export default function SettingsPage() {
     }).catch(() => {});
   }, []);
 
+  const fetchThreshold = useCallback(() => {
+    agentsApi.getGuardrailThresholds().then((data) => {
+      setAutoApproveThreshold(data.autoApproveThreshold);
+      setSavedThreshold(data.autoApproveThreshold);
+      setThresholdDirty(false);
+    }).catch(() => {});
+  }, []);
+
   useEffect(() => {
     fetchHealth();
     fetchNotifConfig();
+    fetchThreshold();
     const unsub = wsService.onConnectionChange((connected) => {
       setWsConnected(connected);
     });
     return unsub;
-  }, [fetchNotifConfig]);
+  }, [fetchNotifConfig, fetchThreshold]);
 
   const saveNotifConfig = async () => {
     setNotifSaving(true);
@@ -96,6 +116,52 @@ export default function SettingsPage() {
       setNotifSaving(false);
     }
   };
+
+  const handleThresholdChange = (value: number) => {
+    const rounded = Math.round(value * 100) / 100;
+    setAutoApproveThreshold(rounded);
+    setThresholdDirty(rounded !== savedThreshold);
+    setThresholdSaved(false);
+  };
+
+  const handleThresholdSave = () => {
+    setShowConfirmDialog(true);
+  };
+
+  const confirmThresholdSave = async () => {
+    setShowConfirmDialog(false);
+    setThresholdSaving(true);
+    try {
+      const res = await agentsApi.updateGuardrailThresholds(autoApproveThreshold);
+      setSavedThreshold(res.autoApproveThreshold);
+      setThresholdDirty(false);
+      setThresholdSaved(true);
+      setTimeout(() => setThresholdSaved(false), 3000);
+    } catch {
+      setTestResult({ channel: "threshold", status: "error", message: "Failed to update threshold" });
+    } finally {
+      setThresholdSaving(false);
+    }
+  };
+
+  const cancelThresholdSave = () => {
+    setShowConfirmDialog(false);
+  };
+
+  const resetThreshold = () => {
+    setAutoApproveThreshold(savedThreshold);
+    setThresholdDirty(false);
+  };
+
+  // Derive zone label from threshold
+  const getZoneInfo = (value: number) => {
+    if (value >= 0.9) return { label: "Strict", desc: "Almost all decisions require human review", color: "#ef4444" };
+    if (value >= 0.8) return { label: "Default", desc: "Standard autonomous operation", color: "#3b82f6" };
+    if (value >= 0.7) return { label: "Relaxed", desc: "AI handles more decisions autonomously", color: "#f59e0b" };
+    return { label: "Permissive", desc: "Minimal human oversight required", color: "#10b981" };
+  };
+
+  const zoneInfo = getZoneInfo(autoApproveThreshold);
 
   const handleTestTeams = async () => {
     setTestingTeams(true);
@@ -277,6 +343,257 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+
+      {/* AI Auto-Approve Threshold */}
+      <div className="rounded-xl border border-[#e2e8f0] bg-white shadow-sm">
+        <div className="flex items-center justify-between border-b border-[#e2e8f0] px-4 py-3">
+          <div className="flex items-center gap-2">
+            <Zap className="h-4 w-4 text-[#f59e0b]" />
+            <span className="text-xs font-semibold uppercase tracking-wider text-[#64748b]">
+              AI Decision Autonomy
+            </span>
+          </div>
+          <span
+            className="rounded-full px-2.5 py-1 text-[11px] font-bold"
+            style={{ backgroundColor: zoneInfo.color + "18", color: zoneInfo.color }}
+          >
+            {zoneInfo.label}
+          </span>
+        </div>
+        <div className="space-y-5 p-4">
+          <div>
+            <div className="mb-1 flex items-center justify-between">
+              <label className="text-sm font-medium text-[#475569]">Auto-Approve Confidence Threshold</label>
+              <span
+                className="rounded-md px-2 py-0.5 font-mono text-sm font-bold tabular-nums"
+                style={{ backgroundColor: zoneInfo.color + "18", color: zoneInfo.color }}
+              >
+                {(autoApproveThreshold * 100).toFixed(0)}%
+              </span>
+            </div>
+            <p className="mb-3 text-[11px] text-[#94a3b8]">
+              AI decisions with confidence above this threshold are auto-approved. Below it, they require human review.
+            </p>
+
+            {/* Custom animated slider */}
+            <div className="relative" ref={sliderRef}>
+              {/* Track background with gradient zones */}
+              <div className="relative h-3 w-full overflow-hidden rounded-full bg-[#e2e8f0]">
+                {/* Animated gradient fill */}
+                <motion.div
+                  className="absolute inset-y-0 left-0 rounded-full"
+                  style={{
+                    background: `linear-gradient(90deg, #10b981 0%, #3b82f6 40%, #f59e0b 70%, #ef4444 100%)`,
+                  }}
+                  animate={{ width: `${((autoApproveThreshold - 0.5) / 0.5) * 100}%` }}
+                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                />
+                {/* Animated shimmer overlay */}
+                <motion.div
+                  className="absolute inset-0 rounded-full"
+                  style={{
+                    background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%)",
+                    backgroundSize: "200% 100%",
+                  }}
+                  animate={{ backgroundPosition: ["200% 0%", "-200% 0%"] }}
+                  transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                />
+                {/* Subtle particle dots */}
+                {[...Array(6)].map((_, i) => (
+                  <motion.div
+                    key={i}
+                    className="absolute top-1/2 h-1.5 w-1.5 rounded-full bg-white/40"
+                    style={{ left: `${15 + i * 14}%` }}
+                    animate={{
+                      y: [-1, 1, -1],
+                      opacity: [0.2, 0.6, 0.2],
+                      scale: [0.8, 1.2, 0.8],
+                    }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      delay: i * 0.3,
+                    }}
+                  />
+                ))}
+              </div>
+
+              {/* Thumb */}
+              <motion.div
+                className="pointer-events-none absolute top-1/2"
+                style={{ left: `${((autoApproveThreshold - 0.5) / 0.5) * 100}%` }}
+                animate={{
+                  left: `${((autoApproveThreshold - 0.5) / 0.5) * 100}%`,
+                }}
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              >
+                <div
+                  className="relative -ml-3 -mt-3 h-6 w-6 rounded-full border-[3px] border-white shadow-lg"
+                  style={{ backgroundColor: zoneInfo.color }}
+                >
+                  {/* Pulsing ring */}
+                  <motion.div
+                    className="absolute -inset-1.5 rounded-full border-2"
+                    style={{ borderColor: zoneInfo.color }}
+                    animate={{ opacity: [0.5, 0, 0.5], scale: [1, 1.4, 1] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  />
+                </div>
+              </motion.div>
+
+              {/* Invisible native range for interaction */}
+              <input
+                type="range"
+                min={50}
+                max={100}
+                step={1}
+                value={autoApproveThreshold * 100}
+                onChange={(e) => handleThresholdChange(Number(e.target.value) / 100)}
+                className="absolute inset-0 h-3 w-full cursor-pointer opacity-0"
+              />
+            </div>
+
+            {/* Scale labels */}
+            <div className="mt-2 flex justify-between text-[10px] font-medium text-[#94a3b8]">
+              <span>50% (Permissive)</span>
+              <span>75%</span>
+              <span>100% (Strict)</span>
+            </div>
+          </div>
+
+          {/* Zone description */}
+          <motion.div
+            key={zoneInfo.label}
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-start gap-2.5 rounded-lg border px-3 py-2.5"
+            style={{ borderColor: zoneInfo.color + "40", backgroundColor: zoneInfo.color + "08" }}
+          >
+            <Shield className="mt-0.5 h-4 w-4 flex-shrink-0" style={{ color: zoneInfo.color }} />
+            <div>
+              <p className="text-xs font-semibold" style={{ color: zoneInfo.color }}>{zoneInfo.label} Mode</p>
+              <p className="text-[11px] text-[#64748b]">{zoneInfo.desc}</p>
+            </div>
+          </motion.div>
+
+          {/* Save / Reset buttons */}
+          {thresholdDirty && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center gap-2"
+            >
+              <Button
+                onClick={handleThresholdSave}
+                disabled={thresholdSaving}
+                className="h-8 bg-[#2563eb] px-3 text-xs font-semibold text-white hover:bg-[#1d4ed8]"
+              >
+                <Save className={cn("mr-1.5 h-3 w-3", thresholdSaving && "animate-spin")} />
+                Apply Threshold
+              </Button>
+              <Button
+                onClick={resetThreshold}
+                variant="outline"
+                className="h-8 border-[#e2e8f0] px-3 text-xs font-medium text-[#64748b] hover:bg-[#f1f5f9]"
+              >
+                Reset
+              </Button>
+              <span className="text-[11px] text-[#94a3b8]">
+                {savedThreshold !== autoApproveThreshold && `Changed from ${(savedThreshold * 100).toFixed(0)}% to ${(autoApproveThreshold * 100).toFixed(0)}%`}
+              </span>
+            </motion.div>
+          )}
+          {thresholdSaved && (
+            <motion.span
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="flex items-center gap-1 text-xs font-medium text-[#10b981]"
+            >
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Threshold updated successfully
+            </motion.span>
+          )}
+          {testResult?.channel === "threshold" && (
+            <span className="text-xs font-medium text-[#ef4444]">{testResult.message}</span>
+          )}
+        </div>
+      </div>
+
+      {/* Confirmation Dialog */}
+      <AnimatePresence>
+        {showConfirmDialog && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+            onClick={cancelThresholdSave}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ type: "spring", stiffness: 400, damping: 30 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-sm rounded-2xl border border-[#e2e8f0] bg-white p-6 shadow-2xl"
+            >
+              <div className="mb-4 flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#fef3c7]">
+                  <AlertTriangle className="h-5 w-5 text-[#f59e0b]" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-[#1e293b]">Confirm Threshold Change</h3>
+                  <p className="text-[11px] text-[#64748b]">This affects AI decision autonomy</p>
+                </div>
+              </div>
+
+              <div className="mb-5 rounded-lg border border-[#e2e8f0] bg-[#f8fafc] p-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-[#64748b]">Current:</span>
+                  <span className="font-mono font-bold text-[#1e293b]">{(savedThreshold * 100).toFixed(0)}%</span>
+                </div>
+                <div className="my-1.5 flex items-center justify-center">
+                  <motion.span
+                    animate={{ y: [0, 2, 0] }}
+                    transition={{ duration: 1, repeat: Infinity }}
+                    className="text-[#94a3b8]"
+                  >
+                    ↓
+                  </motion.span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-[#64748b]">New:</span>
+                  <span className="font-mono font-bold" style={{ color: zoneInfo.color }}>
+                    {(autoApproveThreshold * 100).toFixed(0)}%
+                  </span>
+                </div>
+              </div>
+
+              <p className="mb-5 text-xs text-[#64748b]">
+                {autoApproveThreshold > savedThreshold
+                  ? "Raising the threshold means more decisions will require human review before execution."
+                  : "Lowering the threshold means the AI will auto-approve more decisions without human review."}
+              </p>
+
+              <div className="flex gap-2">
+                <Button
+                  onClick={cancelThresholdSave}
+                  variant="outline"
+                  className="h-9 flex-1 border-[#e2e8f0] text-xs font-medium text-[#64748b] hover:bg-[#f1f5f9]"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={confirmThresholdSave}
+                  className="h-9 flex-1 bg-[#2563eb] text-xs font-semibold text-white hover:bg-[#1d4ed8]"
+                >
+                  Yes, Apply Change
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Agent Thresholds */}
       <div className="rounded-xl border border-[#e2e8f0] bg-white shadow-sm">
