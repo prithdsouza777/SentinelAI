@@ -224,6 +224,47 @@ export interface SessionReport {
       tick: number;
     }>;
   };
+  workforce?: {
+    totalAgents: number;
+    byStatus: Record<string, number>;
+    byRole: Record<string, number>;
+    byDepartment: Record<string, number>;
+    relocated: number;
+    avgPerfScore: number;
+    topPerformers: Array<{
+      name: string;
+      role: string;
+      department: string;
+      perfScore: number;
+      topSkill: string;
+    }>;
+    departmentFitness: Record<string, number>;
+  };
+}
+
+// ── Human Agent Workforce ──
+
+export interface SkillProficiency {
+  skillName: string;
+  proficiency: number; // 0.0-1.0
+}
+
+export interface DepartmentFitness {
+  departmentId: string;
+  departmentName: string;
+  fitnessScore: number; // 0.0-1.0
+}
+
+export interface HumanAgentProfile {
+  id: string;
+  name: string;
+  currentQueueId: string;
+  homeQueueId: string;
+  role: string;
+  perfScore: number;
+  skillProficiencies: SkillProficiency[];
+  departmentScores: DepartmentFitness[];
+  status: string;
 }
 
 // ── Metrics History ──

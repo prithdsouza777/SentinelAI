@@ -10,6 +10,7 @@ from app.models.agent import (
 )
 from app.models.action import ActionLog, CostImpact
 from app.models.guardrails import AuditEntry, GuardrailPolicy, GuardrailResult, GuardrailStatus
+from app.models.proficiency import DepartmentFitness, HumanAgentProfile, SkillProficiency
 
 __all__ = [
     "QueueMetrics",
@@ -27,4 +28,7 @@ __all__ = [
     "GuardrailResult",
     "GuardrailStatus",
     "NegotiationProposal",
+    "DepartmentFitness",
+    "HumanAgentProfile",
+    "SkillProficiency",
 ]

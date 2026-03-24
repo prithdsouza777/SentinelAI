@@ -79,6 +79,17 @@ export const simulationApi = {
     }),
 };
 
+// ── Human Agents (Workforce) ──
+
+export const humanAgentsApi = {
+  list: () => request<{ agents: import("@/types").HumanAgentProfile[] }>("/agents/human"),
+  get: (id: string) => request<import("@/types").HumanAgentProfile>(`/agents/human/${id}`),
+  byDepartment: (deptId: string, limit = 10) =>
+    request<{ agents: import("@/types").HumanAgentProfile[] }>(
+      `/agents/human/by-department/${deptId}?limit=${limit}`
+    ),
+};
+
 // ── Cost Impact ──
 
 export const costApi = {
@@ -101,6 +112,21 @@ export const healthApi = {
 
 export const reportsApi = {
   getSessionReport: () => request("/reports/session"),
+};
+
+// ── Notifications ──
+
+export const notificationsApi = {
+  getConfig: () => request("/notifications/config"),
+  updateConfig: (config: Record<string, unknown>) =>
+    request("/notifications/config", {
+      method: "PUT",
+      body: JSON.stringify(config),
+    }),
+  testTeams: () =>
+    request("/notifications/test/teams", { method: "POST" }),
+  testEmail: () =>
+    request("/notifications/test/email", { method: "POST" }),
 };
 
 // ── History ──

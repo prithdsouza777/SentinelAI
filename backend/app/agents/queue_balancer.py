@@ -100,6 +100,39 @@ class QueueBalancerAgent:
                 f"service_level={q.get('serviceLevel', 0):.0f}%\n"
             )
 
+        # Enrich with agent fitness data from agent_database
+        try:
+            from app.services.agent_database import agent_database
+            if agent_database._initialized:
+                overloaded_id = max(pressures, key=pressures.__getitem__)
+                idle_id = min(pressures, key=pressures.__getitem__)
+                candidates = agent_database.get_agents_in_queue(idle_id)
+                candidates.sort(
+                    key=lambda a: a.department_score_for(overloaded_id), reverse=True
+                )
+                idle_name = next(
+                    (q.get("queueName", idle_id) for q in queue_states if q.get("queueId") == idle_id),
+                    idle_id,
+                )
+                overloaded_name = next(
+                    (q.get("queueName", overloaded_id) for q in queue_states if q.get("queueId") == overloaded_id),
+                    overloaded_id,
+                )
+                if candidates:
+                    prompt += f"\nCandidate agents in {idle_name} (donor) for {overloaded_name} transfer:\n"
+                    for i, a in enumerate(candidates[:3], 1):
+                        top_skills = sorted(
+                            a.skill_proficiencies,
+                            key=lambda s: s.proficiency, reverse=True,
+                        )[:3]
+                        skills_str = ", ".join(f"{s.skill_name}={s.proficiency:.2f}" for s in top_skills)
+                        prompt += (
+                            f"  {i}. {a.name} ({a.role}, {overloaded_name} fitness: "
+                            f"{a.department_score_for(overloaded_id):.2f}) — top skills: {skills_str}\n"
+                        )
+        except Exception:
+            pass  # Graceful fallback — LLM works without enrichment
+
         # Use bedrock_service but with our custom system prompt
         result = await self._invoke_llm(prompt)
         message = result.get("message", "")
@@ -225,15 +258,52 @@ class QueueBalancerAgent:
         )]
 
     async def execute(self, action: dict) -> bool:
-        """Execute a queue rebalancing action by adjusting simulation state."""
+        """Execute a queue rebalancing action by picking the best-fit agents."""
         from app.services.simulation import simulation_engine
 
         from_q = action.get("from_queue")
         to_q = action.get("to_queue")
         count = int(action.get("count", 2))
 
-        if from_q and to_q:
-            simulation_engine.adjust_queue(from_q, -count)
-            simulation_engine.adjust_queue(to_q, count)
-            return True
-        return False
+        if not (from_q and to_q):
+            return False
+
+        # Use agent_database to pick specific agents by fitness for target dept
+        try:
+            from app.services.agent_database import agent_database
+            if agent_database._initialized:
+                candidates = agent_database.get_agents_in_queue(from_q)
+                # Sort by transfer score: high target fitness + low source fitness
+                # This preserves the source queue's best performers
+                candidates.sort(
+                    key=lambda a: (
+                        a.department_score_for(to_q) * 0.6
+                        - a.department_score_for(from_q) * 0.4
+                    ),
+                    reverse=True,
+                )
+                moved = 0
+                for agent in candidates[:count]:
+                    # Respect min staffing: keep at least 2 in source queue
+                    remaining = len(agent_database.get_agents_in_queue(from_q))
+                    if remaining <= 2:
+                        break
+                    agent_database.move_agent(agent.id, to_q)
+                    moved += 1
+                    logger.info(
+                        "QB moved %s (target %s fitness: %.2f, source %s fitness: %.2f) from %s to %s",
+                        agent.name,
+                        to_q, agent.department_score_for(to_q),
+                        from_q, agent.department_score_for(from_q),
+                        from_q, to_q,
+                    )
+                simulation_engine.adjust_queue(from_q, -moved)
+                simulation_engine.adjust_queue(to_q, moved)
+                return moved > 0
+        except Exception as e:
+            logger.warning("Agent database unavailable for smart selection: %s", e)
+
+        # Fallback: blind count adjustment
+        simulation_engine.adjust_queue(from_q, -count)
+        simulation_engine.adjust_queue(to_q, count)
+        return True

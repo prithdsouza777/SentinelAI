@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.api.routes import alerts, agents, chat, health, queues, simulation
-from app.api.routes import reports, history
+from app.api.routes import reports, history, notifications
 from app.api.websocket import router as ws_router
 from app.config import settings
 
@@ -42,8 +42,12 @@ async def _tick():
     from app.agents.orchestrator import orchestrator
     from app.api.websocket import manager
     from app.services.redis_client import redis_client
+    from app.services.notifications import notification_service
 
     metrics = simulation_engine.generate_metrics()
+
+    # Sync agent statuses (available/busy/on_break) based on queue load
+    simulation_engine.sync_agent_statuses(metrics)
 
     for m in metrics:
         # Anomaly detection (takes QueueMetrics object)
@@ -66,6 +70,8 @@ async def _tick():
                 _recent_alerts.pop()
             await manager.broadcast("alert:new", a_dict)
             await redis_client.push_json("sentinelai:alerts", a_dict, maxlen=100)
+            # Fire-and-forget external notifications (Teams + Outlook)
+            asyncio.create_task(notification_service.notify(a_dict))
 
     # Run agents with camelCase dicts
     metrics_dicts = [m.model_dump(by_alias=True, mode="json") for m in metrics]
@@ -115,6 +121,11 @@ async def lifespan(app: FastAPI):
     app.state.recent_negotiations = _recent_negotiations
     app.state.metrics_history = _metrics_history
 
+    # Initialize agent workforce database
+    from app.services.agent_database import agent_database
+    agent_database.initialize()
+    app.state.agent_database = agent_database
+
     # Connect to Redis (graceful fallback to in-memory if unavailable)
     from app.services.redis_client import redis_client
     await redis_client.connect()
@@ -162,6 +173,7 @@ app.include_router(chat.router, prefix="/api", tags=["chat"])
 app.include_router(simulation.router, prefix="/api", tags=["simulation"])
 app.include_router(reports.router, prefix="/api", tags=["reports"])
 app.include_router(history.router, prefix="/api", tags=["history"])
+app.include_router(notifications.router, prefix="/api", tags=["notifications"])
 
 # WebSocket
 app.include_router(ws_router)

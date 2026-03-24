@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Query, Request
+from fastapi import APIRouter, HTTPException, Query, Request
 
 from app.agents.guardrails import guardrails
 
@@ -99,3 +99,35 @@ async def get_action_log(request: Request):
         if d.get("approved") is True or d.get("guardrailResult") == "AUTO_APPROVE"
     ]
     return {"actions": executed}
+
+
+# ── Human Agent (Workforce) Endpoints ────────────────────────────────────────
+
+@router.get("/agents/human")
+async def list_human_agents():
+    """List all human agent profiles with proficiencies and department fitness scores."""
+    from app.services.agent_database import agent_database
+    agents = agent_database.get_all_agents()
+    return {"agents": [a.model_dump(by_alias=True, mode="json") for a in agents]}
+
+
+@router.get("/agents/human/by-department/{dept_id}")
+async def get_agents_by_department(dept_id: str, limit: int = Query(default=10, le=25)):
+    """Get agents ranked by fitness for a specific department."""
+    from app.services.agent_database import agent_database, DEPARTMENT_NAMES
+    if dept_id not in DEPARTMENT_NAMES:
+        raise HTTPException(status_code=404, detail=f"Department {dept_id} not found")
+    # Get ALL agents sorted by fitness for this dept (not just agents in other queues)
+    agents = agent_database.get_all_agents()
+    agents.sort(key=lambda a: a.department_score_for(dept_id), reverse=True)
+    return {"agents": [a.model_dump(by_alias=True, mode="json") for a in agents[:limit]]}
+
+
+@router.get("/agents/human/{agent_id}")
+async def get_human_agent(agent_id: str):
+    """Get a single human agent profile with proficiencies and department scores."""
+    from app.services.agent_database import agent_database
+    agent = agent_database.get_agent(agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail=f"Agent {agent_id} not found")
+    return agent.model_dump(by_alias=True, mode="json")

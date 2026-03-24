@@ -119,7 +119,18 @@ class SimulationEngine:
         }
 
     def get_available_agents(self) -> list[dict]:
-        """Return agents not currently at capacity (simplified availability check)."""
+        """Return agents not currently at capacity.
+
+        Delegates to agent_database for rich proficiency data, falling back
+        to the static SIMULATED_AGENTS list if the database isn't initialized.
+        """
+        try:
+            from app.services.agent_database import agent_database
+            if agent_database._initialized:
+                return agent_database.get_available_agents_compat()
+        except Exception:
+            pass
+        # Legacy fallback
         available = []
         for agent in SIMULATED_AGENTS:
             q = next((q for q in SIMULATED_QUEUES if q["id"] == agent["queue_id"]), None)
@@ -138,6 +149,50 @@ class SimulationEngine:
         })
         if len(self._routing_log) > 100:
             self._routing_log.pop(0)
+
+    def sync_agent_statuses(self, metrics: list[QueueMetrics]) -> None:
+        """Update agent statuses in the database based on current queue load.
+
+        Agents handling contacts become 'busy'. A small random set goes 'on_break'.
+        The rest stay 'available'.
+        """
+        try:
+            from app.services.agent_database import agent_database
+            if not agent_database._initialized:
+                return
+
+            # Build a map of queue_id -> how many agents should be busy
+            queue_busy: dict[str, int] = {}
+            for m in metrics:
+                # busy = online - available (clamped)
+                busy_count = max(0, m.agents_online - m.agents_available)
+                queue_busy[m.queue_id] = busy_count
+
+            # Get all agents grouped by current queue
+            all_agents = agent_database.get_all_agents()
+            by_queue: dict[str, list] = {}
+            for a in all_agents:
+                by_queue.setdefault(a.current_queue_id, []).append(a)
+
+            updates: list[tuple[str, str]] = []
+            for queue_id, agents in by_queue.items():
+                busy_needed = queue_busy.get(queue_id, 0)
+                # ~5% chance any agent is on break (1 per queue max)
+                on_break_count = 1 if len(agents) >= 4 and random.random() < 0.15 else 0
+
+                random.shuffle(agents)
+                for i, agent in enumerate(agents):
+                    if i < busy_needed:
+                        updates.append((agent.id, "busy"))
+                    elif i < busy_needed + on_break_count:
+                        updates.append((agent.id, "on_break"))
+                    else:
+                        updates.append((agent.id, "available"))
+
+            if updates:
+                agent_database.update_statuses_bulk(updates)
+        except Exception as e:
+            logger.debug("Status sync skipped: %s", e)
 
     def generate_metrics(self) -> list[QueueMetrics]:
         """Generate a snapshot of queue metrics with natural variation, applying any active chaos."""
@@ -270,6 +325,12 @@ class SimulationEngine:
         self.running = True
         self.scenario = scenario
         self.tick = 0
+        # Reset agent database to home queues on fresh start
+        try:
+            from app.services.agent_database import agent_database
+            agent_database.reset()
+        except Exception:
+            pass
 
     async def stop(self):
         """Stop the simulation loop."""

@@ -7,6 +7,7 @@ import ChatPage from "./pages/ChatPage";
 import SimulationPage from "./pages/SimulationPage";
 import ReportsPage from "./pages/ReportsPage";
 import SettingsPage from "./pages/SettingsPage";
+import WorkforcePage from "./pages/WorkforcePage";
 import LoginPage from "./pages/LoginPage";
 import LandingPage from "./pages/LandingPage";
 import RequireAuth from "./components/auth/RequireAuth";
@@ -27,6 +28,7 @@ function App() {
           <Route path="chat" element={<ChatPage />} />
           <Route path="simulation" element={<SimulationPage />} />
           <Route path="reports" element={<ReportsPage />} />
+          <Route path="workforce" element={<WorkforcePage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
       </Route>
