@@ -79,6 +79,17 @@ export const simulationApi = {
     }),
 };
 
+// ── Human Agents (Workforce) ──
+
+export const humanAgentsApi = {
+  list: () => request<{ agents: import("@/types").HumanAgentProfile[] }>("/agents/human"),
+  get: (id: string) => request<import("@/types").HumanAgentProfile>(`/agents/human/${id}`),
+  byDepartment: (deptId: string, limit = 10) =>
+    request<{ agents: import("@/types").HumanAgentProfile[] }>(
+      `/agents/human/by-department/${deptId}?limit=${limit}`
+    ),
+};
+
 // ── Cost Impact ──
 
 export const costApi = {

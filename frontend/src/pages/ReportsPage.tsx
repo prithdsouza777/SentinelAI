@@ -14,6 +14,7 @@ import {
   Search,
   X,
   Printer,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -335,6 +336,23 @@ export default function ReportsPage() {
     }));
   }, [queueRows]);
 
+  const workforceDeptData = useMemo(() => {
+    if (!report?.workforce) return [];
+    return Object.entries(report.workforce.byDepartment).map(([dept, count]) => ({
+      name: dept,
+      agents: count,
+    }));
+  }, [report]);
+
+  const workforceFitnessData = useMemo(() => {
+    if (!report?.workforce) return [];
+    return Object.entries(report.workforce.departmentFitness).map(([dept, score]) => ({
+      metric: dept,
+      value: Math.round(score * 100),
+      fullMark: 100,
+    }));
+  }, [report]);
+
   const radarData = useMemo(() => {
     if (!report) return [];
     return [
@@ -636,6 +654,156 @@ export default function ReportsPage() {
                 <Stat label="Actions Executed" value={report.costImpact.actionsToday} />
               </div>
             </ChartCard>
+
+            {/* ─── Row 2.5: Workforce Summary ─── */}
+            {report.workforce && report.workforce.totalAgents > 0 && (
+              <>
+                <ChartCard
+                  title="Workforce Overview"
+                  icon={Users}
+                  iconColor="text-[var(--accent)]"
+                  span={3}
+                  delay={0.07}
+                >
+                  <div className="grid grid-cols-6 gap-4">
+                    <Stat label="Total Agents" value={report.workforce.totalAgents} />
+                    <Stat
+                      label="Available"
+                      value={report.workforce.byStatus.available ?? 0}
+                      color="text-[var(--success)]"
+                    />
+                    <Stat
+                      label="Busy"
+                      value={report.workforce.byStatus.busy ?? 0}
+                      color="text-[var(--warning)]"
+                    />
+                    <Stat
+                      label="On Break"
+                      value={report.workforce.byStatus.on_break ?? 0}
+                      color="text-[var(--danger)]"
+                    />
+                    <Stat
+                      label="Relocated"
+                      value={report.workforce.relocated}
+                      color="text-[var(--warning)]"
+                    />
+                    <Stat
+                      label="Avg Performance"
+                      value={`${(report.workforce.avgPerfScore * 100).toFixed(0)}%`}
+                      color="text-[var(--accent)]"
+                    />
+                  </div>
+                </ChartCard>
+
+                {/* Dept Distribution + Fitness Radar + Top Performers */}
+                <ChartCard
+                  title="Agents by Department"
+                  icon={Users}
+                  iconColor="text-[var(--accent)]"
+                  delay={0.08}
+                >
+                  {workforceDeptData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={220}>
+                      <BarChart data={workforceDeptData} barSize={30}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                        <XAxis
+                          dataKey="name"
+                          tick={{ fontSize: 10, fill: "var(--text-secondary)" }}
+                          axisLine={{ stroke: "var(--border)" }}
+                          tickLine={{ stroke: "var(--border)" }}
+                        />
+                        <YAxis
+                          tick={{ fontSize: 10, fill: "var(--text-secondary)" }}
+                          axisLine={{ stroke: "var(--border)" }}
+                          tickLine={{ stroke: "var(--border)" }}
+                          allowDecimals={false}
+                        />
+                        <Tooltip {...tooltipStyle} />
+                        <Bar dataKey="agents" name="Agents" fill="var(--accent)" radius={[6, 6, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex min-h-[220px] items-center justify-center text-xs text-[var(--text-muted)]">
+                      No workforce data
+                    </div>
+                  )}
+                </ChartCard>
+
+                <ChartCard
+                  title="Avg Dept Fitness"
+                  icon={Shield}
+                  iconColor="text-[var(--success)]"
+                  delay={0.09}
+                >
+                  {workforceFitnessData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={220}>
+                      <RadarChart data={workforceFitnessData} outerRadius="70%">
+                        <PolarGrid stroke="var(--border)" />
+                        <PolarAngleAxis dataKey="metric" tick={{ fontSize: 9, fill: "var(--text-secondary)" }} />
+                        <PolarRadiusAxis tick={false} axisLine={{ stroke: "var(--border)" }} domain={[0, 100]} />
+                        <Radar
+                          dataKey="value"
+                          stroke="var(--success)"
+                          fill="var(--success)"
+                          fillOpacity={0.15}
+                          strokeWidth={2}
+                        />
+                        <Tooltip {...tooltipStyle} />
+                      </RadarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex min-h-[220px] items-center justify-center text-xs text-[var(--text-muted)]">
+                      No fitness data
+                    </div>
+                  )}
+                </ChartCard>
+
+                <ChartCard
+                  title="Top Performers"
+                  icon={TrendingUp}
+                  iconColor="text-[var(--success)]"
+                  delay={0.1}
+                >
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b border-[var(--border-subtle)] text-[var(--text-secondary)]">
+                          <th className="py-2 text-left font-semibold">#</th>
+                          <th className="py-2 text-left font-semibold">Name</th>
+                          <th className="py-2 text-left font-semibold">Role</th>
+                          <th className="py-2 text-left font-semibold">Department</th>
+                          <th className="py-2 text-right font-semibold">Performance</th>
+                          <th className="py-2 text-left font-semibold">Top Skill</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {report.workforce.topPerformers.map((p, i) => (
+                          <tr
+                            key={p.name}
+                            className={cn(
+                              "border-b border-[var(--border-subtle)] transition-colors",
+                              i % 2 === 1 ? "bg-[var(--border-subtle)]" : "bg-transparent"
+                            )}
+                          >
+                            <td className="py-1.5 text-[var(--text-muted)]">{i + 1}</td>
+                            <td className="py-1.5 font-medium text-[var(--text-primary)]">{p.name}</td>
+                            <td className="py-1.5 capitalize text-[var(--text-secondary)]">{p.role}</td>
+                            <td className="py-1.5 text-[var(--text-secondary)]">{p.department}</td>
+                            <td className={cn(
+                              "py-1.5 text-right tabular-nums font-semibold",
+                              p.perfScore >= 0.85 ? "text-[var(--success)]" : "text-[var(--text-primary)]"
+                            )}>
+                              {(p.perfScore * 100).toFixed(0)}%
+                            </td>
+                            <td className="py-1.5 capitalize text-[var(--text-secondary)]">{p.topSkill}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </ChartCard>
+              </>
+            )}
 
             {/* ─── Row 3: Three charts side by side ─── */}
 

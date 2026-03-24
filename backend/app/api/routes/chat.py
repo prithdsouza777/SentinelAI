@@ -70,6 +70,29 @@ def _build_chat_context(request: Request) -> dict:
 
         # Governance snapshot
         context["governance"] = guardrails.get_governance_summary()
+
+        # Workforce agent database
+        from app.services.agent_database import agent_database
+        if agent_database._initialized:
+            context["workforce"] = [
+                {
+                    "id": a.id,
+                    "name": a.name,
+                    "role": a.role,
+                    "currentQueue": a.current_queue_id,
+                    "homeQueue": a.home_queue_id,
+                    "status": a.status,
+                    "topSkills": sorted(
+                        [(sp.skill_name, sp.proficiency) for sp in a.skill_proficiencies],
+                        key=lambda x: -x[1],
+                    )[:4],
+                    "deptScores": {
+                        ds.department_name: round(ds.fitness_score, 2)
+                        for ds in a.department_scores
+                    },
+                }
+                for a in agent_database.get_all_agents()
+            ]
     except Exception:
         pass
     return context
@@ -118,8 +141,10 @@ async def send_message(body: ChatRequest, request: Request):
     context = _build_chat_context(request)
     result = await analytics_agent.query(sanitized_message, context)
 
+    response_message = result.get("message", "")
+
     return {
-        "message": result["message"],
+        "message": response_message,
         "reasoning": result.get("reasoning", ""),
         "timestamp": result.get("timestamp", ""),
     }

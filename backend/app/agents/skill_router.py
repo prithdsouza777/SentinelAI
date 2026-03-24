@@ -59,14 +59,30 @@ class SkillRouterAgent:
             agents = max(q.get("agentsOnline", 1), 1)
             load_map[qid] = contacts / (agents * 5)
 
-        # Score each agent
-        required_skills = set(contact["required_skills"])
+        # Score each agent using proficiency-weighted skill matching
+        required_skills = list(contact["required_skills"])
         scored: list[tuple[dict, float, str]] = []
 
+        # Try to use agent_database for proficiency-weighted scoring
+        try:
+            from app.services.agent_database import agent_database
+            use_proficiency = agent_database._initialized
+        except Exception:
+            use_proficiency = False
+
         for agent in available_agents:
-            agent_skills = set(agent.get("skills", []))
-            skill_overlap = len(required_skills & agent_skills)
-            skill_match = skill_overlap / max(len(required_skills), 1)
+            if use_proficiency:
+                profile = agent_database.get_agent(agent["id"])
+                if profile:
+                    skill_match = sum(
+                        profile.proficiency_for(s) for s in required_skills
+                    ) / max(len(required_skills), 1)
+                else:
+                    agent_skills = set(agent.get("skills", []))
+                    skill_match = len(set(required_skills) & agent_skills) / max(len(required_skills), 1)
+            else:
+                agent_skills = set(agent.get("skills", []))
+                skill_match = len(set(required_skills) & agent_skills) / max(len(required_skills), 1)
 
             exp = EXPERIENCE_WEIGHT.get(agent.get("experience", "mid"), 0.8)
             perf = agent.get("perf_score", 0.7)

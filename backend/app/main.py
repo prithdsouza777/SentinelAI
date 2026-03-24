@@ -46,6 +46,9 @@ async def _tick():
 
     metrics = simulation_engine.generate_metrics()
 
+    # Sync agent statuses (available/busy/on_break) based on queue load
+    simulation_engine.sync_agent_statuses(metrics)
+
     for m in metrics:
         # Anomaly detection (takes QueueMetrics object)
         alerts_list = anomaly_engine.evaluate(m)
@@ -117,6 +120,11 @@ async def lifespan(app: FastAPI):
     app.state.recent_alerts = _recent_alerts
     app.state.recent_negotiations = _recent_negotiations
     app.state.metrics_history = _metrics_history
+
+    # Initialize agent workforce database
+    from app.services.agent_database import agent_database
+    agent_database.initialize()
+    app.state.agent_database = agent_database
 
     # Connect to Redis (graceful fallback to in-memory if unavailable)
     from app.services.redis_client import redis_client

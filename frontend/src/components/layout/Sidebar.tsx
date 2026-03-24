@@ -8,12 +8,14 @@ import {
   FileBarChart,
   Settings,
   Activity,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Operations", href: "/dashboard" },
   { icon: BrainCircuit, label: "Agents", href: "/agents" },
+  { icon: Users, label: "Workforce", href: "/workforce" },
   { icon: AlertTriangle, label: "Alerts", href: "/alerts" },
   { icon: MessageSquare, label: "Chat", href: "/chat" },
   { icon: FlaskConical, label: "Simulation", href: "/simulation" },

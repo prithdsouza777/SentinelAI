@@ -153,7 +153,7 @@ class EscalationHandlerAgent:
             return None
 
     async def execute(self, action: dict) -> bool:
-        """Execute an escalation action: pull agents from lowest-pressure queue to critical queue."""
+        """Execute an escalation action: pull best-fit agents to the critical queue."""
         from app.services.simulation import simulation_engine, SIMULATED_QUEUES
 
         action_str = action.get("action", "")
@@ -163,28 +163,50 @@ class EscalationHandlerAgent:
         if not target_queue_id:
             return True  # Notification-only escalation
 
-        # Find the donor queue: lowest contacts-per-agent ratio, excluding the target
+        # Use agent_database for fitness-aware agent selection
+        try:
+            from app.services.agent_database import agent_database
+            if agent_database._initialized:
+                best = agent_database.get_best_agents_for_department(
+                    target_queue_id, count=2, min_remaining=2,
+                )
+                for agent in best:
+                    old_queue = agent.current_queue_id
+                    agent_database.move_agent(agent.id, target_queue_id)
+                    simulation_engine.adjust_queue(old_queue, -1)
+                    simulation_engine.adjust_queue(target_queue_id, +1)
+                    logger.info(
+                        "Emergency pull: %s (target %s fitness: %.2f, source %s fitness: %.2f) from %s -> %s",
+                        agent.name,
+                        target_queue_id, agent.department_score_for(target_queue_id),
+                        old_queue, agent.department_score_for(old_queue),
+                        old_queue, target_queue_id,
+                    )
+                return len(best) > 0
+        except Exception as e:
+            logger.warning("Agent database unavailable for smart escalation: %s", e)
+
+        # Fallback: original blind pull from lowest-pressure queue
         best_donor = None
         best_pressure = float("inf")
         for q in SIMULATED_QUEUES:
             if q["id"] == target_queue_id:
                 continue
-            # Rough pressure: fewer agents available = worse donor candidate
             if q["agents"] <= 2:
-                continue  # Respect min staffing
+                continue
             pressure = q.get("base_load", 5) / max(q["agents"], 1)
             if pressure < best_pressure:
                 best_pressure = pressure
                 best_donor = q
 
         if best_donor and best_donor["agents"] > 2:
-            pull_count = min(2, best_donor["agents"] - 2)  # Never drop below 2
+            pull_count = min(2, best_donor["agents"] - 2)
             simulation_engine.adjust_queue(best_donor["id"], -pull_count)
             simulation_engine.adjust_queue(target_queue_id, +pull_count)
             logger.info(
-                "Emergency pull: %d agents %s -> %s",
+                "Emergency pull (fallback): %d agents %s -> %s",
                 pull_count, best_donor["name"], target_queue_id,
             )
             return True
 
-        return True  # Notification-only if no donor available
+        return True

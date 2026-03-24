@@ -64,6 +64,73 @@ async def session_report(request: Request):
     # ── Routing log ──
     routing_log = simulation_engine._routing_log[-20:]
 
+    # ── Workforce summary ──
+    workforce_summary: dict = {
+        "totalAgents": 0,
+        "byStatus": {},
+        "byRole": {},
+        "byDepartment": {},
+        "relocated": 0,
+        "avgPerfScore": 0,
+        "topPerformers": [],
+        "departmentFitness": {},
+    }
+    try:
+        from app.services.agent_database import agent_database
+        if agent_database._initialized:
+            all_agents = agent_database.get_all_agents()
+            workforce_summary["totalAgents"] = len(all_agents)
+
+            # By status
+            status_counts: dict[str, int] = {}
+            role_counts: dict[str, int] = {}
+            dept_counts: dict[str, int] = {}
+            relocated = 0
+            perf_total = 0.0
+            dept_fitness_totals: dict[str, list[float]] = {}
+
+            for a in all_agents:
+                status_counts[a.status] = status_counts.get(a.status, 0) + 1
+                role_counts[a.role] = role_counts.get(a.role, 0) + 1
+                dept_name = a.current_queue_id.replace("q-", "").title()
+                dept_counts[dept_name] = dept_counts.get(dept_name, 0) + 1
+                if a.current_queue_id != a.home_queue_id:
+                    relocated += 1
+                perf_total += a.perf_score
+                for ds in a.department_scores:
+                    dept_fitness_totals.setdefault(ds.department_name, []).append(ds.fitness_score)
+
+            workforce_summary["byStatus"] = status_counts
+            workforce_summary["byRole"] = role_counts
+            workforce_summary["byDepartment"] = dept_counts
+            workforce_summary["relocated"] = relocated
+            workforce_summary["avgPerfScore"] = round(perf_total / max(len(all_agents), 1), 3)
+
+            # Top 5 performers
+            sorted_by_perf = sorted(all_agents, key=lambda a: -a.perf_score)[:5]
+            workforce_summary["topPerformers"] = [
+                {
+                    "name": a.name,
+                    "role": a.role,
+                    "department": a.current_queue_id.replace("q-", "").title(),
+                    "perfScore": round(a.perf_score, 3),
+                    "topSkill": max(
+                        [(sp.skill_name, sp.proficiency) for sp in a.skill_proficiencies],
+                        key=lambda x: x[1],
+                        default=("none", 0),
+                    )[0].replace("_", " "),
+                }
+                for a in sorted_by_perf
+            ]
+
+            # Average fitness per department
+            workforce_summary["departmentFitness"] = {
+                dept: round(sum(scores) / len(scores), 3)
+                for dept, scores in dept_fitness_totals.items()
+            }
+    except Exception:
+        pass
+
     return {
         "reportType": "session_summary",
         "generatedAt": datetime.now(timezone.utc).isoformat(),
@@ -103,4 +170,6 @@ async def session_report(request: Request):
             "totalRouted": len(simulation_engine._routing_log),
             "recentRoutings": routing_log,
         },
+
+        "workforce": workforce_summary,
     }
