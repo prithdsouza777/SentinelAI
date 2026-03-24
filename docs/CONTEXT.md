@@ -34,7 +34,7 @@ SentinelAI is an **autonomous AI operations layer that sits on top of AWS Connec
 |--------|-----------|-------------|
 | **AI Operations Center** | Live AI decision feed, agent reasoning, cost ticker | NOT a metrics dashboard — agents are the star |
 | **AI Anomaly Engine** | Statistical detection with velocity scoring | Cascade correlation (one queue affects others) |
-| **Autonomous Agents** | 4 agents + multi-agent negotiation | Agents disagree, negotiate, resolve — visible to user |
+| **Autonomous Agents** | 5 agents + multi-agent negotiation + proficiency DB | Agents disagree, negotiate, resolve — visible to user |
 | **Conversational Command** | Natural language interface | "What just happened?" returns reasoned summary |
 | **Simulation Engine** | Built-in demo mode with chaos injection | Primary demo path, not fallback |
 
@@ -109,7 +109,7 @@ Every `AgentDecision` carries:
 SimulationEngine.generate_metrics()
     │
     ▼
-Background Loop in main.py (2s tick)
+Background Loop in main.py (3s tick)
     │
     ├──→ AnomalyEngine.evaluate(metric) ────→ Alert objects
     │                                              │
@@ -117,6 +117,7 @@ Background Loop in main.py (2s tick)
     │         ├──→ QueueBalancerAgent.evaluate()   │
     │         ├──→ PredictivePreventionAgent.eval()│
     │         ├──→ EscalationHandlerAgent.eval()   │
+    │         ├──→ SkillRouterAgent.eval()         │
     │         └──→ NegotiationProtocol.resolve()   │
     │               └──→ AgentDecision objects     │
     │                          │                   │
@@ -143,7 +144,7 @@ The project was scored 19/20 on:
 4. **Feasibility** — Simulation-first means the demo ALWAYS works. No dependency hell.
 
 **What judges will respond to:**
-- Something moving on screen (live metrics updating every 2s)
+- Something moving on screen (live metrics updating every 3s)
 - AI "thinking" visibly (the decision feed with reasoning)
 - A conflict resolving autonomously (negotiation panel)
 - A number going up (cost ticker)

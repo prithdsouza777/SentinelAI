@@ -32,7 +32,9 @@
 **Overall: ~100% complete — fully functional demo-ready product**
 
 Key milestones achieved:
-- All 5 AI agents fully implemented (4 with LLM reasoning, 1 zero-LLM)
+- All 5 AI agents fully implemented (4 with LLM reasoning, 1 zero-LLM proficiency-weighted)
+- Agent proficiency database with 24 human agents, 12 skills, 5 departments
+- Workforce management page with search, filters, expandable profiles
 - LangGraph parallel orchestration working
 - Human-in-the-loop governance (approve/reject with auto-approve countdown)
 - Multi-agent negotiation protocol live
@@ -47,9 +49,9 @@ Key milestones achieved:
 
 ## 60-Second Orientation for Any Model
 
-1. **Frontend is done.** 9 pages with shadcn/ui + Aceternity UI dark/light theme, Zustand store, WebSocket client, approve/reject buttons, guardrail badges, auto-approve countdown, animated components. Landing page + login gate.
+1. **Frontend is done.** 10 pages with shadcn/ui + Aceternity UI dark/light theme, Zustand stores (dashboard + workforce), WebSocket client, approve/reject buttons, guardrail badges, auto-approve countdown, animated components. Landing page + login gate + workforce page.
 
-2. **Backend is done.** 5 agents (Queue Balancer, Predictive Prevention, Escalation Handler, Skill Router, Analytics) powered by Anthropic Claude with MockLLM fallback. LangGraph parallel orchestrator, negotiation protocol, guardrails layer.
+2. **Backend is done.** 5 agents (Queue Balancer, Predictive Prevention, Escalation Handler, Skill Router, Analytics) powered by Anthropic Claude with MockLLM fallback. LangGraph parallel orchestrator, negotiation protocol, guardrails layer. SQLite agent proficiency database (24 human agents, 12 skills, 5 departments).
 
 3. **LLM**: Anthropic Claude (claude-sonnet-4-20250514) primary via direct API. Falls back to context-aware MockLLM. Config in `backend/.env` with `ANTHROPIC_API_KEY`. Service in `backend/app/services/bedrock.py` (historical filename).
 

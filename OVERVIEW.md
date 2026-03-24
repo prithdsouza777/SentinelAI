@@ -69,7 +69,7 @@ This means the AI is always transparent about how sure it is, and humans always 
 
 ## What Does the Dashboard Look Like?
 
-SentinelAI has **9 pages**, each with a specific purpose:
+SentinelAI has **10 pages**, each with a specific purpose:
 
 ### Page 1: Operations Center (Main Dashboard)
 The command center. Shows:
@@ -84,31 +84,39 @@ Shows the status of all 4 AI agents:
 - Their recent decisions with full reasoning
 - The negotiation log (when agents disagreed and how they resolved it)
 
-### Page 3: Alerts
+### Page 3: Workforce
+The human agent management hub:
+- **24 human agents** with full skill profiles and proficiency scores
+- Search agents by name, filter by department (Support, Billing, Sales, General, VIP) or status
+- Expandable agent profiles showing skill proficiencies and department fitness scores
+- Department fitness formula: weighted skill match (50%) + experience (25%) + performance (25%)
+- Agents can be moved between departments via chat commands
+
+### Page 4: Alerts
 A list of all anomalies detected:
 - Color-coded by severity (Critical = red, Warning = amber, Info = blue)
 - Each alert shows what was detected, which queue, and what action was taken
 - Supervisors can acknowledge alerts to mark them as handled
 
-### Page 4: Chat (Conversational Command)
+### Page 5: Chat (Conversational Command)
 A chat interface where you can ask questions in plain English:
 - "What just happened?" — get an incident summary
 - "What if we lose 3 agents?" — run a predictive scenario
 - "Show me the cost impact" — see savings breakdown
 
-### Page 5: Simulation Engine
+### Page 6: Simulation Engine
 The testing and demo control panel:
 - **Scenarios** — pre-built situations to test the AI (Normal Operations, Volume Spike, Agent Dropout, Cascade Failure, Peak Rush, and the full 3-minute SentinelAI Demo)
 - **Chaos Engine** — buttons to inject problems in real time and watch the AI respond (Kill Agents, Spike Queue, Network Delay, Cascade Failure)
 - **Event Log** — live feed of everything happening during the simulation
 
-### Page 6: Reports
+### Page 7: Reports
 Session analytics and export:
 - Recharts-powered charts showing queue metrics, agent decisions, and cost impact over time
 - Session summary with governance scorecard
 - Exportable data (JSON format)
 
-### Page 7: Settings
+### Page 8: Settings
 System configuration and connection status:
 - Backend API connection status
 - WebSocket (real-time connection) status
@@ -116,7 +124,7 @@ System configuration and connection status:
 - Redis (database) status
 - Operating mode (Simulation vs Live)
 
-### Page 8: Landing Page
+### Page 9: Landing Page
 The public-facing entry point:
 - Animated hero section with SentinelAI branding
 - Feature pillar cards highlighting all 6 capabilities
@@ -124,7 +132,7 @@ The public-facing entry point:
 - Live agent feed and animated stats
 - Grid pattern and glow effects for visual polish
 
-### Page 9: Login
+### Page 10: Login
 Authentication gate before accessing the dashboard
 
 ---
@@ -176,7 +184,7 @@ The AI brain has a smart fallback so it never fails:
 |--------|-------|
 | Backend tests passing | 19/19 |
 | TypeScript errors | 0 |
-| Frontend pages | 9 |
+| Frontend pages | 10 |
 | AI agents | 5 |
 | LLM fallback tiers | 2 |
 | Simulation scenarios | 6 |

@@ -159,11 +159,12 @@ SentinelAI/
 │   │   │   ├── auth/                  # RequireAuth
 │   │   │   ├── theme/                 # ThemeToggle (dark/light)
 │   │   │   └── ui/                    # shadcn/ui + Aceternity components
-│   │   ├── pages/                     # 9 pages
+│   │   ├── pages/                     # 10 pages
 │   │   │   ├── LandingPage            # Animated hero + feature cards + tech stack
 │   │   │   ├── LoginPage              # Authentication gate
 │   │   │   ├── OperationsCenter       # Main dashboard — live AI activity
 │   │   │   ├── AgentsPage             # Agent status and decision history
+│   │   │   ├── WorkforcePage          # Human agent profiles, skills, department fitness
 │   │   │   ├── AlertsPage             # Anomaly alerts with severity levels
 │   │   │   ├── ChatPage               # Natural language command interface
 │   │   │   ├── SimulationPage         # Scenario runner + chaos engine
@@ -188,12 +189,16 @@ SentinelAI/
 │   │   ├── api/                       # API routes and WebSocket
 │   │   │   ├── websocket.py           # Bidirectional WebSocket manager
 │   │   │   └── routes/                # REST endpoints (8 route files)
-│   │   ├── models/                    # Pydantic data models
+│   │   ├── models/                    # Pydantic data models (incl. proficiency.py)
+│   │   │   └── proficiency.py         # SkillProficiency, DepartmentFitness, HumanAgentProfile
 │   │   ├── services/                  # External service integrations
 │   │   │   ├── bedrock.py             # LLM service (Anthropic Claude / MockLLM)
 │   │   │   ├── simulation.py          # Contact center simulation engine
 │   │   │   ├── anomaly.py             # Statistical anomaly detection
 │   │   │   ├── sanitizer.py           # PII sanitizer
+│   │   │   ├── agent_database.py      # SQLite workforce DB (24 agents, 12 skills, 5 depts)
+│   │   │   ├── chat_tools.py          # Chat command tools (MOVE_AGENT, etc.)
+│   │   │   ├── notifications.py       # Notification service
 │   │   │   └── redis_client.py        # Redis with in-memory fallback
 │   │   ├── config.py                  # Environment configuration
 │   │   └── main.py                    # FastAPI app + background tick loop (3s)
@@ -258,9 +263,12 @@ The LLM (Anthropic Claude) powers each agent's reasoning — analyzing metrics, 
 | GET | `/api/queues` | Current queue metrics |
 | GET | `/api/alerts` | Active anomaly alerts |
 | POST | `/api/alerts/{id}/acknowledge` | Acknowledge an alert |
-| GET | `/api/agents` | Agent status overview |
+| GET | `/api/agents` | AI agent status overview |
 | GET | `/api/agents/decisions` | Decision history |
 | GET | `/api/agents/negotiations` | Negotiation log |
+| GET | `/api/agents/human` | List all human agents with proficiencies |
+| GET | `/api/agents/human/{id}` | Single human agent profile |
+| GET | `/api/agents/human/by-department/{dept_id}` | Agents ranked by department fitness |
 | POST | `/api/chat` | Send natural language query |
 | GET | `/api/simulation/scenarios` | List available scenarios |
 | POST | `/api/simulation/start` | Start a simulation |

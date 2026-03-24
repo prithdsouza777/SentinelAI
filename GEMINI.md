@@ -18,7 +18,7 @@
 | Tests | 19/19 passing (backend), 0 TypeScript errors (frontend) |
 | UI Theme | Dark + Light toggle — dark glassmorphism default, CirrusLabs light palette option |
 | Branch | `main` |
-| Pages | 9 (Landing, Login, Dashboard, Agents, Alerts, Chat, Simulation, Reports, Settings) |
+| Pages | 10 (Landing, Login, Dashboard, Agents, Workforce, Alerts, Chat, Simulation, Reports, Settings) |
 
 ---
 
@@ -30,7 +30,7 @@ npm install
 npm run dev     # starts frontend (:5173) + backend (:8000)
 ```
 
-**Python**: Must use Python 3.10-3.12. Venv at `backend/.venv310/`. Python 3.14 breaks pydantic-core.
+**Python**: Must use Python 3.10-3.12. Venv at `backend/.venv/`. Python 3.14 breaks pydantic-core.
 **Environment**: `backend/.env` needs `ANTHROPIC_API_KEY` for live AI. Without it, falls back to mock responses.
 
 ---
@@ -42,7 +42,8 @@ npm run dev     # starts frontend (:5173) + backend (:8000)
 - **5 Agents**: QueueBalancer, PredictivePrevention, EscalationHandler, SkillRouter, Analytics
 - **2-tier LLM fallback**: Anthropic Claude > MockLLM (context-aware dynamic responses)
 - **Guardrails**: AUTO_APPROVE (>=0.9), PENDING_HUMAN (0.7-0.9, 30s timeout), BLOCKED (<0.7)
-- **Skill Router**: Zero-LLM latency, weighted scoring (skill_match 40% + perf 25% + exp 20% + load 15%)
+- **Skill Router**: Zero-LLM latency, proficiency-weighted scoring from agent database
+- **Agent Proficiency DB**: SQLite (`agents.db`) — 24 human agents, 12 skills, 5 departments, fitness scoring
 - **WebSocket** broadcasts all events to frontend in real time
 - **Simulation-first**: all demo data is generated, real AWS Connect is optional
 
@@ -64,12 +65,16 @@ npm run dev     # starts frontend (:5173) + backend (:8000)
 | `backend/app/api/routes/reports.py` | `GET /api/reports/session` — session export |
 | `backend/app/api/routes/history.py` | `GET /api/metrics/history` — trending data |
 | `backend/app/api/websocket.py` | Bidirectional WebSocket manager |
-| `frontend/src/App.tsx` | Route definitions (9 routes) |
+| `frontend/src/App.tsx` | Route definitions (10 routes) |
 | `frontend/src/stores/dashboardStore.ts` | Frontend state hub |
 | `frontend/src/services/websocket.ts` | WebSocket client |
 | `frontend/src/pages/ReportsPage.tsx` | Reports dashboard with Recharts charts |
 | `frontend/src/pages/LandingPage.tsx` | Animated landing page with hero + features |
 | `frontend/src/pages/LoginPage.tsx` | Authentication gate |
+| `frontend/src/pages/WorkforcePage.tsx` | Human agent profiles, skills, department fitness |
+| `frontend/src/stores/workforceStore.ts` | Workforce state (search, filters, agent selection) |
+| `backend/app/services/agent_database.py` | SQLite-backed workforce DB (24 agents, 12 skills) |
+| `backend/app/models/proficiency.py` | SkillProficiency, DepartmentFitness, HumanAgentProfile |
 
 ## API Endpoints
 
@@ -91,6 +96,9 @@ npm run dev     # starts frontend (:5173) + backend (:8000)
 | GET | `/api/reports/session` | Generate session report (JSON) |
 | GET | `/api/metrics/history` | Historical metrics time-series |
 | GET | `/api/cost-impact` | Cost impact summary |
+| GET | `/api/agents/human` | List all 24 human agents with proficiencies |
+| GET | `/api/agents/human/{id}` | Single human agent profile |
+| GET | `/api/agents/human/by-department/{dept_id}` | Agents ranked by department fitness |
 
 ## UI Color Palette (CirrusLabs)
 
@@ -105,7 +113,7 @@ npm run dev     # starts frontend (:5173) + backend (:8000)
 1. Backend Python uses `snake_case`. Frontend TypeScript uses `camelCase`. The `CamelModel` base class and `model_dump(by_alias=True, mode="json")` handle conversion automatically. Never send raw snake_case dicts to the frontend.
 2. Skill Router intentionally avoids LLM calls for minimum latency in the tick loop.
 3. All chart colors must use the CirrusLabs palette defined above.
-4. Python venv at `backend/.venv310/` — never use system Python 3.14.
+4. Python venv at `backend/.venv/` — never use system Python 3.14.
 5. LLM service in `bedrock.py` uses Anthropic direct API (not AWS Bedrock despite filename).
 
 ## Remaining Work (Optional)

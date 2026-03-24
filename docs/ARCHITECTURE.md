@@ -11,7 +11,7 @@
 ┌─────────────────────────────────────────────────────────┐
 │                    FRONTEND (React + TS)                 │
 │  ┌───────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ │
-│  │Operations │ │  Agents  │ │  Alerts  │ │   Chat   │ │
+│  │Operations │ │  Agents  │ │Workforce │ │  Alerts  │ │   Chat   │ │
 │  │  Center   │ │   Page   │ │   Page   │ │   Page   │ │
 │  └─────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘ │
 │        └────────────┴────────────┴────────────┘        │
@@ -59,6 +59,7 @@ from app.services.anomaly import anomaly_engine         # AnomalyEngine
 from app.api.websocket import manager                   # ConnectionManager
 from app.agents.orchestrator import orchestrator        # AgentOrchestrator
 from app.agents.negotiation import negotiation_protocol # NegotiationProtocol
+from app.services.agent_database import agent_database  # AgentDatabase (SQLite workforce DB)
 ```
 
 ---
@@ -310,6 +311,9 @@ All responses use camelCase (enforced by Pydantic alias serialization).
 | POST | `/api/simulation/stop` | `{ status }` |
 | POST | `/api/simulation/chaos` | `{ status, type }` |
 | GET | `/api/simulation/status` | `{ running, scenario, tick }` |
+| GET | `/api/agents/human` | `{ agents: HumanAgentProfile[] }` |
+| GET | `/api/agents/human/{id}` | `HumanAgentProfile` |
+| GET | `/api/agents/human/by-department/{dept_id}` | `{ agents: HumanAgentProfile[] }` |
 
 ---
 

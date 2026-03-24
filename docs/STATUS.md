@@ -8,7 +8,7 @@
 
 | Layer | Done | Partial | Stub/Missing |
 |-------|------|---------|--------------|
-| Frontend UI (9 pages) | 100% | — | — |
+| Frontend UI (10 pages) | 100% | — | — |
 | Frontend State / WS | 100% | — | — |
 | Frontend Governance (confidence bars, approve/reject) | 100% | — | — |
 | Frontend Polish (W4) | 100% | empty states, animations, demo button, branding | — |
@@ -22,7 +22,7 @@
 | API: Simulation Routes | 100% | start/stop/chaos/status/scenarios/whatif, clean restart | — |
 | API: Queue Routes | 100% | live data from state | — |
 | API: Alert Routes | 100% | list + acknowledge | — |
-| API: Agent Routes | 100% | agents/decisions/negotiations/audit/governance | — |
+| API: Agent Routes | 100% | agents/decisions/negotiations/audit/governance/human | — |
 | API: Cost/Actions Routes | 100% | cost-impact + actions/log | — |
 | API: Chat Routes | 100% | Analytics Agent, prompt injection guard, NL policies | — |
 | API: Reports Routes | 100% | session report export | — |
@@ -30,11 +30,12 @@
 | Queue Balancer Agent | 100% | pressure scoring, execute, confidence | — |
 | Predictive Prevention | 100% | velocity tracking, cascade, cooldown | — |
 | Escalation Handler | 100% | CRITICAL alerts, 15s cooldown, confidence=0.80 | — |
-| Skill Router Agent | 100% | Zero-LLM weighted scoring | — |
+| Skill Router Agent | 100% | Proficiency-weighted scoring from agent DB | — |
 | Analytics Agent | 100% | Anthropic-powered queries + context enrichment | — |
 | Orchestrator (full) | 100% | 5 agents + guardrails + negotiation + revenue-at-risk | — |
 | Negotiation Protocol | 100% | weighted scoring, resolution strings | — |
 | GuardrailsLayer | 100% | policies, rate limits, auto-approve 30s, audit | — |
+| Agent Proficiency DB | 100% | SQLite, 24 agents, 12 skills, dept fitness | — |
 | PII Sanitizer | 100% | regex-based redaction | — |
 | LLM Service (bedrock.py) | 100% | Anthropic Claude primary + MockLLM fallback | — |
 | Scripted Demo Scenario | 100% | sentinelai_demo 3-min timeline | — |
@@ -66,6 +67,10 @@
 | Chat: "What happened?" | Working — Anthropic Claude with context-enriched responses |
 | Scripted 3-min demo scenario | Working — sentinelai_demo with timed chaos events |
 | NL Policy Engine | Working — create/list/delete via REST |
+| Workforce page | Working — search, dept/status filters, expandable agent profiles |
+| Agent proficiency database | Working — SQLite, 24 agents, 12 skills, 5 departments |
+| Human agent API endpoints | Working — list/detail/by-department with fitness scoring |
+| MOVE_AGENT chat command | Working — move agents by name via conversational command |
 | WS reconnect with backoff | Working — exponential backoff + "Reconnecting..." indicator |
 | Clean demo restart | Working — stop clears all state, start is fresh |
 | SentinelAI branding | Working — header + sidebar updated |

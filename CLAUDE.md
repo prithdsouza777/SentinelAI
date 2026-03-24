@@ -11,7 +11,7 @@ Built by CirrusLabs for the 2026 Internal Buildathon.
 npm install && npm run dev   # frontend :5173, backend :8000
 ```
 
-Backend requires Python 3.10-3.12. Venv: `backend/.venv310/`.
+Backend requires Python 3.10-3.12. Venv: `backend/.venv/`.
 Set `ANTHROPIC_API_KEY` in `backend/.env` for live AI; falls back to MockLLM without it.
 
 ## Architecture
@@ -21,20 +21,21 @@ Set `ANTHROPIC_API_KEY` in `backend/.env` for live AI; falls back to MockLLM wit
 - **LLM**: Anthropic Claude (primary) > MockLLM (fallback). Service in `backend/app/services/bedrock.py`
 - **Guardrails**: AUTO_APPROVE (>=0.9), PENDING_HUMAN (0.7-0.9, 30s auto-approve), BLOCKED (<0.7)
 - **Frontend**: React 18 + TypeScript + Zustand 5 + shadcn/ui + Framer Motion
-- **9 pages**: Landing, Login, Dashboard, Agents, Alerts, Chat, Simulation, Reports, Settings
+- **10 pages**: Landing, Login, Dashboard, Agents, Workforce, Alerts, Chat, Simulation, Reports, Settings
+- **Agent Proficiency DB**: SQLite-backed workforce database (`backend/agents.db`) with 24 human agents, 12 skills, 5 departments
 - **19 backend tests** in `backend/tests/test_health.py`
 
 ## Key Conventions
 
 - **Serialization**: Backend snake_case, frontend camelCase. Always use `model_dump(by_alias=True, mode="json")`.
-- **Singletons**: Import `simulation_engine`, `anomaly_engine`, `manager`, `orchestrator` — never create new instances.
+- **Singletons**: Import `simulation_engine`, `anomaly_engine`, `manager`, `orchestrator`, `agent_database` — never create new instances.
 - **Pydantic v2**: Use `model_dump()` not `.dict()`, `model_validate()` not `.parse_obj()`.
 - **No circular imports**: Routes access shared state via `request.app.state`, not by importing from `main.py`.
 
 ## Common Commands
 
 ```bash
-cd backend && .venv310/Scripts/python.exe -m pytest tests/ -v   # run tests
+cd backend && .venv/Scripts/python.exe -m pytest tests/ -v   # run tests
 cd frontend && npx tsc --noEmit                                  # typecheck
 ```
 
