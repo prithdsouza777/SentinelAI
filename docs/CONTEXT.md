@@ -57,10 +57,10 @@ SentinelAI is an **autonomous AI operations layer that sits on top of AWS Connec
 **Why**: LangGraph adds complexity without changing the demo output. We can say "LangGraph-powered" in Week 2 if needed.
 **Implication**: `orchestrator.py` should work without `langgraph` installed.
 
-### Decision 4: Mock LLM Before Real LLM
-**Decision**: `MockBedrockLLM` (context-aware) handles all demo queries. Real Anthropic Claude optional.
-**Why**: Can't depend on API access being available during the demo.
-**Implication**: Chat works perfectly without API credentials. MockLLM builds dynamic responses from live telemetry.
+### Decision 4: 3-Tier LLM Fallback
+**Decision**: AWS Bedrock (primary) > Anthropic API (fallback) > NoKeyLLM (no-key). No more MockLLM.
+**Why**: Bedrock is the production-grade path for AWS-native deployments. Anthropic API provides a quick-setup fallback. NoKeyLLM shows setup instructions when no provider is configured.
+**Implication**: Chat requires at least one LLM provider configured. Both Bedrock and Anthropic support native tool-use with conversation memory. `invoke_with_system()` enforces 3s timeout to prevent blocking the tick loop.
 
 ### Decision 5: camelCase on the Wire
 **Decision**: All WS events and REST responses use camelCase JSON.
@@ -140,7 +140,7 @@ Background Loop in main.py (3s tick)
 The project was scored 19/20 on:
 1. **Wow Factor** — The negotiation protocol + reasoning chain are visually impressive. The cost ticker is satisfying to watch climb.
 2. **Business Value** — Quantified in dollars (cost savings), not just metrics. Clear ROI story.
-3. **Technical Depth** — 5 autonomous agents, LangGraph, multi-agent negotiation, Bedrock, WebSocket real-time
+3. **Technical Depth** — 5 autonomous agents, LangGraph, multi-agent negotiation, AWS Bedrock Converse API, WebSocket + SSE real-time
 4. **Feasibility** — Simulation-first means the demo ALWAYS works. No dependency hell.
 
 **What judges will respond to:**
@@ -168,9 +168,9 @@ The project was scored 19/20 on:
 
 | Risk | Likelihood | Mitigation |
 |------|-----------|-----------|
-| Anthropic API unavailable | Medium | Context-aware MockLLM handles all demo queries |
+| Bedrock unavailable | Medium | Falls back to Anthropic API, then NoKeyLLM with setup instructions |
 | AWS Connect unavailable | High | simulation_mode=True is the primary path |
-| WebSocket instability | Medium | Auto-reconnect + REST polling fallback |
+| WebSocket instability | Medium | Auto-reconnect + SSE fallback + HTTP action fallback + ping/pong keep-alive |
 | LangGraph too complex | Low | Plain Python sequential calls work identically |
 | camelCase/snake_case bugs | High | CamelModel base class + always by_alias=True |
 | Demo timing off | Medium | Scripted scenario (sentinelai_demo) auto-fires events |

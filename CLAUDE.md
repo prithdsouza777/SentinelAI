@@ -12,15 +12,17 @@ npm install && npm run dev   # frontend :5173, backend :8000
 ```
 
 Backend requires Python 3.10-3.12. Venv: `backend/.venv/`.
-Set `ANTHROPIC_API_KEY` in `backend/.env` for live AI; falls back to MockLLM without it.
+Set AWS credentials in `backend/.env` for Bedrock, or `ANTHROPIC_API_KEY` for Anthropic API fallback. Without either, chat shows config instructions (NoKeyLLM).
 
 ## Architecture
 
 - **3s tick loop** in `backend/app/main.py` drives simulation + agent orchestration
 - **5 agents** via LangGraph: QueueBalancer, PredictivePrevention, EscalationHandler, SkillRouter, Analytics
-- **LLM**: Anthropic Claude (primary) > MockLLM (fallback). Service in `backend/app/services/bedrock.py`
+- **LLM**: 3-tier fallback: AWS Bedrock (primary) > Anthropic API > NoKeyLLM. Service in `backend/app/services/bedrock.py`
+- **Bedrock**: Uses Converse API with native tool-use, conversation memory (30-message history), 5-round tool loops
 - **Guardrails**: AUTO_APPROVE (>=0.9), PENDING_HUMAN (0.7-0.9, 30s auto-approve), BLOCKED (<0.7)
 - **Frontend**: React 18 + TypeScript + Zustand 5 + shadcn/ui + Framer Motion
+- **Real-time**: WebSocket (primary) with SSE fallback (`/api/stream`) + HTTP action fallback (`/api/ws-action`)
 - **10 pages**: Landing, Login, Dashboard, Agents, Workforce, Alerts, Chat, Simulation, Reports, Settings
 - **Agent Proficiency DB**: SQLite-backed workforce database (`backend/agents.db`) with 24 human agents, 12 skills, 5 departments
 - **19 backend tests** in `backend/tests/test_health.py`

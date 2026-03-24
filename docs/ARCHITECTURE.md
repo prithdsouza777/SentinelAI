@@ -253,7 +253,11 @@ q["timestamp"]         # str (ISO datetime)
 
 ---
 
-## WebSocket Events Reference
+## Real-Time Transport (WebSocket + SSE Fallback)
+
+The frontend connects via WebSocket (primary). If WebSocket fails after 2 attempts, it auto-switches to SSE (`/api/stream`). Client-to-server actions over SSE use HTTP POST to `/api/ws-action`.
+
+Server sends ping every 20s; client responds with pong to keep connection alive.
 
 ### Server → Client
 
@@ -314,6 +318,8 @@ All responses use camelCase (enforced by Pydantic alias serialization).
 | GET | `/api/agents/human` | `{ agents: HumanAgentProfile[] }` |
 | GET | `/api/agents/human/{id}` | `HumanAgentProfile` |
 | GET | `/api/agents/human/by-department/{dept_id}` | `{ agents: HumanAgentProfile[] }` |
+| POST | `/api/ws-action` | Varies by event (HTTP fallback for WS actions) |
+| GET | `/api/stream` | SSE event stream (text/event-stream) |
 
 ---
 
@@ -334,27 +340,39 @@ SIMULATED_QUEUES = [
 
 ---
 
-## Bedrock Mock Pattern
+## LLM Service Pattern (3-Tier Fallback)
 
 ```python
 # backend/app/services/bedrock.py
 
-MOCK_RESPONSES = {
-    "what just happened": "A queue spike was detected on Support (4x normal volume). Queue Balancer moved 2 agents from Billing → Support. Escalation Handler flagged priority. Net: queue stabilized in ~4 min. Cost saved: ~$340.",
-    "why did":    "The cascade originated in Support (abandonment 38%). Predictive Prevention flagged the velocity trend 90s earlier.",
-    "what if":    "Simulation predicts: if 3 agents moved preemptively, queue stays below threshold 85% of scenarios. No action = ~23 abandoned calls (~$460).",
-    "recommend":  "Recommend increasing Support staffing by 2 agents during 9am-11am peak. Historical data shows 40% spike probability during this window.",
-    "cost":       "Total saved this session: ~$890. 14 actions taken. 168 abandoned calls prevented.",
-}
+# Fallback chain: BedrockLLM → AnthropicLLM → NoKeyLLM
 
-class MockBedrockLLM:
-    async def invoke(self, prompt: str, context: dict = {}) -> dict:
-        pl = prompt.lower()
-        for key, resp in MOCK_RESPONSES.items():
-            if key in pl:
-                return {"message": resp, "reasoning": f"Matched pattern: '{key}'"}
-        return {"message": "System operating within normal parameters. Recent agent action resolved the detected imbalance.", "reasoning": "Default response"}
+class BedrockLLM:
+    """AWS Bedrock with Claude Converse API — native tool-use and conversation memory."""
+    # Uses boto3 bedrock-runtime client
+    # Converse API with toolConfig for native tool calling
+    # Conversation history (30 messages max)
+    # Up to 5 tool-use rounds per invocation
+    # invoke_with_system() has 3s timeout for agent tick loop
+
+class AnthropicLLM:
+    """Anthropic API with native tool-use and conversation memory (fallback)."""
+    # Uses anthropic SDK directly
+    # Same conversation history + tool-use loop pattern
+
+class NoKeyLLM:
+    """Returns setup instructions when no LLM provider is configured."""
+
+class BedrockService:
+    """Auto-selects: Bedrock > Anthropic API > NoKeyLLM."""
+    # Singleton: bedrock_service
+    # invoke() for chat (with tool-use + history)
+    # invoke_with_system() for agent reasoning (3s timeout, no tool-use)
 ```
+
+Shared conversation history (`_conversation_history`) persists across all chat turns.
+`clear_conversation()` resets it (called on simulation restart).
+`_build_anthropic_tools()` builds tool definitions shared by both Bedrock and Anthropic providers.
 
 ---
 
@@ -442,4 +460,4 @@ Run: `cd backend && pytest tests/ -v`
 
 6. **simulation_mode=True always** — real AWS Connect integration is Week 4 optional. Never block on it.
 
-7. **Mock Bedrock first** — implement `MockBedrockLLM` before trying real Bedrock. Demo works 100% on mock.
+7. **3-tier LLM fallback** — Bedrock > Anthropic API > NoKeyLLM. Set AWS creds or ANTHROPIC_API_KEY in `.env`. Without either, chat shows config instructions.

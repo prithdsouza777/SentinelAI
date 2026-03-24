@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Query, Request
+from pydantic import BaseModel, Field
 
 from app.agents.guardrails import guardrails
 
@@ -75,6 +76,25 @@ async def get_audit_log(limit: int = Query(default=100, le=500)):
 async def get_governance_summary():
     """Return the current governance scorecard snapshot."""
     return guardrails.get_governance_summary()
+
+
+# ── Guardrail Threshold Config ────────────────────────────────────────────────
+
+class ThresholdUpdate(BaseModel):
+    auto_approve_threshold: float = Field(ge=0.5, le=1.0)
+
+
+@router.get("/agents/guardrail-thresholds")
+async def get_guardrail_thresholds():
+    """Return current guardrail confidence thresholds."""
+    return {"autoApproveThreshold": guardrails.auto_approve_threshold}
+
+
+@router.put("/agents/guardrail-thresholds")
+async def update_guardrail_thresholds(body: ThresholdUpdate):
+    """Update the auto-approve confidence threshold."""
+    guardrails.auto_approve_threshold = body.auto_approve_threshold
+    return {"autoApproveThreshold": guardrails.auto_approve_threshold}
 
 
 @router.get("/cost-impact")

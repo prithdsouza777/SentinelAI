@@ -165,16 +165,18 @@ The supervisor types "What just happened?" in the chat. The Analytics Agent resp
 | **React** | The framework that builds the web dashboard | Fast, interactive, used by Netflix/Facebook |
 | **FastAPI** | The backend server that runs the AI logic | Very fast Python web server |
 | **LangGraph** | The framework that orchestrates our AI agents | Lets agents run in parallel and coordinate |
-| **Anthropic Claude** | The AI "brain" that powers agent reasoning | Capable AI model from Anthropic |
+| **AWS Bedrock** | The primary AI "brain" for agent reasoning | AWS-managed Claude with native tool-use |
+| **Anthropic Claude API** | Fallback AI provider | Direct API access when Bedrock unavailable |
 | **WebSocket** | Real-time communication between server and dashboard | Updates appear instantly, no page refresh needed |
 | **Zustand** | Frontend state management | Keeps all dashboard data synchronized |
 | **TailwindCSS + shadcn/ui** | The design system for the dashboard | Modern, dark-themed, professional look |
 | **Framer Motion** | Animation library | Smooth transitions and visual polish |
 
 ### LLM Fallback Chain
-The AI brain has a smart fallback so it never fails:
-1. **Anthropic Claude** (primary) — powerful reasoning with live system context
-2. **Mock LLM** (fallback) — context-aware dynamic responses built from live telemetry, works offline
+The AI brain has a 3-tier fallback so it never fails:
+1. **AWS Bedrock** (primary) — Claude via AWS Converse API with native tool-use and conversation memory
+2. **Anthropic Claude API** (fallback) — direct API access with tool-use when Bedrock is unavailable
+3. **NoKeyLLM** (no-key) — shows setup instructions when no provider is configured
 
 ---
 
@@ -186,7 +188,7 @@ The AI brain has a smart fallback so it never fails:
 | TypeScript errors | 0 |
 | Frontend pages | 10 |
 | AI agents | 5 |
-| LLM fallback tiers | 2 |
+| LLM fallback tiers | 3 (Bedrock > Anthropic API > NoKeyLLM) |
 | Simulation scenarios | 6 |
 | Chaos injection types | 4 |
 | Tick interval | 3 seconds |

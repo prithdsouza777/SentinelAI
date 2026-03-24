@@ -29,6 +29,13 @@ export const agentsApi = {
   getNegotiations: () => request("/agents/negotiations"),
   getAuditLog: (limit = 100) => request(`/agents/audit?limit=${limit}`),
   getGovernanceSummary: () => request("/agents/governance"),
+  getGuardrailThresholds: () =>
+    request<{ autoApproveThreshold: number }>("/agents/guardrail-thresholds"),
+  updateGuardrailThresholds: (autoApproveThreshold: number) =>
+    request<{ autoApproveThreshold: number }>("/agents/guardrail-thresholds", {
+      method: "PUT",
+      body: JSON.stringify({ auto_approve_threshold: autoApproveThreshold }),
+    }),
 };
 
 // ── Alerts ──
