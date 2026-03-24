@@ -19,7 +19,7 @@ Imagine you run a large call center with hundreds of agents handling customer ca
 
 ## How Does It Work? (Simple Version)
 
-Think of SentinelAI as having **four AI employees** who never sleep:
+Think of SentinelAI as having **five AI employees** who never sleep:
 
 ### Agent 1: The Queue Balancer
 - Watches all department queues simultaneously
@@ -44,6 +44,12 @@ Think of SentinelAI as having **four AI employees** who never sleep:
 - Ask "What if we lose 3 more agents?" and it runs a prediction
 - Example: "In the last 5 minutes, a spike hit Support queue. Queue Balancer moved 2 agents from Billing. Escalation Handler flagged priority. Result: queue stabilized, estimated $340 saved."
 
+### Agent 5: The Skill Router
+- Routes contacts to the best-matched agent based on skills, not just availability
+- Uses weighted scoring: skill match (40%) + performance (25%) + experience (20%) + current load (15%)
+- Zero-LLM latency — runs entirely on algorithmic scoring for speed
+- Example: "Route this billing dispute to Agent #42 — highest skill match (95%) with low current load"
+
 ### The Negotiation Protocol
 Sometimes agents disagree. The Queue Balancer might want to move agents from Billing, but the Escalation Handler might say Billing needs them. When this happens, they **negotiate** — compare their reasoning, weigh the trade-offs, and reach a consensus. This negotiation is **visible on screen** so humans can see the AI thinking through conflicts.
 
@@ -63,7 +69,7 @@ This means the AI is always transparent about how sure it is, and humans always 
 
 ## What Does the Dashboard Look Like?
 
-SentinelAI has **6 pages**, each with a specific purpose:
+SentinelAI has **9 pages**, each with a specific purpose:
 
 ### Page 1: Operations Center (Main Dashboard)
 The command center. Shows:
@@ -96,13 +102,30 @@ The testing and demo control panel:
 - **Chaos Engine** — buttons to inject problems in real time and watch the AI respond (Kill Agents, Spike Queue, Network Delay, Cascade Failure)
 - **Event Log** — live feed of everything happening during the simulation
 
-### Page 6: Settings
+### Page 6: Reports
+Session analytics and export:
+- Recharts-powered charts showing queue metrics, agent decisions, and cost impact over time
+- Session summary with governance scorecard
+- Exportable data (JSON format)
+
+### Page 7: Settings
 System configuration and connection status:
 - Backend API connection status
 - WebSocket (real-time connection) status
 - LLM (AI brain) provider and model info
 - Redis (database) status
 - Operating mode (Simulation vs Live)
+
+### Page 8: Landing Page
+The public-facing entry point:
+- Animated hero section with SentinelAI branding
+- Feature pillar cards highlighting all 6 capabilities
+- Tech stack ribbon with official logos
+- Live agent feed and animated stats
+- Grid pattern and glow effects for visual polish
+
+### Page 9: Login
+Authentication gate before accessing the dashboard
 
 ---
 
@@ -134,18 +157,16 @@ The supervisor types "What just happened?" in the chat. The Analytics Agent resp
 | **React** | The framework that builds the web dashboard | Fast, interactive, used by Netflix/Facebook |
 | **FastAPI** | The backend server that runs the AI logic | Very fast Python web server |
 | **LangGraph** | The framework that orchestrates our AI agents | Lets agents run in parallel and coordinate |
-| **Google Gemini** | The AI "brain" that powers agent reasoning | Fast, capable AI model from Google |
+| **Anthropic Claude** | The AI "brain" that powers agent reasoning | Capable AI model from Anthropic |
 | **WebSocket** | Real-time communication between server and dashboard | Updates appear instantly, no page refresh needed |
 | **Zustand** | Frontend state management | Keeps all dashboard data synchronized |
 | **TailwindCSS + shadcn/ui** | The design system for the dashboard | Modern, dark-themed, professional look |
 | **Framer Motion** | Animation library | Smooth transitions and visual polish |
 
 ### LLM Fallback Chain
-The AI brain has 4 backup options so it never fails:
-1. **Google Gemini** (primary) — fastest and most capable
-2. **Anthropic Claude** (backup 1) — if Gemini is unavailable
-3. **AWS Bedrock** (backup 2) — if both above fail
-4. **Mock responses** (backup 3) — pre-written answers for demo scenarios, works offline
+The AI brain has a smart fallback so it never fails:
+1. **Anthropic Claude** (primary) — powerful reasoning with live system context
+2. **Mock LLM** (fallback) — context-aware dynamic responses built from live telemetry, works offline
 
 ---
 
@@ -153,11 +174,11 @@ The AI brain has 4 backup options so it never fails:
 
 | Metric | Value |
 |--------|-------|
-| Backend tests passing | 16/16 |
+| Backend tests passing | 19/19 |
 | TypeScript errors | 0 |
-| Frontend pages | 6 |
-| AI agents | 4 |
-| LLM fallback tiers | 4 |
+| Frontend pages | 9 |
+| AI agents | 5 |
+| LLM fallback tiers | 2 |
 | Simulation scenarios | 6 |
 | Chaos injection types | 4 |
 | Tick interval | 3 seconds |

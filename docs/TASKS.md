@@ -1,8 +1,7 @@
-# SentinelAI — Current Sprint Tasks (Week 1)
-> These are the tasks to build RIGHT NOW.
-> → See [BACKLOG.md](./BACKLOG.md) for Weeks 2–4.
-> → See [STATUS.md](./STATUS.md) for what's already done.
-> → See [ARCHITECTURE.md](./ARCHITECTURE.md) for code patterns when implementing.
+# SentinelAI — Sprint 1 Tasks (Week 1) — ALL COMPLETE
+> All Week 1 tasks are done. See [BACKLOG.md](./BACKLOG.md) for Weeks 2-4 (also all done).
+> → See [STATUS.md](./STATUS.md) for current build state.
+> → See [ARCHITECTURE.md](./ARCHITECTURE.md) for code patterns.
 
 **Status values**: `TODO` | `IN_PROGRESS` | `DONE`
 
@@ -22,7 +21,7 @@ W1-5 (queue balancer) → W1-6 (orchestrator) → W1-7 (predictive prevention) �
 ---
 
 ### TASK W1-1: Background Simulation Loop
-- **Status**: `TODO`
+- **Status**: `DONE`
 - **File**: `backend/app/main.py`
 - **Priority**: 🔴 CRITICAL — nothing works without this
 - **Depends on**: Nothing (all singletons already exist)
@@ -104,7 +103,7 @@ async def lifespan(app: FastAPI):
 ---
 
 ### TASK W1-2: Simulation Chaos Event Application
-- **Status**: `TODO`
+- **Status**: `DONE`
 - **File**: `backend/app/services/simulation.py`
 - **Priority**: 🔴 HIGH
 - **Depends on**: W1-1 (loop calls generate_metrics which will apply chaos)
@@ -151,7 +150,7 @@ def clear_chaos(self):
 ---
 
 ### TASK W1-3: Wire Simulation API Routes
-- **Status**: `TODO`
+- **Status**: `DONE`
 - **File**: `backend/app/api/routes/simulation.py`
 - **Priority**: 🔴 HIGH
 - **Depends on**: W1-1 (simulation_engine must exist), W1-2 (chaos application)
@@ -207,7 +206,7 @@ async def what_if(request: WhatIfRequest):
 ---
 
 ### TASK W1-4a: Add camelCase Aliases to Pydantic Models
-- **Status**: `TODO`
+- **Status**: `DONE`
 - **File**: `backend/app/models/__init__.py`, `queue.py`, `alert.py`, `agent.py`, `action.py`
 - **Priority**: 🔴 CRITICAL — frontend CANNOT parse data without this
 - **Depends on**: Nothing
@@ -256,7 +255,7 @@ m.model_dump(by_alias=True)
 ---
 
 ### TASK W1-4b: Wire Queue Routes to Return Live Data
-- **Status**: `TODO`
+- **Status**: `DONE`
 - **File**: `backend/app/api/routes/queues.py`
 - **Priority**: 🔴 HIGH — frontend loads initial state from REST
 - **Depends on**: W1-1 (sim loop populates `_latest_metrics`), W1-4a (camelCase)
@@ -301,7 +300,7 @@ Use whichever approach works without circular imports.
 ---
 
 ### TASK W1-5: Implement Queue Balancer Agent
-- **Status**: `TODO`
+- **Status**: `DONE`
 - **File**: `backend/app/agents/queue_balancer.py`
 - **Priority**: 🔴 HIGH — first agent, enables agent decision feed
 - **Depends on**: W1-4a (model serialization)
@@ -393,7 +392,7 @@ class QueueBalancerAgent:
 ---
 
 ### TASK W1-6: Implement Orchestrator Core
-- **Status**: `TODO`
+- **Status**: `DONE`
 - **File**: `backend/app/agents/orchestrator.py`
 - **Priority**: 🔴 HIGH
 - **Depends on**: W1-5
@@ -459,7 +458,7 @@ class AgentOrchestrator:
 ---
 
 ### TASK W1-7: Implement Predictive Prevention Agent
-- **Status**: `TODO`
+- **Status**: `DONE`
 - **File**: `backend/app/agents/predictive_prevention.py`
 - **Priority**: 🟡 HIGH (high wow-factor, good for demo)
 - **Depends on**: W1-6 (orchestrator must register it)
@@ -503,7 +502,7 @@ And call it in `process_metrics()` alongside Queue Balancer.
 ---
 
 ### TASK W1-8: Implement Alert and Agent Routes
-- **Status**: `TODO`
+- **Status**: `DONE`
 - **File**: `backend/app/api/routes/alerts.py`, `backend/app/api/routes/agents.py`
 - **Priority**: 🟡 MEDIUM
 - **Depends on**: W1-1 (in-memory lists populated)

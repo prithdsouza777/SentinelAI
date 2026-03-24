@@ -33,13 +33,14 @@ A live feed of AI agent activity, reasoning chains, and cost impact. Not a metri
 Statistical detection that catches problems before they become crises. Tracks velocity (how fast conditions are deteriorating), predicts cascade failures across queues, and fires alerts with severity levels.
 
 ### 3. Autonomous AI Agents
-Four specialized agents powered by Google Gemini (with multi-tier fallback):
+Five specialized agents powered by Anthropic Claude (with MockLLM fallback):
 
 | Agent | Role |
 |-------|------|
 | **Queue Balancer** | Detects staffing imbalances, proposes agent reallocation between queues |
 | **Predictive Prevention** | Identifies risk patterns and cascade failures before they trigger alerts |
 | **Escalation Handler** | Responds to critical situations and coordinates resolution |
+| **Skill Router** | Zero-LLM latency skill-based contact routing with weighted scoring |
 | **Analytics Agent** | Powers natural language queries, incident summaries, and what-if analysis |
 
 When agents disagree, a **Multi-Agent Negotiation Protocol** mediates the conflict and surfaces the result for human review.
@@ -85,7 +86,7 @@ You can also inject chaos events manually (Kill Agents, Spike Queue, Network Del
 |-------|-----------|
 | **Frontend** | React 18, TypeScript, Zustand 5, TailwindCSS, shadcn/ui, Aceternity UI, Framer Motion |
 | **Backend** | Python 3.10, FastAPI, LangGraph (parallel agent orchestration) |
-| **AI/LLM** | Google Gemini 2.5 Flash Lite (primary), Anthropic Claude (fallback), AWS Bedrock (fallback), Mock LLM (offline fallback) |
+| **AI/LLM** | Anthropic Claude (claude-sonnet-4-20250514, primary), Mock LLM (context-aware fallback) |
 | **Real-time** | WebSocket (bidirectional), Server-Sent Events pattern |
 | **State** | Redis (optional, graceful in-memory fallback) |
 | **Target Platform** | AWS Connect (simulation-first, real integration optional) |
@@ -127,14 +128,11 @@ cp .env.example .env
 
 Required for AI features (optional — falls back to mock responses):
 ```
-GEMINI_API_KEY=your-gemini-api-key
+ANTHROPIC_API_KEY=your-anthropic-api-key
 ```
 
 Optional:
 ```
-ANTHROPIC_API_KEY=your-key          # Fallback LLM
-AWS_ACCESS_KEY_ID=your-key          # Fallback LLM (Bedrock)
-AWS_SECRET_ACCESS_KEY=your-secret   # Fallback LLM (Bedrock)
 REDIS_URL=redis://localhost:6379    # Optional, in-memory fallback works fine
 ```
 
@@ -156,15 +154,20 @@ SentinelAI/
 ├── frontend/                          # React + TypeScript dashboard
 │   ├── src/
 │   │   ├── components/                # Reusable UI components
-│   │   │   ├── layout/                # Sidebar, Header
+│   │   │   ├── layout/                # AppLayout, Sidebar, Header
 │   │   │   ├── operations-center/     # AI Decision Feed, Queue Cards, Cost Ticker
+│   │   │   ├── auth/                  # RequireAuth
+│   │   │   ├── theme/                 # ThemeToggle (dark/light)
 │   │   │   └── ui/                    # shadcn/ui + Aceternity components
-│   │   ├── pages/                     # 6 main pages
-│   │   │   ├── OperationsCenterPage   # Main dashboard — live AI activity
+│   │   ├── pages/                     # 9 pages
+│   │   │   ├── LandingPage            # Animated hero + feature cards + tech stack
+│   │   │   ├── LoginPage              # Authentication gate
+│   │   │   ├── OperationsCenter       # Main dashboard — live AI activity
 │   │   │   ├── AgentsPage             # Agent status and decision history
 │   │   │   ├── AlertsPage             # Anomaly alerts with severity levels
 │   │   │   ├── ChatPage               # Natural language command interface
 │   │   │   ├── SimulationPage         # Scenario runner + chaos engine
+│   │   │   ├── ReportsPage            # Session reports with Recharts charts
 │   │   │   └── SettingsPage           # Connection status and configuration
 │   │   ├── stores/                    # Zustand state management
 │   │   ├── services/                  # API client + WebSocket service
@@ -178,20 +181,23 @@ SentinelAI/
 │   │   │   ├── queue_balancer.py      # Queue rebalancing agent
 │   │   │   ├── predictive_prevention.py # Cascade risk detection agent
 │   │   │   ├── escalation_handler.py  # Critical alert response agent
+│   │   │   ├── skill_router.py        # Zero-LLM skill-based contact routing
 │   │   │   ├── analytics.py           # Natural language query agent
-│   │   │   └── negotiation.py         # Multi-agent conflict resolution
+│   │   │   ├── negotiation.py         # Multi-agent conflict resolution
+│   │   │   └── guardrails.py          # Action scopes, rate limits, approval logic
 │   │   ├── api/                       # API routes and WebSocket
 │   │   │   ├── websocket.py           # Bidirectional WebSocket manager
-│   │   │   └── routes/                # REST endpoints
+│   │   │   └── routes/                # REST endpoints (8 route files)
 │   │   ├── models/                    # Pydantic data models
 │   │   ├── services/                  # External service integrations
-│   │   │   ├── bedrock.py             # LLM service (Gemini/Anthropic/Bedrock/Mock)
+│   │   │   ├── bedrock.py             # LLM service (Anthropic Claude / MockLLM)
 │   │   │   ├── simulation.py          # Contact center simulation engine
 │   │   │   ├── anomaly.py             # Statistical anomaly detection
+│   │   │   ├── sanitizer.py           # PII sanitizer
 │   │   │   └── redis_client.py        # Redis with in-memory fallback
 │   │   ├── config.py                  # Environment configuration
-│   │   └── main.py                    # FastAPI app + background tick loop
-│   ├── tests/                         # 16 passing tests
+│   │   └── main.py                    # FastAPI app + background tick loop (3s)
+│   ├── tests/                         # 19 passing tests
 │   └── requirements.txt
 │
 ├── docs/                              # Technical documentation
@@ -199,11 +205,13 @@ SentinelAI/
 │   ├── ARCHITECTURE.md                # Code patterns and conventions
 │   ├── CONTEXT.md                     # Product vision and decisions
 │   ├── STATUS.md                      # Build progress tracker
-│   └── TASKS.md                       # Sprint task specifications
+│   ├── TASKS.md                       # Sprint task specifications
+│   └── BACKLOG.md                     # Future sprint backlog (all done)
 │
 ├── OVERVIEW.md                        # Non-technical project explanation
 ├── PRD.md                             # Product Requirements Document
-└── CLAUDE.md                          # AI assistant context file
+├── CLAUDE.md                          # Claude Code context file
+└── GEMINI.md                          # AI model handoff context
 ```
 
 ---
@@ -219,10 +227,11 @@ Every 3 seconds, the system runs a "tick":
   Anomaly Engine checks for problems --> Fires alerts
          |
          v
-  Agent Orchestrator (LangGraph) runs 3 agents IN PARALLEL:
+  Agent Orchestrator (LangGraph) runs 4 agents IN PARALLEL:
     - Queue Balancer: "Should I move agents between queues?"
     - Predictive Prevention: "Is a cascade failure developing?"
     - Escalation Handler: "Are there critical alerts to resolve?"
+    - Skill Router: "Should contacts be rerouted by skill match?"
          |
          v
   If agents conflict --> Negotiation Protocol resolves it
@@ -237,7 +246,7 @@ Every 3 seconds, the system runs a "tick":
   React dashboard updates instantly (Zustand state management)
 ```
 
-The LLM (Gemini 2.5 Flash Lite) powers each agent's reasoning — analyzing metrics, generating explanations, and producing confidence scores. A 4-tier fallback ensures the system always works: Gemini > Anthropic > AWS Bedrock > Mock responses.
+The LLM (Anthropic Claude) powers each agent's reasoning — analyzing metrics, generating explanations, and producing confidence scores. A 2-tier fallback ensures the system always works: Anthropic Claude > Mock responses (context-aware, dynamic).
 
 ---
 
@@ -271,7 +280,7 @@ pip install -r requirements.txt
 pytest tests/ -v
 ```
 
-All 16 tests pass. Tests cover health endpoints, simulation lifecycle, agent orchestration, and API routes.
+All 19 tests pass. Tests cover health endpoints, simulation lifecycle, agent orchestration, chat, governance, reports, skill router, and API routes.
 
 ---
 
@@ -284,7 +293,7 @@ All 16 tests pass. Tests cover health endpoints, simulation lifecycle, agent orc
 | **Real-time reasoning visibility** | Every AI decision shows its reasoning chain — full transparency |
 | **Cost impact quantification** | Dollar amounts ($1,240 saved), not just metrics — clear business value |
 | **Simulation-first architecture** | Demo always works, no AWS dependency — reliable under any conditions |
-| **4-tier LLM fallback** | Gemini > Anthropic > Bedrock > Mock — never fails, always responds |
+| **LLM with smart fallback** | Anthropic Claude > context-aware MockLLM — never fails, always responds |
 
 ---
 

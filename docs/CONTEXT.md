@@ -57,10 +57,10 @@ SentinelAI is an **autonomous AI operations layer that sits on top of AWS Connec
 **Why**: LangGraph adds complexity without changing the demo output. We can say "LangGraph-powered" in Week 2 if needed.
 **Implication**: `orchestrator.py` should work without `langgraph` installed.
 
-### Decision 4: Mock Bedrock Before Real Bedrock
-**Decision**: `MockBedrockLLM` handles the top 10 demo queries. Real Bedrock optional.
-**Why**: Can't depend on Bedrock access being granted before the demo.
-**Implication**: Chat works perfectly without AWS credentials.
+### Decision 4: Mock LLM Before Real LLM
+**Decision**: `MockBedrockLLM` (context-aware) handles all demo queries. Real Anthropic Claude optional.
+**Why**: Can't depend on API access being available during the demo.
+**Implication**: Chat works perfectly without API credentials. MockLLM builds dynamic responses from live telemetry.
 
 ### Decision 5: camelCase on the Wire
 **Decision**: All WS events and REST responses use camelCase JSON.
@@ -139,7 +139,7 @@ Background Loop in main.py (2s tick)
 The project was scored 19/20 on:
 1. **Wow Factor** — The negotiation protocol + reasoning chain are visually impressive. The cost ticker is satisfying to watch climb.
 2. **Business Value** — Quantified in dollars (cost savings), not just metrics. Clear ROI story.
-3. **Technical Depth** — 4 autonomous agents, LangGraph, multi-agent negotiation, Bedrock, WebSocket real-time
+3. **Technical Depth** — 5 autonomous agents, LangGraph, multi-agent negotiation, Bedrock, WebSocket real-time
 4. **Feasibility** — Simulation-first means the demo ALWAYS works. No dependency hell.
 
 **What judges will respond to:**
@@ -167,7 +167,7 @@ The project was scored 19/20 on:
 
 | Risk | Likelihood | Mitigation |
 |------|-----------|-----------|
-| Bedrock access not granted | High | MockBedrockLLM handles all demo queries |
+| Anthropic API unavailable | Medium | Context-aware MockLLM handles all demo queries |
 | AWS Connect unavailable | High | simulation_mode=True is the primary path |
 | WebSocket instability | Medium | Auto-reconnect + REST polling fallback |
 | LangGraph too complex | Low | Plain Python sequential calls work identically |

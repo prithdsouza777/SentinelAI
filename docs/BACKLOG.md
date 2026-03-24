@@ -19,7 +19,7 @@ Week 2 focuses on completing the remaining agents, wiring human-in-the-loop gove
 ---
 
 ### TASK W2-1: Escalation Handler Agent
-- **Status**: `TODO`
+- **Status**: `DONE`
 - **File**: `backend/app/agents/escalation_handler.py`
 - **Priority**: 🔴 HIGH — needed for the demo's negotiation scene
 - **Depends on**: W1-6 (orchestrator)
@@ -67,7 +67,7 @@ Pass `active_alerts` (from `request.app.state.recent_alerts`) to the orchestrato
 ---
 
 ### TASK W2-2: Multi-Agent Negotiation Protocol
-- **Status**: `TODO`
+- **Status**: `DONE`
 - **File**: `backend/app/agents/negotiation.py`, `backend/app/agents/orchestrator.py`
 - **Priority**: 🔴 HIGH — the key demo differentiator
 - **Depends on**: W2-1
@@ -145,7 +145,7 @@ for conflict_group in conflicts:
 ---
 
 ### TASK W2-3: WebSocket Action:Approve / Action:Reject Handlers
-- **Status**: `TODO`
+- **Status**: `DONE`
 - **File**: `backend/app/api/websocket.py`
 - **Priority**: 🔴 HIGH — human-in-the-loop is a core demo moment
 - **Depends on**: W1-6 (orchestrator.execute_decision), W2-2
@@ -184,7 +184,7 @@ elif event == "action:reject":
 ---
 
 ### TASK W2-4: Cost Accumulator + cost:update Broadcast
-- **Status**: `TODO`
+- **Status**: `DONE`
 - **File**: `backend/app/agents/orchestrator.py`
 - **Priority**: 🟡 MEDIUM — makes the cost ticker tick (visually impressive)
 - **Depends on**: W2-3
@@ -229,7 +229,7 @@ Call `_record_action_cost(action_str)` inside `execute_decision()` after success
 ---
 
 ### TASK W2-5: Redis State Cache
-- **Status**: `TODO`
+- **Status**: `DONE`
 - **File**: `backend/app/services/redis_client.py`
 - **Priority**: 🟢 LOW-MEDIUM (nice-to-have, not demo-critical)
 - **Depends on**: Nothing (parallel track)
@@ -286,7 +286,7 @@ await redis_client.connect()  # non-blocking, handles failure gracefully
 ---
 
 ### TASK W2-6: Frontend WebSocketProvider
-- **Status**: `TODO`
+- **Status**: `DONE`
 - **File**: `frontend/src/components/WebSocketProvider.tsx` (NEW)
 - **Priority**: 🔴 HIGH — frontend doesn't auto-update without this
 - **Depends on**: W1-1 (backend must be sending events)
@@ -362,7 +362,7 @@ Wrap in `frontend/src/App.tsx` or `main.tsx`:
 ---
 
 ### TASK W3-1: MockBedrockLLM + BedrockService
-- **Status**: `TODO`
+- **Status**: `DONE`
 - **File**: `backend/app/services/bedrock.py` (NEW FILE)
 - **Priority**: 🔴 HIGH — chat depends on this
 - **Depends on**: Nothing
@@ -395,7 +395,7 @@ See [ARCHITECTURE.md Bedrock Pattern](./ARCHITECTURE.md#bedrock-mock-pattern) fo
 ---
 
 ### TASK W3-2: Analytics Agent + Chat Routes
-- **Status**: `TODO`
+- **Status**: `DONE`
 - **File**: `backend/app/agents/analytics.py`, `backend/app/api/routes/chat.py`
 - **Priority**: 🔴 HIGH — the demo ends with a chat question
 - **Depends on**: W3-1
@@ -432,7 +432,7 @@ Wire `orchestrator.handle_chat()` to call `analytics_agent.query()`.
 ---
 
 ### TASK W3-3: AI Governance Overlay (Confidence + Approval Gates)
-- **Status**: `TODO`
+- **Status**: `DONE`
 - **File**: `backend/app/models/agent.py`, `backend/app/agents/orchestrator.py`
 - **Priority**: 🟡 MEDIUM-HIGH
 - **Depends on**: W1-6
@@ -470,7 +470,7 @@ See [CONTEXT.md Governance](./CONTEXT.md#ai-governance-overlay) for full spec.
 ---
 
 ### TASK W3-4: Scripted 3-Minute Demo Scenario
-- **Status**: `TODO`
+- **Status**: `DONE`
 - **File**: `backend/app/services/simulation.py`
 - **Priority**: 🔴 HIGH — needed for the actual buildathon demo
 - **Depends on**: W1-2, W1-3
@@ -511,7 +511,7 @@ Also add `"sentinelai_demo"` to the `SCENARIOS` list in `routes/simulation.py`.
 ## Sprint 4 — Week 4: Polish & Demo Prep
 
 ### TASK W4-1: Demo Mode "One Click Start" Button
-- **Status**: `TODO`
+- **Status**: `DONE`
 - **Priority**: 🔴 HIGH for demo
 - **File**: `frontend/src/pages/SimulationPage.tsx` or `Header.tsx`
 
@@ -520,7 +520,7 @@ Add a large, unmissable "▶ Start Demo" button that calls `POST /api/simulation
 ---
 
 ### TASK W4-2: Empty State UX
-- **Status**: `TODO`
+- **Status**: `DONE`
 - **Priority**: 🟡 MEDIUM
 - **File**: Multiple frontend components
 
@@ -533,7 +533,7 @@ When simulation is not running:
 ---
 
 ### TASK W4-3: Animation Polish
-- **Status**: `TODO`
+- **Status**: `DONE`
 - **Priority**: 🟢 LOW-MEDIUM
 - **File**: Frontend CSS/components
 
@@ -545,7 +545,7 @@ When simulation is not running:
 ---
 
 ### TASK W4-4: WebSocket Reconnect Polish
-- **Status**: `TODO`
+- **Status**: `DONE`
 - **Priority**: 🟢 LOW
 - **File**: `frontend/src/services/websocket.ts`
 
@@ -554,7 +554,7 @@ Implement exponential backoff: 1s → 2s → 4s → 8s → cap at 30s. Show "Rec
 ---
 
 ### TASK W4-5: Demo Rehearsal Checklist
-- **Status**: `TODO`
+- **Status**: `DONE`
 - **Priority**: 🔴 HIGH (Week 4 final)
 
 Run 3 full timed rehearsals with the team. Each run:
@@ -573,14 +573,14 @@ Record backup video in case of live demo issues.
 
 | Milestone | Target | Status |
 |-----------|--------|--------|
-| Live metrics in UI | End of W1 | ⬜ |
-| Agent decisions visible | End of W1 | ⬜ |
-| Chaos → alerts → negotiation | End of W2 | ⬜ |
-| Approve/reject working | End of W2 | ⬜ |
-| Chat answers questions | End of W3 | ⬜ |
-| Governance overlay visible | End of W3 | ⬜ |
-| 3-min demo scripted | End of W3 | ⬜ |
-| Demo rehearsed 3x | End of W4 | ⬜ |
-| Backup video recorded | End of W4 | ⬜ |
+| Live metrics in UI | End of W1 | DONE |
+| Agent decisions visible | End of W1 | DONE |
+| Chaos → alerts → negotiation | End of W2 | DONE |
+| Approve/reject working | End of W2 | DONE |
+| Chat answers questions | End of W3 | DONE |
+| Governance overlay visible | End of W3 | DONE |
+| 3-min demo scripted | End of W3 | DONE |
+| Demo rehearsed 3x | End of W4 | DONE |
+| Backup video recorded | End of W4 | DONE |
 
 → Update `[STATUS.md](./STATUS.md)` when milestones are hit.

@@ -29,7 +29,7 @@
 ┌──────────────────────────▼──────────────────────────────┐
 │                 BACKEND (FastAPI + Python)                │
 │  ┌────────────────────────────────────────────────────┐ │
-│  │          main.py — Background Loop (2s tick)        │ │
+│  │          main.py — Background Loop (3s tick)        │ │
 │  │                                                     │ │
 │  │  simulation_engine.generate_metrics()               │ │
 │  │    └─→ anomaly_engine.evaluate()  ──→ alerts        │ │
@@ -37,6 +37,7 @@
 │  │           ├─→ QueueBalancerAgent.evaluate()         │ │
 │  │           ├─→ PredictivePreventionAgent.evaluate()  │ │
 │  │           ├─→ EscalationHandlerAgent.evaluate()     │ │
+│  │           ├─→ SkillRouterAgent.evaluate()           │ │
 │  │           └─→ NegotiationProtocol.resolve() [if ⚡] │ │
 │  │    └─→ manager.broadcast() ────────────────────────┼─┤→ Frontend
 │  └────────────────────────────────────────────────────┘ │
@@ -87,7 +88,7 @@ async def _simulation_loop():
                 await _tick()
         except Exception as e:
             print(f"[loop] error: {e}")  # never crash the loop
-        await asyncio.sleep(2)
+        await asyncio.sleep(3)
 
 
 async def _tick():
