@@ -70,7 +70,7 @@ async def _tick():
                 _recent_alerts.pop()
             await manager.broadcast("alert:new", a_dict)
             await redis_client.push_json("sentinelai:alerts", a_dict, maxlen=100)
-            # Fire-and-forget external notifications (Teams + Outlook)
+            # Fire-and-forget external notifications (Teams + Gmail)
             asyncio.create_task(notification_service.notify(a_dict))
 
     # Run agents with camelCase dicts

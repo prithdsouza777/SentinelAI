@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     teams_webhook_url: str = ""
     teams_notify_on: str = "critical"  # "critical", "warning", "all", "none"
 
-    # Notifications — Outlook / SMTP email
+    # Notifications — Gmail SMTP email
     smtp_host: str = ""
     smtp_port: int = 587
     smtp_user: str = ""

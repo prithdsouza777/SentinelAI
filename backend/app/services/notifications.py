@@ -2,7 +2,7 @@
 
 Supports:
 - Microsoft Teams incoming webhook (Adaptive Cards)
-- Outlook / SMTP email notifications
+- Gmail / SMTP email notifications
 
 Both channels have independent cooldowns to prevent alert spam.
 """
@@ -125,10 +125,10 @@ class NotificationService:
             logger.error("Teams notification failed: %s", e)
             return False
 
-    # ── Outlook / SMTP Email ────────────────────────────────────────────────
+    # ── Gmail / SMTP Email ─────────────────────────────────────────────────
 
     async def send_email(self, alert: dict) -> bool:
-        """Send an HTML email via SMTP (Outlook, Gmail, etc.)."""
+        """Send an HTML email via Gmail SMTP."""
         if not settings.smtp_host or not settings.smtp_to:
             return False
 
@@ -144,42 +144,163 @@ class NotificationService:
 
         color_map = {"CRITICAL": "#ef4444", "WARNING": "#f59e0b", "INFO": "#3b82f6"}
         badge_color = color_map.get(severity, "#64748b")
+        badge_bg = {"CRITICAL": "#fef2f2", "WARNING": "#fffbeb", "INFO": "#eff6ff"}.get(severity, "#f8fafc")
+
+        # Convert timestamp to IST for display
+        from datetime import datetime, timezone, timedelta
+        ist = timezone(timedelta(hours=5, minutes=30))
+        raw_ts = alert.get("timestamp", "")
+        try:
+            dt = datetime.fromisoformat(raw_ts.replace("Z", "+00:00"))
+            display_ts = dt.astimezone(ist).strftime("%d %b %Y, %I:%M %p IST")
+        except Exception:
+            display_ts = raw_ts or "N/A"
 
         html = f"""
         <html>
-        <body style="font-family: 'Segoe UI', Arial, sans-serif; background: #f8fafc; padding: 20px;">
-          <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden;">
-            <div style="background: {badge_color}; padding: 16px 24px;">
-              <h2 style="color: white; margin: 0; font-size: 18px;">SentinelAI Queue Alert</h2>
-            </div>
-            <div style="padding: 24px;">
-              <div style="display: inline-block; background: {badge_color}15; color: {badge_color}; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; margin-bottom: 16px;">
-                {severity}
-              </div>
-              <h3 style="color: #1e293b; margin: 0 0 12px 0;">{alert.get("title", "Queue Alert")}</h3>
-              <table style="width: 100%; border-collapse: collapse;">
-                <tr style="border-bottom: 1px solid #f1f5f9;">
-                  <td style="padding: 8px 0; color: #64748b; font-size: 13px; width: 140px;">Queue</td>
-                  <td style="padding: 8px 0; color: #1e293b; font-weight: 500;">{alert.get("queueName", "Unknown")}</td>
-                </tr>
-                <tr style="border-bottom: 1px solid #f1f5f9;">
-                  <td style="padding: 8px 0; color: #64748b; font-size: 13px;">Description</td>
-                  <td style="padding: 8px 0; color: #1e293b;">{alert.get("description", "")}</td>
-                </tr>
-                <tr style="border-bottom: 1px solid #f1f5f9;">
-                  <td style="padding: 8px 0; color: #64748b; font-size: 13px;">Recommended Action</td>
-                  <td style="padding: 8px 0; color: #1e293b; font-weight: 500;">{alert.get("recommendedAction", "Monitor situation")}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 8px 0; color: #64748b; font-size: 13px;">Timestamp</td>
-                  <td style="padding: 8px 0; color: #94a3b8; font-size: 12px;">{alert.get("timestamp", "N/A")}</td>
-                </tr>
-              </table>
-            </div>
-            <div style="background: #f8fafc; padding: 12px 24px; border-top: 1px solid #e2e8f0;">
-              <p style="color: #94a3b8; font-size: 11px; margin: 0;">Sent by SentinelAI — Autonomous AI Operations Layer</p>
-            </div>
-          </div>
+        <head>
+          <meta charset="utf-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        </head>
+        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: #f8fafc;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background: #f8fafc; padding: 32px 16px;">
+            <tr>
+              <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0" style="max-width: 600px; width: 100%;">
+
+                  <!-- Header bar — mirrors dashboard header -->
+                  <tr>
+                    <td>
+                      <table width="100%" cellpadding="0" cellspacing="0" style="background: #ffffff; border-radius: 12px 12px 0 0; border: 1px solid #e2e8f0; border-bottom: none;">
+                        <tr>
+                          <td style="padding: 14px 24px;">
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                              <tr>
+                                <td>
+                                  <table cellpadding="0" cellspacing="0">
+                                    <tr>
+                                      <td style="background: linear-gradient(135deg, #3b82f6, #2563eb); width: 32px; height: 32px; border-radius: 8px; text-align: center; vertical-align: middle;">
+                                        <span style="color: #ffffff; font-size: 16px; line-height: 32px;">&#9889;</span>
+                                      </td>
+                                      <td style="padding-left: 10px;">
+                                        <span style="font-size: 17px; font-weight: 700; color: #1e293b; letter-spacing: -0.3px;">Sentinel</span><span style="font-size: 17px; font-weight: 700; color: #3b82f6; letter-spacing: -0.3px;">AI</span>
+                                      </td>
+                                    </tr>
+                                  </table>
+                                </td>
+                                <td align="right" style="vertical-align: middle;">
+                                  <span style="display: inline-block; background: {badge_bg}; color: {badge_color}; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: 0.3px; text-transform: uppercase; border: 1px solid {badge_color}20;">
+                                    {severity} ALERT
+                                  </span>
+                                </td>
+                              </tr>
+                            </table>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+
+                  <!-- Severity accent line -->
+                  <tr>
+                    <td style="padding: 0;"><div style="height: 3px; background: {badge_color};"></div></td>
+                  </tr>
+
+                  <!-- Main content card — dashboard panel style -->
+                  <tr>
+                    <td>
+                      <table width="100%" cellpadding="0" cellspacing="0" style="background: #ffffff; border: 1px solid #e2e8f0; border-top: none; border-bottom: none;">
+
+                        <!-- Alert title + timestamp -->
+                        <tr>
+                          <td style="padding: 24px 24px 0 24px;">
+                            <h1 style="margin: 0 0 6px 0; font-size: 20px; font-weight: 700; color: #1e293b; line-height: 1.3;">
+                              {alert.get("title", "Queue Alert")}
+                            </h1>
+                            <span style="font-size: 12px; color: #94a3b8;">{display_ts}</span>
+                          </td>
+                        </tr>
+
+                        <!-- Description -->
+                        <tr>
+                          <td style="padding: 14px 24px 0 24px;">
+                            <p style="margin: 0; font-size: 14px; color: #475569; line-height: 1.6;">
+                              {alert.get("description", "")}
+                            </p>
+                          </td>
+                        </tr>
+
+                        <!-- Divider -->
+                        <tr>
+                          <td style="padding: 18px 24px;">
+                            <div style="border-top: 1px solid #e2e8f0;"></div>
+                          </td>
+                        </tr>
+
+                        <!-- Detail row — dashboard metric card style -->
+                        <tr>
+                          <td style="padding: 0 24px;">
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                              <tr>
+                                <td style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 16px; width: 48%;">
+                                  <span style="display: block; font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Queue</span>
+                                  <span style="font-size: 15px; font-weight: 600; color: #1e293b;">{alert.get("queueName", "Unknown")}</span>
+                                </td>
+                                <td style="width: 4%;"></td>
+                                <td style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 16px; width: 48%;">
+                                  <span style="display: block; font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Severity</span>
+                                  <span style="font-size: 15px; font-weight: 700; color: {badge_color};">{severity}</span>
+                                </td>
+                              </tr>
+                            </table>
+                          </td>
+                        </tr>
+
+                        <!-- Recommended action — blue accent card like AI Decision Feed -->
+                        <tr>
+                          <td style="padding: 12px 24px 24px 24px;">
+                            <table width="100%" cellpadding="0" cellspacing="0" style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; border-left: 4px solid #2563eb;">
+                              <tr>
+                                <td style="padding: 14px 16px;">
+                                  <span style="display: block; font-size: 10px; font-weight: 600; color: #2563eb; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">&#9889; Recommended Action</span>
+                                  <span style="font-size: 14px; color: #1e293b; font-weight: 500; line-height: 1.5;">{alert.get("recommendedAction", "Monitor situation")}</span>
+                                </td>
+                              </tr>
+                            </table>
+                          </td>
+                        </tr>
+
+                      </table>
+                    </td>
+                  </tr>
+
+                  <!-- Footer — matching dashboard border style -->
+                  <tr>
+                    <td>
+                      <table width="100%" cellpadding="0" cellspacing="0" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0 0 12px 12px; border-top: none;">
+                        <tr>
+                          <td style="padding: 16px 24px;">
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                              <tr>
+                                <td>
+                                  <span style="font-size: 12px; font-weight: 600; color: #1e293b;">Sentinel</span><span style="font-size: 12px; font-weight: 600; color: #3b82f6;">AI</span>
+                                  <span style="font-size: 11px; color: #94a3b8;"> &mdash; Autonomous AI Operations</span>
+                                </td>
+                                <td align="right">
+                                  <span style="font-size: 11px; color: #94a3b8;">Built by </span><span style="font-size: 11px; font-weight: 600; color: #475569;">Cirrus</span><span style="font-size: 11px; font-weight: 600; color: #f87171;">Labs</span>
+                                </td>
+                              </tr>
+                            </table>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+
+                </table>
+              </td>
+            </tr>
+          </table>
         </body>
         </html>
         """

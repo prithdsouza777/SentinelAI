@@ -98,9 +98,9 @@ async def test_email():
 
     test_alert = {
         "id": "test-alert",
-        "severity": "warning",
+        "severity": "critical",
         "title": "Test Alert - SentinelAI Notifications",
-        "description": "This is a test email from SentinelAI. If you see this, Outlook/email integration is working.",
+        "description": "This is a test email from SentinelAI. If you see this, Gmail/email integration is working.",
         "queueName": "Test Queue",
         "recommendedAction": "No action needed - this is a test",
         "timestamp": datetime.now(timezone.utc).isoformat(),
