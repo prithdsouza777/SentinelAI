@@ -302,10 +302,15 @@ class GuardrailsLayer:
 
             if policy.name == "min_staffing":
                 agents_delta = state.get("agents_delta", 0)
-                queue_available = state.get("agents_available", 10)
-                if agents_delta < 0 and (queue_available + agents_delta) < 2:
+                queue_available = state.get("agents_available", 0)
+                queue_id = state.get("source_queue_id", "")
+                # Use per-queue min staffing from orchestrator config
+                from app.agents.orchestrator import QUEUE_MIN_STAFFING
+                min_required = QUEUE_MIN_STAFFING.get(queue_id, 2)
+                if agents_delta < 0 and (queue_available + agents_delta) < min_required:
                     violations.append(
-                        "min_staffing: action would drop queue below 2 available agents"
+                        f"min_staffing: action would drop {queue_id} below {min_required} available agents "
+                        f"(currently {queue_available}, removing {abs(agents_delta)})"
                     )
 
             elif policy.name == "max_agents_move":

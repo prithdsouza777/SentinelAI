@@ -81,6 +81,20 @@ async def _tick():
         recent_negotiations=_recent_negotiations,
     )
 
+    # Collect predictive alerts from the PredictivePreventionAgent
+    from app.models import AgentType
+    pp_agent = orchestrator.agents.get(AgentType.PREDICTIVE_PREVENTION)
+    if pp_agent and hasattr(pp_agent, "pending_alerts") and pp_agent.pending_alerts:
+        for pa in pp_agent.pending_alerts:
+            pa_dict = pa.model_dump(by_alias=True, mode="json")
+            _recent_alerts.insert(0, pa_dict)
+            if len(_recent_alerts) > 100:
+                _recent_alerts.pop()
+            await manager.broadcast("alert:new", pa_dict)
+            await redis_client.push_json("sentinelai:alerts", pa_dict, maxlen=100)
+            asyncio.create_task(notification_service.notify(pa_dict))
+        pp_agent.pending_alerts.clear()
+
     # Tick revenue-at-risk: count unresolved critical alerts
     critical_count = sum(
         1 for a in _recent_alerts[:20]

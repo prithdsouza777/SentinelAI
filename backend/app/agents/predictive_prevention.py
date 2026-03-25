@@ -1,17 +1,20 @@
 """Predictive Prevention Agent.
 
-Tracks contact velocity per queue and predicts problems 60 seconds before
-they fully manifest. Generates ANALYZED decisions with cascade risk warnings.
+Tracks contact velocity per queue and predicts problems using double
+exponential smoothing (Holt's method) for trend-aware forecasting.
+Generates ANALYZED decisions with cascade risk warnings and predictive alerts.
 Uses LLM for rich reasoning when available, threshold logic always runs.
 """
 
 import json
 import logging
+import math
 import time
 from collections import defaultdict, deque
 from datetime import datetime, timezone
 
 from app.models import AgentDecision, AgentType, DecisionPhase
+from app.models.alert import Alert, AlertSeverity
 
 logger = logging.getLogger("sentinelai.predictive_prevention")
 
@@ -38,16 +41,77 @@ You are given pre-computed velocity data. Your task is to:
 
 
 class PredictivePreventionAgent:
+    """Predicts queue overload using Holt's double exponential smoothing.
+
+    Holt's method tracks both level and trend separately, making predictions
+    more stable than naive linear extrapolation. The method:
+      - level(t) = alpha * x(t) + (1-alpha) * (level(t-1) + trend(t-1))
+      - trend(t) = beta * (level(t) - level(t-1)) + (1-beta) * trend(t-1)
+      - forecast(h) = level(t) + h * trend(t)
+
+    Alpha controls level responsiveness (higher = react faster to new data).
+    Beta controls trend responsiveness (higher = follow trend changes faster).
+    """
+
+    # Smoothing parameters (tuned for 3s tick interval)
+    ALPHA = 0.4   # level smoothing — moderate responsiveness
+    BETA = 0.3    # trend smoothing — slightly damped to reduce noise
+
     def __init__(self):
-        # queue_id -> deque of (timestamp_float, contacts_in_queue) pairs, max 10
-        self.history: dict[str, deque] = defaultdict(lambda: deque(maxlen=10))
+        # queue_id -> deque of (timestamp_float, contacts_in_queue) pairs, max 20
+        self.history: dict[str, deque] = defaultdict(lambda: deque(maxlen=20))
+        # Holt's state per queue: (level, trend)
+        self._holt_state: dict[str, tuple[float, float]] = {}
         # Track which queues already have active warnings (avoid spam)
         self._warned_queues: dict[str, float] = {}  # queue_id -> last_warn_time
         self._warn_cooldown = 10.0  # seconds between warnings per queue
         self._llm_available = None
+        # Predictive alerts generated this tick — consumed by main.py
+        self.pending_alerts: list[Alert] = []
+
+    def _update_holt(self, queue_id: str, value: float) -> tuple[float, float]:
+        """Update Holt's double exponential smoothing state for a queue.
+
+        Returns (level, trend) after incorporating the new observation.
+        """
+        if queue_id not in self._holt_state:
+            # Initialize: level = first value, trend = 0
+            self._holt_state[queue_id] = (value, 0.0)
+            return (value, 0.0)
+
+        prev_level, prev_trend = self._holt_state[queue_id]
+        level = self.ALPHA * value + (1 - self.ALPHA) * (prev_level + prev_trend)
+        trend = self.BETA * (level - prev_level) + (1 - self.BETA) * prev_trend
+        self._holt_state[queue_id] = (level, trend)
+        return (level, trend)
+
+    def _forecast(self, queue_id: str, horizon_ticks: int) -> float:
+        """Forecast value at horizon_ticks into the future.
+
+        Each tick is ~3 seconds, so horizon_ticks=20 ≈ 60 seconds.
+        """
+        if queue_id not in self._holt_state:
+            return 0.0
+        level, trend = self._holt_state[queue_id]
+        return level + trend * horizon_ticks
+
+    def _forecast_confidence(self, queue_id: str) -> float:
+        """Estimate confidence based on how many data points we have and trend stability."""
+        n = len(self.history.get(queue_id, []))
+        if n < 5:
+            return 0.5  # low confidence with few data points
+        # More data = higher confidence, capped at 0.9
+        base = min(0.6 + (n - 5) * 0.02, 0.85)
+
+        # Reduce confidence if trend is accelerating (less predictable)
+        if queue_id in self._holt_state:
+            _, trend = self._holt_state[queue_id]
+            if abs(trend) > 5:  # rapid change = less certain
+                base *= 0.85
+        return min(base, 0.9)
 
     async def evaluate(self, queue_states: list[dict]) -> list[AgentDecision]:
-        """Evaluate queue velocity and predict future overload."""
+        """Evaluate queue trends and predict future overload using Holt's smoothing."""
         if not queue_states:
             return []
 
@@ -61,28 +125,21 @@ class PredictivePreventionAgent:
             agents_online = max(q.get("agentsOnline", 1), 1)
             agents_available = max(q.get("agentsAvailable", 1), 1)
 
-            # Append to history
+            # Update history and Holt's model
             self.history[queue_id].append((now, contacts))
+            level, trend = self._update_holt(queue_id, float(contacts))
 
-            # Need at least 3 data points for meaningful velocity
-            if len(self.history[queue_id]) < 3:
+            # Need at least 5 data points for reliable forecasting
+            if len(self.history[queue_id]) < 5:
                 continue
 
-            history = list(self.history[queue_id])
-            oldest_time, oldest_contacts = history[0]
-            latest_time, latest_contacts = history[-1]
-
-            time_delta = latest_time - oldest_time
-            if time_delta < 0.1:
+            # Only predict upward trends (trend > 0.1 contacts/tick)
+            if trend <= 0.1:
                 continue
 
-            velocity = (latest_contacts - oldest_contacts) / time_delta
-
-            # Only predict upward trends
-            if velocity <= 0.1:
-                continue
-
-            predicted_60s = contacts + velocity * 60
+            # Forecast 20 ticks ahead (~60 seconds at 3s intervals)
+            predicted_60s = self._forecast(queue_id, horizon_ticks=20)
+            # Also forecast shorter horizon for ETA calculation
             critical_threshold = agents_online * 2.5
 
             if predicted_60s <= critical_threshold:
@@ -95,11 +152,15 @@ class PredictivePreventionAgent:
 
             self._warned_queues[queue_id] = now
 
+            # Convert trend (per tick) to velocity (per second) for display
+            velocity = trend / 3.0  # 3s tick interval
+
             # Threshold-based defaults
             cascade_risk = "HIGH" if predicted_60s > critical_threshold * 2 else "MEDIUM"
-            confidence = 0.82
+            confidence = self._forecast_confidence(queue_id)
             reasoning = (
-                f"Velocity analysis: {queue_name} growing at +{velocity:.2f} contacts/sec. "
+                f"Holt's forecast: {queue_name} trend +{trend:.2f} contacts/tick "
+                f"(+{velocity:.2f}/sec, smoothed level {level:.1f}). "
                 f"Current: {contacts} contacts. "
                 f"Predicted in 60s: {predicted_60s:.0f} contacts. "
                 f"Critical threshold: {critical_threshold:.0f} (agents_online x 2.5). "
@@ -133,6 +194,26 @@ class PredictivePreventionAgent:
                 confidence=confidence,
                 impact_score=0.6,
                 timestamp=datetime.now(timezone.utc),
+            ))
+
+            # Generate a PREDICTIVE alert so it flows into the alert system
+            # and triggers notifications (email/Teams)
+            severity = AlertSeverity.CRITICAL if cascade_risk == "HIGH" else AlertSeverity.WARNING
+            eta_seconds = int((critical_threshold - contacts) / velocity) if velocity > 0 else 60
+            eta_seconds = max(eta_seconds, 5)  # floor
+
+            self.pending_alerts.append(Alert(
+                id=f"pred-{queue_id}-{now:.0f}",
+                severity=severity,
+                title=f"Predicted spike: {queue_name} critical in ~{eta_seconds}s",
+                description=(
+                    f"Velocity +{velocity:.2f} contacts/sec. "
+                    f"Current: {contacts}, predicted in 60s: {predicted_60s:.0f}. "
+                    f"Threshold: {critical_threshold:.0f}. Cascade risk: {cascade_risk}."
+                ),
+                queue_id=queue_id,
+                queue_name=queue_name,
+                recommended_action=f"Preemptive reinforcement — add agents to {queue_name} now",
             ))
 
         return decisions
