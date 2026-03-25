@@ -117,7 +117,7 @@ async def _tick():
 
     # Tick revenue-at-risk: count unresolved critical alerts
     critical_count = sum(
-        1 for a in _recent_alerts[:20]
+        1 for a in list(_recent_alerts)[:20]
         if a.get("severity") == "critical" and not a.get("resolvedAt")
     )
     await orchestrator.tick_revenue_at_risk(critical_count)
@@ -125,6 +125,9 @@ async def _tick():
     for d in decisions:
         _recent_decisions.appendleft(d)
         await redis_client.push_json("sentinelai:decisions", d, maxlen=200)
+        # Fire-and-forget approval email for pending decisions
+        if d.get("guardrailResult") == "PENDING_HUMAN":
+            asyncio.create_task(notification_service.notify_pending_decision(d))
 
 
 async def _simulation_loop():

@@ -10,6 +10,7 @@ Both channels have independent cooldowns to prevent alert spam.
 import asyncio
 import logging
 import smtplib
+import ssl
 import time
 import base64
 from email.mime.multipart import MIMEMultipart
@@ -40,8 +41,6 @@ class NotificationService:
     def __init__(self):
         # Per-channel cooldowns: channel -> last_send_time
         self._cooldowns: dict[str, float] = {}
-        # Shared HTTP client for connection reuse (Teams webhooks)
-        self._http_client: httpx.AsyncClient | None = None
 
     def _check_cooldown(self, channel: str) -> bool:
         """Return True if enough time has passed since last notification on this channel."""
@@ -66,23 +65,28 @@ class NotificationService:
 
     # ── Microsoft Teams ─────────────────────────────────────────────────────
 
-    async def send_teams(self, alert: dict) -> bool:
-        """Send an Adaptive Card to a Teams incoming webhook."""
+    async def send_teams(self, alert: dict, *, force: bool = False) -> bool:
+        """Send an Adaptive Card to a Teams incoming webhook.
+
+        Raises NotificationError with details when force=True (test mode).
+        Returns False silently when force=False (pipeline mode).
+        """
         url = settings.teams_webhook_url
         if not url:
+            if force:
+                raise NotificationError("Teams webhook URL is not configured.")
             return False
 
-        if not self._should_notify(alert.get("severity", ""), settings.teams_notify_on):
+        if not force and not self._should_notify(alert.get("severity", ""), settings.teams_notify_on):
             return False
 
-        if not self._check_cooldown("teams"):
+        if not force and not self._check_cooldown("teams"):
             logger.debug("Teams notification skipped (cooldown)")
             return False
 
         severity = alert.get("severity", "info").upper()
         color = {"CRITICAL": "attention", "WARNING": "warning", "INFO": "good"}.get(severity, "default")
 
-        # Adaptive Card payload (Teams webhook format)
         card = {
             "type": "message",
             "attachments": [
@@ -130,30 +134,135 @@ class NotificationService:
         }
 
         try:
-            if self._http_client is None:
-                self._http_client = httpx.AsyncClient(timeout=10.0)
-            resp = await self._http_client.post(url, json=card)
-            if resp.status_code in (200, 202):
-                logger.info("Teams notification sent: %s", alert.get("title"))
-                return True
-            else:
-                logger.warning("Teams webhook returned %s: %s", resp.status_code, resp.text[:200])
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.post(url, json=card)
+                if resp.status_code in (200, 202):
+                    logger.info("Teams notification sent: %s", alert.get("title"))
+                    return True
+                msg = f"Teams webhook returned HTTP {resp.status_code}: {resp.text[:200]}"
+                logger.warning(msg)
+                if force:
+                    raise NotificationError(msg)
                 return False
+        except NotificationError:
+            raise
+        except httpx.ConnectError:
+            msg = "Could not connect to Teams webhook URL. Check the URL is correct and reachable."
+            logger.error(msg)
+            if force:
+                raise NotificationError(msg)
+            return False
+        except httpx.TimeoutException:
+            msg = "Teams webhook request timed out after 10 seconds."
+            logger.error(msg)
+            if force:
+                raise NotificationError(msg)
+            return False
         except Exception as e:
             logger.error("Teams notification failed: %s", e)
+            if force:
+                raise NotificationError(f"Teams notification failed: {e}")
             return False
 
     # ── Gmail / SMTP Email ─────────────────────────────────────────────────
 
-    async def send_email(self, alert: dict) -> bool:
-        """Send an HTML email via Gmail SMTP."""
+    def _send_smtp(self, subject: str, html: str, recipients: list[str]):
+        """Blocking SMTP send (run via asyncio.to_thread).
+
+        Raises NotificationError with specific diagnostics on failure.
+        """
+        sender = settings.smtp_from or settings.smtp_user
+        if not sender:
+            raise NotificationError("No sender address. Set SMTP_FROM or SMTP_USER.")
+        if not recipients:
+            raise NotificationError("No recipients. Set SMTP_TO.")
+
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"] = sender
+        msg["To"] = ", ".join(recipients)
+        msg.attach(MIMEText(html, "html"))
+
+        port = settings.smtp_port
+        host = settings.smtp_host
+        ctx = ssl.create_default_context()
+
+        try:
+            if port == 465:
+                # Implicit SSL (SMTPS)
+                with smtplib.SMTP_SSL(host, port, timeout=15, context=ctx) as server:
+                    if settings.smtp_user and settings.smtp_password:
+                        server.login(settings.smtp_user, settings.smtp_password)
+                    server.sendmail(sender, recipients, msg.as_string())
+            else:
+                # STARTTLS (port 587) or plain (port 25)
+                with smtplib.SMTP(host, port, timeout=15) as server:
+                    server.ehlo()
+                    if port != 25:
+                        server.starttls(context=ctx)
+                        server.ehlo()
+                    if settings.smtp_user and settings.smtp_password:
+                        server.login(settings.smtp_user, settings.smtp_password)
+                    server.sendmail(sender, recipients, msg.as_string())
+        except smtplib.SMTPAuthenticationError as e:
+            raise NotificationError(
+                f"SMTP authentication failed ({e.smtp_code}). "
+                "For Gmail, use an App Password (not your account password). "
+                "Enable 2FA at myaccount.google.com, then create an App Password."
+            ) from e
+        except smtplib.SMTPConnectError as e:
+            raise NotificationError(
+                f"Could not connect to {host}:{port} ({e.smtp_code}). "
+                "Check SMTP host and port."
+            ) from e
+        except smtplib.SMTPRecipientsRefused as e:
+            bad = ", ".join(e.recipients.keys())
+            raise NotificationError(f"Recipients refused by server: {bad}") from e
+        except smtplib.SMTPSenderRefused as e:
+            raise NotificationError(
+                f"Sender address '{sender}' refused by server ({e.smtp_code}). "
+                "Set SMTP_FROM to a valid address for this SMTP account."
+            ) from e
+        except smtplib.SMTPException as e:
+            raise NotificationError(f"SMTP error: {e}") from e
+        except ConnectionRefusedError:
+            raise NotificationError(
+                f"Connection refused to {host}:{port}. "
+                "Is the SMTP host correct? Try smtp.gmail.com:587."
+            )
+        except TimeoutError:
+            raise NotificationError(
+                f"Connection to {host}:{port} timed out after 15 seconds. "
+                "Check host/port and your network."
+            )
+        except OSError as e:
+            raise NotificationError(f"Network error connecting to {host}:{port}: {e}") from e
+
+    async def _send_email_inner(self, subject: str, html: str) -> bool:
+        """Shared email sending logic. Raises NotificationError on failure."""
+        recipients = [r.strip() for r in settings.smtp_to.split(",") if r.strip()]
+        if not recipients:
+            raise NotificationError("No recipients configured in SMTP_TO.")
+
+        await asyncio.to_thread(self._send_smtp, subject, html, recipients)
+        logger.info("Email sent to %s: %s", recipients, subject[:60])
+        return True
+
+    async def send_email(self, alert: dict, *, force: bool = False) -> bool:
+        """Send an HTML alert email via SMTP.
+
+        Raises NotificationError with details when force=True (test mode).
+        Returns False silently when force=False (pipeline mode).
+        """
         if not settings.smtp_host or not settings.smtp_to:
+            if force:
+                raise NotificationError("SMTP host or recipients not configured.")
             return False
 
-        if not self._should_notify(alert.get("severity", ""), settings.email_notify_on):
+        if not force and not self._should_notify(alert.get("severity", ""), settings.email_notify_on):
             return False
 
-        if not self._check_cooldown("email"):
+        if not force and not self._check_cooldown("email"):
             logger.debug("Email notification skipped (cooldown)")
             return False
 
@@ -164,7 +273,6 @@ class NotificationService:
         badge_color = color_map.get(severity, "#64748b")
         badge_bg = {"CRITICAL": "#fef2f2", "WARNING": "#fffbeb", "INFO": "#eff6ff"}.get(severity, "#f8fafc")
 
-        # Convert timestamp to IST for display
         from datetime import datetime, timezone, timedelta
         ist = timezone(timedelta(hours=5, minutes=30))
         raw_ts = alert.get("timestamp", "")
@@ -185,8 +293,6 @@ class NotificationService:
             <tr>
               <td align="center">
                 <table width="600" cellpadding="0" cellspacing="0" style="max-width: 600px; width: 100%;">
-
-                  <!-- Header bar — mirrors dashboard header -->
                   <tr>
                     <td>
                       <table width="100%" cellpadding="0" cellspacing="0" style="background: #ffffff; border-radius: 12px 12px 0 0; border: 1px solid #e2e8f0; border-bottom: none;">
@@ -218,18 +324,12 @@ class NotificationService:
                       </table>
                     </td>
                   </tr>
-
-                  <!-- Severity accent line -->
                   <tr>
                     <td style="padding: 0;"><div style="height: 3px; background: {badge_color};"></div></td>
                   </tr>
-
-                  <!-- Main content card — dashboard panel style -->
                   <tr>
                     <td>
                       <table width="100%" cellpadding="0" cellspacing="0" style="background: #ffffff; border: 1px solid #e2e8f0; border-top: none; border-bottom: none;">
-
-                        <!-- Alert title + timestamp -->
                         <tr>
                           <td style="padding: 24px 24px 0 24px;">
                             <h1 style="margin: 0 0 6px 0; font-size: 20px; font-weight: 700; color: #1e293b; line-height: 1.3;">
@@ -238,8 +338,6 @@ class NotificationService:
                             <span style="font-size: 12px; color: #94a3b8;">{display_ts}</span>
                           </td>
                         </tr>
-
-                        <!-- Description -->
                         <tr>
                           <td style="padding: 14px 24px 0 24px;">
                             <p style="margin: 0; font-size: 14px; color: #475569; line-height: 1.6;">
@@ -247,15 +345,11 @@ class NotificationService:
                             </p>
                           </td>
                         </tr>
-
-                        <!-- Divider -->
                         <tr>
                           <td style="padding: 18px 24px;">
                             <div style="border-top: 1px solid #e2e8f0;"></div>
                           </td>
                         </tr>
-
-                        <!-- Detail row — dashboard metric card style -->
                         <tr>
                           <td style="padding: 0 24px;">
                             <table width="100%" cellpadding="0" cellspacing="0">
@@ -273,8 +367,6 @@ class NotificationService:
                             </table>
                           </td>
                         </tr>
-
-                        <!-- Recommended action — blue accent card like AI Decision Feed -->
                         <tr>
                           <td style="padding: 12px 24px 24px 24px;">
                             <table width="100%" cellpadding="0" cellspacing="0" style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; border-left: 4px solid #2563eb;">
@@ -287,12 +379,9 @@ class NotificationService:
                             </table>
                           </td>
                         </tr>
-
                       </table>
                     </td>
                   </tr>
-
-                  <!-- Footer — matching dashboard border style -->
                   <tr>
                     <td>
                       <table width="100%" cellpadding="0" cellspacing="0" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0 0 12px 12px; border-top: none;">
@@ -314,7 +403,6 @@ class NotificationService:
                       </table>
                     </td>
                   </tr>
-
                 </table>
               </td>
             </tr>
@@ -322,8 +410,6 @@ class NotificationService:
         </body>
         </html>
         """
-
-        recipients = [r.strip() for r in settings.smtp_to.split(",") if r.strip()]
 
         try:
             msg = MIMEMultipart("alternative")
@@ -513,39 +599,28 @@ class NotificationService:
             logger.error("Report email failed: %s", e)
             return False, f"Failed to send email: {e}"
 
-    # ── PENDING_HUMAN approval email ─────────────────────────────────────────
+    async def send_pending_approval_email(self, decision: dict, *, force: bool = False) -> bool:
+        """Send an HTML email for a decision that needs human approval.
 
-    async def send_pending_approval_email(self, decision: dict) -> bool:
-        """Send an HTML email when a decision requires human attention (PENDING_HUMAN or BLOCKED)."""
+        Raises NotificationError with details when force=True (test mode).
+        Returns False silently when force=False (pipeline mode).
+        """
         if not settings.smtp_host or not settings.smtp_to:
+            if force:
+                raise NotificationError("SMTP host or recipients not configured.")
             return False
 
-        if settings.email_notify_on != "human_approval":
-            return False
-
-        guardrail_result = decision.get("guardrailResult", "")
-        if guardrail_result not in ("PENDING_HUMAN", "BLOCKED"):
-            return False
-
-        if not self._check_cooldown("email_approval"):
+        if not force and not self._check_cooldown("email_approval"):
             logger.debug("Approval email skipped (cooldown)")
             return False
 
-        is_blocked = guardrail_result == "BLOCKED"
-        agent_type = decision.get("agentType", "Unknown Agent")
+        agent_type = decision.get("agentType", "unknown").replace("_", " ").title()
         confidence = decision.get("confidence", 0)
-        action = decision.get("action", "N/A")
-        summary = decision.get("summary", "No summary available")
+        confidence_pct = f"{confidence * 100:.0f}%"
+        summary = decision.get("summary", decision.get("action", "Unknown action"))
+        guardrail = decision.get("guardrailResult", "PENDING_HUMAN")
         decision_id = decision.get("id", "N/A")
-        queue_name = decision.get("queueId", "Unknown")
-        violations = decision.get("policyViolations", [])
 
-        subject = (
-            f"[SentinelAI] Decision BLOCKED — {agent_type}" if is_blocked
-            else f"[SentinelAI] Human Approval Required — {agent_type}"
-        )
-
-        # Convert timestamp to IST for display
         from datetime import datetime, timezone, timedelta
         ist = timezone(timedelta(hours=5, minutes=30))
         raw_ts = decision.get("timestamp", "")
@@ -553,240 +628,94 @@ class NotificationService:
             dt = datetime.fromisoformat(raw_ts.replace("Z", "+00:00"))
             display_ts = dt.astimezone(ist).strftime("%d %b %Y, %I:%M %p IST")
         except Exception:
-            display_ts = raw_ts or datetime.now(ist).strftime("%d %b %Y, %I:%M %p IST")
+            display_ts = raw_ts or "N/A"
 
-        confidence_pct = f"{confidence * 100:.0f}%"
-        confidence_color = "#f59e0b" if confidence >= 0.6 else "#ef4444"
-
-        # Style based on blocked vs pending
-        accent_color = "#ef4444" if is_blocked else "#f59e0b"
-        accent_bg = "#fef2f2" if is_blocked else "#fffbeb"
-        badge_label = "BLOCKED" if is_blocked else "APPROVAL REQUIRED"
-        title_text = "Decision Blocked by Guardrails" if is_blocked else "Human Review Required"
-        description_text = (
-            "An AI agent decision was blocked by guardrail policies and requires manual intervention."
-            if is_blocked else
-            "An AI agent decision requires your approval before it can be executed. The confidence score is below the auto-approve threshold."
-        )
-        violations_html = ""
-        if is_blocked and violations:
-            items = "".join(
-                f'<li style="margin-bottom: 4px;">{v}</li>' for v in violations
-            )
-            violations_html = f"""
-                        <tr>
-                          <td style="padding: 12px 24px 0 24px;">
-                            <table width="100%" cellpadding="0" cellspacing="0" style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 12px; border-left: 4px solid #ef4444;">
-                              <tr>
-                                <td style="padding: 14px 16px;">
-                                  <span style="display: block; font-size: 10px; font-weight: 600; color: #ef4444; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Policy Violations</span>
-                                  <ul style="margin: 0; padding-left: 16px; font-size: 13px; color: #1e293b; line-height: 1.6;">{items}</ul>
-                                </td>
-                              </tr>
-                            </table>
-                          </td>
-                        </tr>"""
+        subject = f"[SentinelAI] Human Approval Required — {agent_type} ({confidence_pct})"
 
         html = f"""
         <html>
-        <head>
-          <meta charset="utf-8" />
-          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        </head>
-        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: #f8fafc;">
-          <table width="100%" cellpadding="0" cellspacing="0" style="background: #f8fafc; padding: 32px 16px;">
-            <tr>
-              <td align="center">
-                <table width="600" cellpadding="0" cellspacing="0" style="max-width: 600px; width: 100%;">
-
-                  <!-- Header bar -->
-                  <tr>
-                    <td>
-                      <table width="100%" cellpadding="0" cellspacing="0" style="background: #ffffff; border-radius: 12px 12px 0 0; border: 1px solid #e2e8f0; border-bottom: none;">
-                        <tr>
-                          <td style="padding: 14px 24px;">
-                            <table width="100%" cellpadding="0" cellspacing="0">
-                              <tr>
-                                <td>
-                                  <table cellpadding="0" cellspacing="0">
-                                    <tr>
-                                      <td style="background: linear-gradient(135deg, #3b82f6, #2563eb); width: 32px; height: 32px; border-radius: 8px; text-align: center; vertical-align: middle;">
-                                        <span style="color: #ffffff; font-size: 16px; line-height: 32px;">&#9889;</span>
-                                      </td>
-                                      <td style="padding-left: 10px;">
-                                        <span style="font-size: 17px; font-weight: 700; color: #1e293b; letter-spacing: -0.3px;">Sentinel</span><span style="font-size: 17px; font-weight: 700; color: #3b82f6; letter-spacing: -0.3px;">AI</span>
-                                      </td>
-                                    </tr>
-                                  </table>
-                                </td>
-                                <td align="right" style="vertical-align: middle;">
-                                  <span style="display: inline-block; background: {accent_bg}; color: {accent_color}; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: 0.3px; text-transform: uppercase; border: 1px solid {accent_color}20;">
-                                    {badge_label}
-                                  </span>
-                                </td>
-                              </tr>
-                            </table>
-                          </td>
-                        </tr>
+        <head><meta charset="utf-8" /></head>
+        <body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;background:#f8fafc;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;padding:32px 16px;">
+            <tr><td align="center">
+              <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+                <tr><td>
+                  <table width="100%" style="background:#fff;border-radius:12px 12px 0 0;border:1px solid #e2e8f0;border-bottom:none;">
+                    <tr><td style="padding:14px 24px;">
+                      <table width="100%"><tr>
+                        <td>
+                          <span style="font-size:17px;font-weight:700;color:#1e293b;">Sentinel</span><span style="font-size:17px;font-weight:700;color:#3b82f6;">AI</span>
+                        </td>
+                        <td align="right">
+                          <span style="display:inline-block;background:#fef3c7;color:#f59e0b;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:0.3px;text-transform:uppercase;border:1px solid #f59e0b20;">
+                            APPROVAL REQUIRED
+                          </span>
+                        </td>
+                      </tr></table>
+                    </td></tr>
+                  </table>
+                </td></tr>
+                <tr><td><div style="height:3px;background:#f59e0b;"></div></td></tr>
+                <tr><td>
+                  <table width="100%" style="background:#fff;border:1px solid #e2e8f0;border-top:none;border-bottom:none;">
+                    <tr><td style="padding:24px 24px 0;">
+                      <h1 style="margin:0 0 6px;font-size:20px;font-weight:700;color:#1e293b;">Human Approval Needed</h1>
+                      <span style="font-size:12px;color:#94a3b8;">{display_ts}</span>
+                    </td></tr>
+                    <tr><td style="padding:14px 24px 0;">
+                      <p style="margin:0;font-size:14px;color:#475569;line-height:1.6;">{summary}</p>
+                    </td></tr>
+                    <tr><td style="padding:18px 24px;"><div style="border-top:1px solid #e2e8f0;"></div></td></tr>
+                    <tr><td style="padding:0 24px;">
+                      <table width="100%"><tr>
+                        <td style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:14px 16px;width:30%;">
+                          <span style="display:block;font-size:10px;font-weight:600;color:#94a3b8;text-transform:uppercase;margin-bottom:4px;">Agent</span>
+                          <span style="font-size:15px;font-weight:600;color:#1e293b;">{agent_type}</span>
+                        </td>
+                        <td style="width:3%;"></td>
+                        <td style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:14px 16px;width:30%;">
+                          <span style="display:block;font-size:10px;font-weight:600;color:#94a3b8;text-transform:uppercase;margin-bottom:4px;">Confidence</span>
+                          <span style="font-size:15px;font-weight:700;color:#f59e0b;">{confidence_pct}</span>
+                        </td>
+                        <td style="width:3%;"></td>
+                        <td style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:14px 16px;width:34%;">
+                          <span style="display:block;font-size:10px;font-weight:600;color:#94a3b8;text-transform:uppercase;margin-bottom:4px;">Guardrail</span>
+                          <span style="font-size:15px;font-weight:700;color:#f59e0b;">{guardrail}</span>
+                        </td>
+                      </tr></table>
+                    </td></tr>
+                    <tr><td style="padding:12px 24px 24px;">
+                      <table width="100%" style="background:#fffbeb;border:1px solid #fde68a;border-radius:12px;border-left:4px solid #f59e0b;">
+                        <tr><td style="padding:14px 16px;">
+                          <span style="display:block;font-size:10px;font-weight:600;color:#f59e0b;text-transform:uppercase;margin-bottom:4px;">Decision ID</span>
+                          <span style="font-size:13px;color:#1e293b;font-family:monospace;">{decision_id}</span>
+                        </td></tr>
                       </table>
-                    </td>
-                  </tr>
-
-                  <!-- Accent line -->
-                  <tr>
-                    <td style="padding: 0;"><div style="height: 3px; background: {accent_color};"></div></td>
-                  </tr>
-
-                  <!-- Main content card -->
-                  <tr>
-                    <td>
-                      <table width="100%" cellpadding="0" cellspacing="0" style="background: #ffffff; border: 1px solid #e2e8f0; border-top: none; border-bottom: none;">
-
-                        <!-- Title + timestamp -->
-                        <tr>
-                          <td style="padding: 24px 24px 0 24px;">
-                            <h1 style="margin: 0 0 6px 0; font-size: 20px; font-weight: 700; color: #1e293b; line-height: 1.3;">
-                              {title_text}
-                            </h1>
-                            <span style="font-size: 12px; color: #94a3b8;">{display_ts}</span>
-                          </td>
-                        </tr>
-
-                        <!-- Description -->
-                        <tr>
-                          <td style="padding: 14px 24px 0 24px;">
-                            <p style="margin: 0; font-size: 14px; color: #475569; line-height: 1.6;">
-                              {description_text}
-                            </p>
-                          </td>
-                        </tr>
-
-                        <!-- Divider -->
-                        <tr>
-                          <td style="padding: 18px 24px;">
-                            <div style="border-top: 1px solid #e2e8f0;"></div>
-                          </td>
-                        </tr>
-
-                        <!-- Detail rows -->
-                        <tr>
-                          <td style="padding: 0 24px;">
-                            <table width="100%" cellpadding="0" cellspacing="0">
-                              <tr>
-                                <td style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 16px; width: 48%;">
-                                  <span style="display: block; font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Agent</span>
-                                  <span style="font-size: 15px; font-weight: 600; color: #1e293b;">{agent_type}</span>
-                                </td>
-                                <td style="width: 4%;"></td>
-                                <td style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 16px; width: 48%;">
-                                  <span style="display: block; font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Confidence</span>
-                                  <span style="font-size: 15px; font-weight: 700; color: {confidence_color};">{confidence_pct}</span>
-                                </td>
-                              </tr>
-                            </table>
-                          </td>
-                        </tr>
-
-                        <tr>
-                          <td style="padding: 12px 24px 0 24px;">
-                            <table width="100%" cellpadding="0" cellspacing="0">
-                              <tr>
-                                <td style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 16px; width: 48%;">
-                                  <span style="display: block; font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Queue</span>
-                                  <span style="font-size: 15px; font-weight: 600; color: #1e293b;">{queue_name}</span>
-                                </td>
-                                <td style="width: 4%;"></td>
-                                <td style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 16px; width: 48%;">
-                                  <span style="display: block; font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Decision ID</span>
-                                  <span style="font-size: 13px; font-weight: 500; color: #64748b; font-family: monospace;">{decision_id[:12]}...</span>
-                                </td>
-                              </tr>
-                            </table>
-                          </td>
-                        </tr>
-
-                        {violations_html}
-
-                        <!-- Proposed action -->
-                        <tr>
-                          <td style="padding: 12px 24px 0 24px;">
-                            <table width="100%" cellpadding="0" cellspacing="0" style="background: {accent_bg}; border: 1px solid {"#fecaca" if is_blocked else "#fde68a"}; border-radius: 12px; border-left: 4px solid {accent_color};">
-                              <tr>
-                                <td style="padding: 14px 16px;">
-                                  <span style="display: block; font-size: 10px; font-weight: 600; color: {accent_color}; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Proposed Action</span>
-                                  <span style="font-size: 14px; color: #1e293b; font-weight: 500; line-height: 1.5;">{summary}</span>
-                                </td>
-                              </tr>
-                            </table>
-                          </td>
-                        </tr>
-
-                        <!-- CTA -->
-                        <tr>
-                          <td style="padding: 18px 24px 24px 24px;">
-                            <table width="100%" cellpadding="0" cellspacing="0" style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; border-left: 4px solid #2563eb;">
-                              <tr>
-                                <td style="padding: 14px 16px;">
-                                  <span style="display: block; font-size: 10px; font-weight: 600; color: #2563eb; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">&#9889; Action Needed</span>
-                                  <span style="font-size: 14px; color: #1e293b; font-weight: 500; line-height: 1.5;">{"Open the SentinelAI dashboard to review this blocked decision and take manual action." if is_blocked else "Open the SentinelAI dashboard to approve or reject this decision. It will auto-approve in 30 seconds if no action is taken."}</span>
-                                </td>
-                              </tr>
-                            </table>
-                          </td>
-                        </tr>
-
-                      </table>
-                    </td>
-                  </tr>
-
-                  <!-- Footer -->
-                  <tr>
-                    <td>
-                      <table width="100%" cellpadding="0" cellspacing="0" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0 0 12px 12px; border-top: none;">
-                        <tr>
-                          <td style="padding: 16px 24px;">
-                            <table width="100%" cellpadding="0" cellspacing="0">
-                              <tr>
-                                <td>
-                                  <span style="font-size: 12px; font-weight: 600; color: #1e293b;">Sentinel</span><span style="font-size: 12px; font-weight: 600; color: #3b82f6;">AI</span>
-                                  <span style="font-size: 11px; color: #94a3b8;"> &mdash; Autonomous AI Operations</span>
-                                </td>
-                                <td align="right">
-                                  <span style="font-size: 11px; color: #94a3b8;">Built by </span><span style="font-size: 11px; font-weight: 600; color: #475569;">Cirrus</span><span style="font-size: 11px; font-weight: 600; color: #f87171;">Labs</span>
-                                </td>
-                              </tr>
-                            </table>
-                          </td>
-                        </tr>
-                      </table>
-                    </td>
-                  </tr>
-
-                </table>
-              </td>
-            </tr>
+                    </td></tr>
+                  </table>
+                </td></tr>
+                <tr><td>
+                  <table width="100%" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:0 0 12px 12px;border-top:none;">
+                    <tr><td style="padding:16px 24px;">
+                      <span style="font-size:12px;font-weight:600;color:#1e293b;">Sentinel</span><span style="font-size:12px;font-weight:600;color:#3b82f6;">AI</span>
+                      <span style="font-size:11px;color:#94a3b8;"> — Autonomous AI Operations</span>
+                    </td></tr>
+                  </table>
+                </td></tr>
+              </table>
+            </td></tr>
           </table>
         </body>
         </html>
         """
 
-        recipients = [r.strip() for r in settings.smtp_to.split(",") if r.strip()]
-
         try:
-            await asyncio.to_thread(self._send_smtp, subject, html, recipients)
-            logger.info("Approval email sent to %s: %s — %s", recipients, agent_type, summary)
-            return True
-        except Exception as e:
-            logger.error("Approval email failed: %s", e)
+            return await self._send_email_inner(subject, html)
+        except NotificationError:
+            if force:
+                raise
+            logger.error("Approval email failed", exc_info=True)
             return False
-
-    async def notify_pending_approval(self, decision: dict):
-        """Send email for a PENDING_HUMAN decision (fire-and-forget)."""
-        if settings.email_notify_on == "human_approval" and settings.smtp_host and settings.smtp_to:
-            try:
-                await self.send_pending_approval_email(decision)
-            except Exception as e:
-                logger.error("Pending approval notification error: %s", e)
 
     # ── Dispatch (called from alert pipeline) ───────────────────────────────
 
@@ -803,6 +732,17 @@ class NotificationService:
             for r in results:
                 if isinstance(r, Exception):
                     logger.error("Notification dispatch error: %s", r)
+
+    async def notify_pending_decision(self, decision: dict):
+        """Send pending-approval emails when email_notify_on == 'human_approval'."""
+        if settings.email_notify_on != "human_approval":
+            return
+        if not settings.smtp_host or not settings.smtp_to:
+            return
+        try:
+            await self.send_pending_approval_email(decision)
+        except Exception as e:
+            logger.error("Pending-decision email dispatch error: %s", e)
 
 
 notification_service = NotificationService()
