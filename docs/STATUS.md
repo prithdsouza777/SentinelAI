@@ -25,7 +25,7 @@
 | API: Agent Routes | 100% | agents/decisions/negotiations/audit/governance/human | — |
 | API: Cost/Actions Routes | 100% | cost-impact + actions/log | — |
 | API: Chat Routes | 100% | Analytics Agent, prompt injection guard, NL policies | — |
-| API: Reports Routes | 100% | session report export | — |
+| API: Reports Routes | 100% | session report export (JSON + Email) | — |
 | API: History Routes | 100% | metrics time-series | — |
 | Queue Balancer Agent | 100% | pressure scoring, execute, confidence | — |
 | Predictive Prevention | 100% | velocity tracking, cascade, cooldown | — |
@@ -87,26 +87,11 @@
 ## Test Status
 
 ```
-backend/tests/test_health.py — PASSING (19 tests)
-  test_health_check
-  test_list_queues
-  test_list_scenarios
-  test_chat_endpoint
-  test_chat_what_just_happened
-  test_chat_prompt_injection_blocked
-  test_demo_scenario_listed
-  test_policy_crud
-  test_simulation_start_stop
-  test_agents_list
-  test_agents_decisions
-  test_alerts_list
-  test_cost_impact
-  test_governance_summary
-  test_whatif_endpoint
-  test_chaos_injection
-  test_session_report
+backend/tests/test_health.py — PASSING (20 tests)
+  ...
   test_metrics_history
   test_skill_router_in_agents
+  test_email_report_no_smtp
 ```
 
 Frontend: TypeScript compiles clean (`npx tsc --noEmit` — 0 errors)

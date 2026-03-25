@@ -55,3 +55,7 @@ logs/
 # Claude Code
 CLAUDE.md
 .claude/
+
+backend/agents.db
+backend/agents.db-shm
+backend/agents.db-wal

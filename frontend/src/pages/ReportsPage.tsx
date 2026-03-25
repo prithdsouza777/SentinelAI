@@ -15,7 +15,11 @@ import {
   X,
   Printer,
   Users,
+  Mail,
+  CheckCircle2,
 } from "lucide-react";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { AnimatePresence, motion } from "framer-motion";
@@ -180,6 +184,8 @@ export default function ReportsPage() {
   const report = useDashboardStore((s) => s.sessionReport);
   const setReport = useDashboardStore((s) => s.setSessionReport);
   const [loading, setLoading] = useState(false);
+  const [emailSending, setEmailSending] = useState(false);
+  const [emailFeedback, setEmailFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
   const [severityFilter, setSeverityFilter] = useState<AlertSeverity | null>(null);
   const [agentHighlight, setAgentHighlight] = useState<AgentType | null>(null);
 
@@ -242,6 +248,58 @@ export default function ReportsPage() {
       setReport(await res.json());
     } finally {
       setLoading(false);
+    }
+  };
+
+  const sendReportEmail = async () => {
+    if (!report) return;
+    setEmailSending(true);
+    setEmailFeedback(null);
+    try {
+      // 1. Generate PDF content
+      let pdfBase64: string | null = null;
+      const pdfElement = document.getElementById("pdf-capture-root");
+      
+      if (pdfElement) {
+        // Wait for charts to settle (recharts animations)
+        await new Promise(r => setTimeout(r, 800));
+        
+        const canvas = await html2canvas(pdfElement, {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          backgroundColor: "#ffffff"
+        });
+        
+        const imgData = canvas.toDataURL("image/jpeg", 0.9);
+        const pdf = new jsPDF("p", "mm", "a4");
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+        
+        pdf.addImage(imgData, "JPEG", 0, 0, pdfWidth, pdfHeight);
+        pdfBase64 = pdf.output("datauristring");
+      }
+
+      // 2. Send to backend
+      const res = await fetch("/api/reports/email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pdfBase64 })
+      });
+      
+      const data = await res.json();
+      if (res.ok) {
+        setEmailFeedback({ ok: true, msg: data.message ?? "Report emailed successfully with PDF." });
+      } else {
+        const detail = data.detail ?? data;
+        setEmailFeedback({ ok: false, msg: detail.message ?? "Failed to send email." });
+      }
+    } catch (err) {
+      console.error("PDF/Email error:", err);
+      setEmailFeedback({ ok: false, msg: "Error generating report PDF or sending email." });
+    } finally {
+      setEmailSending(false);
+      setTimeout(() => setEmailFeedback(null), 5000);
     }
   };
 
@@ -575,7 +633,6 @@ export default function ReportsPage() {
             <Button
               onClick={() => {
                 setPrintPreviewOpen(true);
-                // Wait for portal to render, then trigger print and auto-close
                 requestAnimationFrame(() => {
                   setTimeout(() => {
                     window.print();
@@ -590,8 +647,50 @@ export default function ReportsPage() {
               {printPreviewOpen ? "Generating..." : "Print Report"}
             </Button>
           )}
+
+          {report && (
+            <Button
+              onClick={sendReportEmail}
+              variant="secondary"
+              className="print-hide gap-2"
+              disabled={emailSending}
+            >
+              <Mail className={cn("mr-2 h-4 w-4", emailSending && "animate-pulse")} />
+              {emailSending ? "Sending..." : "Email Report"}
+            </Button>
+          )}
         </div>
       </div>
+
+      {/* Email feedback banner */}
+      <AnimatePresence>
+        {emailFeedback && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2 }}
+            className={cn(
+              "print-hide flex items-center gap-2 rounded-md border px-4 py-2.5 text-sm font-medium",
+              emailFeedback.ok
+                ? "border-[var(--success)] bg-[var(--success)]/10 text-[var(--success)]"
+                : "border-[var(--danger)] bg-[var(--danger)]/10 text-[var(--danger)]"
+            )}
+          >
+            {emailFeedback.ok
+              ? <CheckCircle2 className="h-4 w-4 shrink-0" />
+              : <AlertTriangle className="h-4 w-4 shrink-0" />}
+            <span>{emailFeedback.msg}</span>
+            <button
+              onClick={() => setEmailFeedback(null)}
+              className="ml-auto opacity-60 hover:opacity-100 transition-opacity"
+              aria-label="Dismiss"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Empty state */}
       {!report ? (
@@ -1388,6 +1487,23 @@ export default function ReportsPage() {
               </ChartCard>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Hidden PDF Capture Area */}
+      {report && (
+        <div 
+          id="pdf-capture-root" 
+          className="fixed -left-[9999px] top-0 w-[800px] bg-white text-black p-8"
+          style={{ zIndex: -100 }}
+        >
+          <PrintReportView 
+            report={report} 
+            operatorRole={operatorRole}
+            sessionName={report.simulationScenario || "Idle"}
+            generatedAt={report.generatedAt}
+            durationSeconds={report.simulationTick * 2}
+          />
         </div>
       )}
 
