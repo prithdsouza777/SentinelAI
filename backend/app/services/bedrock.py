@@ -215,7 +215,7 @@ class BedrockLLM:
         _trim_history()
 
         try:
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
             system = [{"text": SYSTEM_PROMPT}]
             messages = self._to_converse_messages(_conversation_history)
 
@@ -320,7 +320,7 @@ class AnthropicLLM:
         _trim_history()
 
         try:
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
 
             response = await loop.run_in_executor(
                 None,
@@ -468,7 +468,7 @@ class BedrockService:
 
         if isinstance(llm, BedrockLLM):
             try:
-                loop = asyncio.get_event_loop()
+                loop = asyncio.get_running_loop()
                 coro = loop.run_in_executor(
                     None,
                     lambda: llm._converse(
@@ -492,7 +492,7 @@ class BedrockService:
 
         if isinstance(llm, AnthropicLLM):
             try:
-                loop = asyncio.get_event_loop()
+                loop = asyncio.get_running_loop()
                 coro = loop.run_in_executor(
                     None,
                     lambda: llm._client.messages.create(

@@ -6,7 +6,7 @@ Includes spike protection, absolute thresholds, and per-queue cooldowns.
 """
 
 import time
-from collections import defaultdict
+from collections import defaultdict, deque
 from datetime import datetime, timezone
 
 from app.models import Alert, AlertSeverity, QueueMetrics
@@ -14,9 +14,11 @@ from app.models import Alert, AlertSeverity, QueueMetrics
 
 class AnomalyEngine:
     def __init__(self):
-        # Rolling baselines per queue per metric
-        self.baselines: dict[str, dict[str, list[float]]] = defaultdict(lambda: defaultdict(list))
+        # Rolling baselines per queue per metric (deque auto-caps at window size)
         self.baseline_window = 60  # Number of samples for rolling average
+        self.baselines: dict[str, dict[str, deque[float]]] = defaultdict(
+            lambda: defaultdict(lambda: deque(maxlen=60))
+        )
         # Per-queue alert cooldowns: (queue_id, alert_type) -> last fire time
         self._cooldowns: dict[tuple[str, str], float] = {}
         self._cooldown_seconds = 18.0  # Min seconds between same alert for same queue
@@ -37,9 +39,7 @@ class AnomalyEngine:
                 # Don't add spiked values — keeps baseline stable
                 return
 
-        history.append(value)
-        if len(history) > self.baseline_window:
-            history.pop(0)
+        history.append(value)  # deque auto-evicts oldest when full
 
     def get_baseline(self, queue_id: str, metric: str) -> tuple[float, float]:
         """Get rolling average and standard deviation for a metric."""

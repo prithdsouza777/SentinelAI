@@ -5,7 +5,7 @@ AuditEntry       : immutable record of every decision + outcome
 GuardrailPolicy  : a named hard rule that can block or flag decisions
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 
 from pydantic import BaseModel, Field
@@ -43,4 +43,4 @@ class AuditEntry(BaseModel):
     policy_violations: list[str] = []
     approved_by: str | None = None  # "system" / "human" / None (blocked)
     execution_result: str | None = None  # "success" / "failed" / None
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

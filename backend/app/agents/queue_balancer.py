@@ -325,13 +325,14 @@ class QueueBalancerAgent:
                     reverse=True,
                 )
                 moved = 0
+                remaining = len(candidates)
                 for agent in candidates[:count]:
                     # Respect min staffing: keep at least 2 in source queue
-                    remaining = len(agent_database.get_agents_in_queue(from_q))
                     if remaining <= 2:
                         break
                     agent_database.move_agent(agent.id, to_q)
                     moved += 1
+                    remaining -= 1
                     logger.info(
                         "QB moved %s (target %s fitness: %.2f, source %s fitness: %.2f) from %s to %s",
                         agent.name,

@@ -259,12 +259,17 @@ class AgentDatabase:
     def __init__(self) -> None:
         self._initialized = False
         self._db_path = str(DB_PATH)
+        self._conn: sqlite3.Connection | None = None
 
     def _connect(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(self._db_path)
+        """Return a cached SQLite connection (WAL mode, single-writer safe)."""
+        if self._conn is not None:
+            return self._conn
+        conn = sqlite3.connect(self._db_path, check_same_thread=False)
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA journal_mode=WAL")
         conn.execute("PRAGMA foreign_keys=ON")
+        self._conn = conn
         return conn
 
     def initialize(self) -> None:
@@ -286,7 +291,7 @@ class AgentDatabase:
 
             conn.commit()
         finally:
-            conn.close()
+            pass  # Connection cached for reuse
 
         self._initialized = True
 
@@ -325,7 +330,7 @@ class AgentDatabase:
     # ── Row → Model conversion ───────────────────────────────────────────────
 
     def _row_to_profile(self, conn: sqlite3.Connection, row: sqlite3.Row) -> HumanAgentProfile:
-        """Convert an agent row + related rows into a HumanAgentProfile."""
+        """Convert an agent row + related rows into a HumanAgentProfile (2 extra queries)."""
         agent_id = row["id"]
 
         skills = [
@@ -361,6 +366,59 @@ class AgentDatabase:
             status=row["status"],
         )
 
+    def _batch_load_profiles(self, conn: sqlite3.Connection, agent_rows: list[sqlite3.Row]) -> list[HumanAgentProfile]:
+        """Batch-load profiles for multiple agents using 2 queries instead of 2*N.
+
+        Avoids the N+1 query problem: fetches all skills and dept scores in bulk,
+        then assembles profiles in-memory.
+        """
+        if not agent_rows:
+            return []
+
+        agent_ids = [r["id"] for r in agent_rows]
+        placeholders = ",".join("?" for _ in agent_ids)
+
+        # Batch fetch all skills for these agents (1 query)
+        skills_map: dict[str, list[SkillProficiency]] = {aid: [] for aid in agent_ids}
+        for r in conn.execute(
+            f"SELECT agent_id, skill_name, proficiency FROM skill_proficiencies "
+            f"WHERE agent_id IN ({placeholders}) ORDER BY proficiency DESC",
+            agent_ids,
+        ):
+            skills_map[r["agent_id"]].append(
+                SkillProficiency(skill_name=r["skill_name"], proficiency=r["proficiency"])
+            )
+
+        # Batch fetch all dept scores for these agents (1 query)
+        dept_map: dict[str, list[DepartmentFitness]] = {aid: [] for aid in agent_ids}
+        for r in conn.execute(
+            f"SELECT agent_id, department_id, department_name, fitness_score FROM department_scores "
+            f"WHERE agent_id IN ({placeholders}) ORDER BY fitness_score DESC",
+            agent_ids,
+        ):
+            dept_map[r["agent_id"]].append(
+                DepartmentFitness(
+                    department_id=r["department_id"],
+                    department_name=r["department_name"],
+                    fitness_score=r["fitness_score"],
+                )
+            )
+
+        return [
+            HumanAgentProfile(
+                id=row["id"],
+                name=row["name"],
+                current_queue_id=row["current_queue_id"],
+                home_queue_id=row["home_queue_id"],
+                role=row["role"],
+                perf_score=row["perf_score"],
+                skill_proficiencies=skills_map.get(row["id"], []),
+                department_scores=dept_map.get(row["id"], []),
+                status=row["status"],
+            )
+            for row in agent_rows
+        ]
+
     # ── Score computation ────────────────────────────────────────────────────
 
     def recompute_scores(self, agent_id: str) -> None:
@@ -395,7 +453,7 @@ class AgentDatabase:
                 )
             conn.commit()
         finally:
-            conn.close()
+            pass  # Connection cached for reuse
 
     # ── Lookups ──────────────────────────────────────────────────────────────
 
@@ -407,15 +465,28 @@ class AgentDatabase:
                 return None
             return self._row_to_profile(conn, row)
         finally:
-            conn.close()
+            pass  # Connection cached for reuse
+
+    def get_agent_by_name(self, name: str) -> Optional[HumanAgentProfile]:
+        """Find a single agent by name (case-insensitive). Much faster than get_all_agents() for lookups."""
+        conn = self._connect()
+        try:
+            row = conn.execute(
+                "SELECT * FROM agents WHERE LOWER(name) = LOWER(?)", (name,)
+            ).fetchone()
+            if not row:
+                return None
+            return self._row_to_profile(conn, row)
+        finally:
+            pass  # Connection cached for reuse
 
     def get_all_agents(self) -> list[HumanAgentProfile]:
         conn = self._connect()
         try:
             rows = conn.execute("SELECT * FROM agents ORDER BY name").fetchall()
-            return [self._row_to_profile(conn, r) for r in rows]
+            return self._batch_load_profiles(conn, rows)
         finally:
-            conn.close()
+            pass  # Connection cached for reuse
 
     def get_agents_in_queue(self, queue_id: str) -> list[HumanAgentProfile]:
         conn = self._connect()
@@ -423,9 +494,9 @@ class AgentDatabase:
             rows = conn.execute(
                 "SELECT * FROM agents WHERE current_queue_id = ?", (queue_id,)
             ).fetchall()
-            return [self._row_to_profile(conn, r) for r in rows]
+            return self._batch_load_profiles(conn, rows)
         finally:
-            conn.close()
+            pass  # Connection cached for reuse
 
     # ── Smart selection ──────────────────────────────────────────────────────
 
@@ -491,7 +562,7 @@ class AgentDatabase:
 
             return result
         finally:
-            conn.close()
+            pass  # Connection cached for reuse
 
     # ── Mutations ────────────────────────────────────────────────────────────
 
@@ -522,7 +593,7 @@ class AgentDatabase:
                 )
             return True, fitness, "OK"
         finally:
-            conn.close()
+            pass  # Connection cached for reuse
 
     def move_agent(self, agent_id: str, new_queue_id: str, force: bool = False) -> bool:
         """Reassign an agent to a new queue. Persisted to SQLite.
@@ -563,7 +634,7 @@ class AgentDatabase:
             )
             return True
         finally:
-            conn.close()
+            pass  # Connection cached for reuse
 
     def update_status(self, agent_id: str, status: str) -> None:
         """Update a single agent's status (available, busy, on_break)."""
@@ -572,7 +643,7 @@ class AgentDatabase:
             conn.execute("UPDATE agents SET status = ? WHERE id = ?", (status, agent_id))
             conn.commit()
         finally:
-            conn.close()
+            pass  # Connection cached for reuse
 
     def update_statuses_bulk(self, updates: list[tuple[str, str]]) -> None:
         """Bulk-update agent statuses. Each tuple is (agent_id, status)."""
@@ -581,7 +652,7 @@ class AgentDatabase:
             conn.executemany("UPDATE agents SET status = ? WHERE id = ?", [(s, aid) for aid, s in updates])
             conn.commit()
         finally:
-            conn.close()
+            pass  # Connection cached for reuse
 
     def reset(self) -> None:
         """Reset all agents to their home queues (called on simulation restart)."""
@@ -591,7 +662,7 @@ class AgentDatabase:
             conn.commit()
             logger.info("Agent database reset — all agents returned to home queues")
         finally:
-            conn.close()
+            pass  # Connection cached for reuse
 
     # ── Backward compat: produce old-style dicts for SkillRouter ─────────────
 
@@ -620,7 +691,7 @@ class AgentDatabase:
                 })
             return result
         finally:
-            conn.close()
+            pass  # Connection cached for reuse
 
 
 # Singleton

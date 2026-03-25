@@ -41,18 +41,49 @@ class ConnectionManager:
             "data": data,
             "timestamp": datetime.now(timezone.utc).isoformat(),
         })
-        # WebSocket clients
+        # WebSocket clients — remove dead connections on send failure
+        dead: list[WebSocket] = []
         for connection in self.active_connections:
             try:
                 await connection.send_text(message)
-            except Exception as e:
-                logger.debug("WS send failed: %s", e)
+            except Exception:
+                dead.append(connection)
+        for conn in dead:
+            self.active_connections.remove(conn)
         # SSE subscribers
         for q in self.sse_queues:
             try:
                 q.put_nowait(message)
             except asyncio.QueueFull:
                 pass  # drop oldest events for slow clients
+
+
+    async def broadcast_batch(self, events: list[tuple[str, dict]]):
+        """Broadcast multiple events in a single WS frame (reduces per-message overhead)."""
+        if not events:
+            return
+        now = datetime.now(timezone.utc).isoformat()
+        messages = [
+            {"event": event, "data": data, "timestamp": now}
+            for event, data in events
+        ]
+        payload = json.dumps(messages)
+        # WebSocket clients — send batch as JSON array
+        dead: list[WebSocket] = []
+        for connection in self.active_connections:
+            try:
+                await connection.send_text(payload)
+            except Exception:
+                dead.append(connection)
+        for conn in dead:
+            self.active_connections.remove(conn)
+        # SSE subscribers — send individual events (SSE is line-based)
+        for q in self.sse_queues:
+            for msg in messages:
+                try:
+                    q.put_nowait(json.dumps(msg))
+                except asyncio.QueueFull:
+                    break
 
 
 manager = ConnectionManager()

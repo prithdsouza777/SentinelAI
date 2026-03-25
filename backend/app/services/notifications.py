@@ -25,6 +25,8 @@ class NotificationService:
     def __init__(self):
         # Per-channel cooldowns: channel -> last_send_time
         self._cooldowns: dict[str, float] = {}
+        # Shared HTTP client for connection reuse (Teams webhooks)
+        self._http_client: httpx.AsyncClient | None = None
 
     def _check_cooldown(self, channel: str) -> bool:
         """Return True if enough time has passed since last notification on this channel."""
@@ -113,14 +115,15 @@ class NotificationService:
         }
 
         try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                resp = await client.post(url, json=card)
-                if resp.status_code in (200, 202):
-                    logger.info("Teams notification sent: %s", alert.get("title"))
-                    return True
-                else:
-                    logger.warning("Teams webhook returned %s: %s", resp.status_code, resp.text[:200])
-                    return False
+            if self._http_client is None:
+                self._http_client = httpx.AsyncClient(timeout=10.0)
+            resp = await self._http_client.post(url, json=card)
+            if resp.status_code in (200, 202):
+                logger.info("Teams notification sent: %s", alert.get("title"))
+                return True
+            else:
+                logger.warning("Teams webhook returned %s: %s", resp.status_code, resp.text[:200])
+                return False
         except Exception as e:
             logger.error("Teams notification failed: %s", e)
             return False
