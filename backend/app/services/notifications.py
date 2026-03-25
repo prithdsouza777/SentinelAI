@@ -339,25 +339,34 @@ class NotificationService:
     # ── PENDING_HUMAN approval email ─────────────────────────────────────────
 
     async def send_pending_approval_email(self, decision: dict) -> bool:
-        """Send an HTML email when a decision requires human approval."""
+        """Send an HTML email when a decision requires human attention (PENDING_HUMAN or BLOCKED)."""
         if not settings.smtp_host or not settings.smtp_to:
             return False
 
         if settings.email_notify_on != "human_approval":
             return False
 
+        guardrail_result = decision.get("guardrailResult", "")
+        if guardrail_result not in ("PENDING_HUMAN", "BLOCKED"):
+            return False
+
         if not self._check_cooldown("email_approval"):
             logger.debug("Approval email skipped (cooldown)")
             return False
 
+        is_blocked = guardrail_result == "BLOCKED"
         agent_type = decision.get("agentType", "Unknown Agent")
         confidence = decision.get("confidence", 0)
         action = decision.get("action", "N/A")
         summary = decision.get("summary", "No summary available")
         decision_id = decision.get("id", "N/A")
         queue_name = decision.get("queueId", "Unknown")
+        violations = decision.get("policyViolations", [])
 
-        subject = f"[SentinelAI] Human Approval Required — {agent_type}"
+        subject = (
+            f"[SentinelAI] Decision BLOCKED — {agent_type}" if is_blocked
+            else f"[SentinelAI] Human Approval Required — {agent_type}"
+        )
 
         # Convert timestamp to IST for display
         from datetime import datetime, timezone, timedelta
@@ -371,6 +380,35 @@ class NotificationService:
 
         confidence_pct = f"{confidence * 100:.0f}%"
         confidence_color = "#f59e0b" if confidence >= 0.6 else "#ef4444"
+
+        # Style based on blocked vs pending
+        accent_color = "#ef4444" if is_blocked else "#f59e0b"
+        accent_bg = "#fef2f2" if is_blocked else "#fffbeb"
+        badge_label = "BLOCKED" if is_blocked else "APPROVAL REQUIRED"
+        title_text = "Decision Blocked by Guardrails" if is_blocked else "Human Review Required"
+        description_text = (
+            "An AI agent decision was blocked by guardrail policies and requires manual intervention."
+            if is_blocked else
+            "An AI agent decision requires your approval before it can be executed. The confidence score is below the auto-approve threshold."
+        )
+        violations_html = ""
+        if is_blocked and violations:
+            items = "".join(
+                f'<li style="margin-bottom: 4px;">{v}</li>' for v in violations
+            )
+            violations_html = f"""
+                        <tr>
+                          <td style="padding: 12px 24px 0 24px;">
+                            <table width="100%" cellpadding="0" cellspacing="0" style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 12px; border-left: 4px solid #ef4444;">
+                              <tr>
+                                <td style="padding: 14px 16px;">
+                                  <span style="display: block; font-size: 10px; font-weight: 600; color: #ef4444; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Policy Violations</span>
+                                  <ul style="margin: 0; padding-left: 16px; font-size: 13px; color: #1e293b; line-height: 1.6;">{items}</ul>
+                                </td>
+                              </tr>
+                            </table>
+                          </td>
+                        </tr>"""
 
         html = f"""
         <html>
@@ -405,8 +443,8 @@ class NotificationService:
                                   </table>
                                 </td>
                                 <td align="right" style="vertical-align: middle;">
-                                  <span style="display: inline-block; background: #fffbeb; color: #f59e0b; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: 0.3px; text-transform: uppercase; border: 1px solid #f59e0b20;">
-                                    APPROVAL REQUIRED
+                                  <span style="display: inline-block; background: {accent_bg}; color: {accent_color}; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: 0.3px; text-transform: uppercase; border: 1px solid {accent_color}20;">
+                                    {badge_label}
                                   </span>
                                 </td>
                               </tr>
@@ -417,9 +455,9 @@ class NotificationService:
                     </td>
                   </tr>
 
-                  <!-- Amber accent line -->
+                  <!-- Accent line -->
                   <tr>
-                    <td style="padding: 0;"><div style="height: 3px; background: #f59e0b;"></div></td>
+                    <td style="padding: 0;"><div style="height: 3px; background: {accent_color};"></div></td>
                   </tr>
 
                   <!-- Main content card -->
@@ -431,7 +469,7 @@ class NotificationService:
                         <tr>
                           <td style="padding: 24px 24px 0 24px;">
                             <h1 style="margin: 0 0 6px 0; font-size: 20px; font-weight: 700; color: #1e293b; line-height: 1.3;">
-                              Human Review Required
+                              {title_text}
                             </h1>
                             <span style="font-size: 12px; color: #94a3b8;">{display_ts}</span>
                           </td>
@@ -441,7 +479,7 @@ class NotificationService:
                         <tr>
                           <td style="padding: 14px 24px 0 24px;">
                             <p style="margin: 0; font-size: 14px; color: #475569; line-height: 1.6;">
-                              An AI agent decision requires your approval before it can be executed. The confidence score is below the auto-approve threshold.
+                              {description_text}
                             </p>
                           </td>
                         </tr>
@@ -490,13 +528,15 @@ class NotificationService:
                           </td>
                         </tr>
 
+                        {violations_html}
+
                         <!-- Proposed action -->
                         <tr>
                           <td style="padding: 12px 24px 0 24px;">
-                            <table width="100%" cellpadding="0" cellspacing="0" style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; border-left: 4px solid #f59e0b;">
+                            <table width="100%" cellpadding="0" cellspacing="0" style="background: {accent_bg}; border: 1px solid {"#fecaca" if is_blocked else "#fde68a"}; border-radius: 12px; border-left: 4px solid {accent_color};">
                               <tr>
                                 <td style="padding: 14px 16px;">
-                                  <span style="display: block; font-size: 10px; font-weight: 600; color: #d97706; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Proposed Action</span>
+                                  <span style="display: block; font-size: 10px; font-weight: 600; color: {accent_color}; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Proposed Action</span>
                                   <span style="font-size: 14px; color: #1e293b; font-weight: 500; line-height: 1.5;">{summary}</span>
                                 </td>
                               </tr>
@@ -511,7 +551,7 @@ class NotificationService:
                               <tr>
                                 <td style="padding: 14px 16px;">
                                   <span style="display: block; font-size: 10px; font-weight: 600; color: #2563eb; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">&#9889; Action Needed</span>
-                                  <span style="font-size: 14px; color: #1e293b; font-weight: 500; line-height: 1.5;">Open the SentinelAI dashboard to approve or reject this decision. It will auto-approve in 30 seconds if no action is taken.</span>
+                                  <span style="font-size: 14px; color: #1e293b; font-weight: 500; line-height: 1.5;">{"Open the SentinelAI dashboard to review this blocked decision and take manual action." if is_blocked else "Open the SentinelAI dashboard to approve or reject this decision. It will auto-approve in 30 seconds if no action is taken."}</span>
                                 </td>
                               </tr>
                             </table>
