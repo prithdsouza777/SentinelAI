@@ -45,7 +45,7 @@ Key milestones achieved:
 - 6 simulation scenarios including choreographed 3-minute demo
 - Full dark glassmorphism UI with light theme toggle (shadcn/ui + Aceternity UI)
 - Landing page, login gate, reports dashboard added
-- 19/19 backend tests passing, 0 TypeScript errors
+- 20/20 backend tests passing, 0 TypeScript errors
 
 ---
 

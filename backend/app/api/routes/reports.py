@@ -6,19 +6,21 @@ export and compliance. No LLM calls — pure data aggregation from in-memory sta
 
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, HTTPException, Request
+from pydantic import BaseModel, Field
 
 from app.agents.guardrails import guardrails
+from app.services.notifications import notification_service
+from app.config import settings
 
 router = APIRouter()
 
 
-@router.get("/reports/session")
-async def session_report(request: Request):
-    """Generate a comprehensive session report from in-memory state.
+async def _build_report(request: Request) -> dict:
+    """Aggregate in-memory state into a session report dict.
 
-    Returns aggregated metrics, decisions, alerts, cost impact,
-    governance scorecard, and routing log — designed for export/compliance.
+    Shared by GET /reports/session (JSON export) and
+    POST /reports/email (email delivery) to avoid duplication.
     """
     from app.agents.orchestrator import orchestrator
     from app.services.simulation import simulation_engine
@@ -26,19 +28,18 @@ async def session_report(request: Request):
     alerts = list(getattr(request.app.state, "recent_alerts", []))
     decisions = list(getattr(request.app.state, "recent_decisions", []))
     negotiations = list(getattr(request.app.state, "recent_negotiations", []))
-    metrics_history = list(getattr(request.app.state, "metrics_history", []))
 
     # ── Alert summary ──
     active_alerts = [a for a in alerts if not a.get("resolvedAt")]
     resolved_alerts = [a for a in alerts if a.get("resolvedAt")]
-    alerts_by_severity = {}
+    alerts_by_severity: dict[str, int] = {}
     for a in alerts:
         sev = a.get("severity", "unknown")
         alerts_by_severity[sev] = alerts_by_severity.get(sev, 0) + 1
 
     # ── Decision summary ──
-    decisions_by_agent = {}
-    decisions_by_guardrail = {}
+    decisions_by_agent: dict[str, int] = {}
+    decisions_by_guardrail: dict[str, int] = {}
     for d in decisions:
         agent = d.get("agentType", "unknown")
         gr = d.get("guardrailResult", "unknown")
@@ -48,7 +49,7 @@ async def session_report(request: Request):
     acted = [d for d in decisions if d.get("phase") == "acted"]
 
     # ── Queue performance summary ──
-    queue_summary = {}
+    queue_summary: dict = {}
     latest_metrics = getattr(request.app.state, "latest_metrics", {})
     for qid, m in latest_metrics.items():
         queue_summary[m.get("queueName", qid)] = {
@@ -81,7 +82,6 @@ async def session_report(request: Request):
             all_agents = agent_database.get_all_agents()
             workforce_summary["totalAgents"] = len(all_agents)
 
-            # By status
             status_counts: dict[str, int] = {}
             role_counts: dict[str, int] = {}
             dept_counts: dict[str, int] = {}
@@ -98,15 +98,18 @@ async def session_report(request: Request):
                     relocated += 1
                 perf_total += a.perf_score
                 for ds in a.department_scores:
-                    dept_fitness_totals.setdefault(ds.department_name, []).append(ds.fitness_score)
+                    dept_fitness_totals.setdefault(ds.department_name, []).append(
+                        ds.fitness_score
+                    )
 
             workforce_summary["byStatus"] = status_counts
             workforce_summary["byRole"] = role_counts
             workforce_summary["byDepartment"] = dept_counts
             workforce_summary["relocated"] = relocated
-            workforce_summary["avgPerfScore"] = round(perf_total / max(len(all_agents), 1), 3)
+            workforce_summary["avgPerfScore"] = round(
+                perf_total / max(len(all_agents), 1), 3
+            )
 
-            # Top 5 performers
             sorted_by_perf = sorted(all_agents, key=lambda a: -a.perf_score)[:5]
             workforce_summary["topPerformers"] = [
                 {
@@ -123,7 +126,6 @@ async def session_report(request: Request):
                 for a in sorted_by_perf
             ]
 
-            # Average fitness per department
             workforce_summary["departmentFitness"] = {
                 dept: round(sum(scores) / len(scores), 3)
                 for dept, scores in dept_fitness_totals.items()
@@ -136,40 +138,82 @@ async def session_report(request: Request):
         "generatedAt": datetime.now(timezone.utc).isoformat(),
         "simulationTick": simulation_engine.tick,
         "simulationScenario": simulation_engine.scenario,
-
         "alerts": {
             "total": len(alerts),
             "active": len(active_alerts),
             "resolved": len(resolved_alerts),
             "bySeverity": alerts_by_severity,
         },
-
         "decisions": {
             "total": len(decisions),
             "executed": len(acted),
             "byAgent": decisions_by_agent,
             "byGuardrailResult": decisions_by_guardrail,
         },
-
         "negotiations": {
             "total": len(negotiations),
         },
-
         "costImpact": {
             "totalSaved": round(orchestrator._total_saved, 2),
             "revenueAtRisk": round(orchestrator._revenue_at_risk, 2),
             "preventedAbandoned": orchestrator._prevented_abandoned,
             "actionsToday": orchestrator._actions_today,
         },
-
         "governance": guardrails.get_governance_summary(),
-
         "queues": queue_summary,
-
         "skillRouting": {
             "totalRouted": len(simulation_engine._routing_log),
             "recentRoutings": routing_log,
         },
-
         "workforce": workforce_summary,
+    }
+
+
+@router.get("/reports/session")
+async def session_report(request: Request):
+    """Generate a comprehensive session report from in-memory state.
+
+    Returns aggregated metrics, decisions, alerts, cost impact,
+    governance scorecard, and routing log — designed for export/compliance.
+    """
+    return await _build_report(request)
+
+
+class EmailReportRequest(BaseModel):
+    pdf_base64: str | None = Field(None, alias="pdfBase64")
+
+
+@router.post("/reports/email")
+async def email_report(request: Request, body: EmailReportRequest):
+    """Email the current session report to configured SMTP recipients.
+
+    Requires SMTP to be configured in Settings → Notifications.
+    This is a user-triggered call — no cooldown is applied.
+    """
+    if not settings.smtp_host or not settings.smtp_to:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "status": "error",
+                "message": "SMTP not configured. Go to Settings → Notifications to set it up.",
+            },
+        )
+
+    report = await _build_report(request)
+    ok, message = await notification_service.send_report_email(
+        report=report,
+        attachment_base64=body.pdf_base64,
+        attachment_name=f"SentinelAI_Report_{report.get('simulationScenario', 'Session')}_{report.get('simulationTick', 0)}.pdf",
+    )
+
+    if not ok:
+        raise HTTPException(
+            status_code=500,
+            detail={"status": "error", "message": message},
+        )
+
+    return {
+        "status": "ok",
+        "message": message,
+        "sentTo": settings.smtp_to,
     }

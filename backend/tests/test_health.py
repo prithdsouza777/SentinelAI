@@ -248,3 +248,15 @@ async def test_skill_router_in_agents():
     agents = r.json()["agents"]
     types = [a["type"] for a in agents]
     assert "skill_router" in types
+
+
+@pytest.mark.asyncio
+async def test_email_report_no_smtp():
+    """POST /api/reports/email returns 400 when SMTP is not configured (default CI state)."""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        r = await client.post("/api/reports/email", json={"pdfBase64": None})
+    assert r.status_code == 400
+    detail = r.json().get("detail", {})
+    assert detail.get("status") == "error"
+    assert "SMTP" in detail.get("message", "")
