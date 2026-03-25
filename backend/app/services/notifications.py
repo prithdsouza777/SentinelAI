@@ -39,7 +39,7 @@ class NotificationService:
 
     def _should_notify(self, severity: str, notify_on: str) -> bool:
         """Check if this severity level warrants a notification given the config."""
-        if notify_on == "none":
+        if notify_on == "none" or notify_on == "human_approval":
             return False
         if notify_on == "all":
             return True
@@ -335,6 +335,241 @@ class NotificationService:
             if settings.smtp_user and settings.smtp_password:
                 server.login(settings.smtp_user, settings.smtp_password)
             server.sendmail(msg["From"], recipients, msg.as_string())
+
+    # ── PENDING_HUMAN approval email ─────────────────────────────────────────
+
+    async def send_pending_approval_email(self, decision: dict) -> bool:
+        """Send an HTML email when a decision requires human approval."""
+        if not settings.smtp_host or not settings.smtp_to:
+            return False
+
+        if settings.email_notify_on != "human_approval":
+            return False
+
+        if not self._check_cooldown("email_approval"):
+            logger.debug("Approval email skipped (cooldown)")
+            return False
+
+        agent_type = decision.get("agentType", "Unknown Agent")
+        confidence = decision.get("confidence", 0)
+        action = decision.get("action", "N/A")
+        summary = decision.get("summary", "No summary available")
+        decision_id = decision.get("id", "N/A")
+        queue_name = decision.get("queueId", "Unknown")
+
+        subject = f"[SentinelAI] Human Approval Required — {agent_type}"
+
+        # Convert timestamp to IST for display
+        from datetime import datetime, timezone, timedelta
+        ist = timezone(timedelta(hours=5, minutes=30))
+        raw_ts = decision.get("timestamp", "")
+        try:
+            dt = datetime.fromisoformat(raw_ts.replace("Z", "+00:00"))
+            display_ts = dt.astimezone(ist).strftime("%d %b %Y, %I:%M %p IST")
+        except Exception:
+            display_ts = raw_ts or datetime.now(ist).strftime("%d %b %Y, %I:%M %p IST")
+
+        confidence_pct = f"{confidence * 100:.0f}%"
+        confidence_color = "#f59e0b" if confidence >= 0.6 else "#ef4444"
+
+        html = f"""
+        <html>
+        <head>
+          <meta charset="utf-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        </head>
+        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: #f8fafc;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background: #f8fafc; padding: 32px 16px;">
+            <tr>
+              <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0" style="max-width: 600px; width: 100%;">
+
+                  <!-- Header bar -->
+                  <tr>
+                    <td>
+                      <table width="100%" cellpadding="0" cellspacing="0" style="background: #ffffff; border-radius: 12px 12px 0 0; border: 1px solid #e2e8f0; border-bottom: none;">
+                        <tr>
+                          <td style="padding: 14px 24px;">
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                              <tr>
+                                <td>
+                                  <table cellpadding="0" cellspacing="0">
+                                    <tr>
+                                      <td style="background: linear-gradient(135deg, #3b82f6, #2563eb); width: 32px; height: 32px; border-radius: 8px; text-align: center; vertical-align: middle;">
+                                        <span style="color: #ffffff; font-size: 16px; line-height: 32px;">&#9889;</span>
+                                      </td>
+                                      <td style="padding-left: 10px;">
+                                        <span style="font-size: 17px; font-weight: 700; color: #1e293b; letter-spacing: -0.3px;">Sentinel</span><span style="font-size: 17px; font-weight: 700; color: #3b82f6; letter-spacing: -0.3px;">AI</span>
+                                      </td>
+                                    </tr>
+                                  </table>
+                                </td>
+                                <td align="right" style="vertical-align: middle;">
+                                  <span style="display: inline-block; background: #fffbeb; color: #f59e0b; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: 0.3px; text-transform: uppercase; border: 1px solid #f59e0b20;">
+                                    APPROVAL REQUIRED
+                                  </span>
+                                </td>
+                              </tr>
+                            </table>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+
+                  <!-- Amber accent line -->
+                  <tr>
+                    <td style="padding: 0;"><div style="height: 3px; background: #f59e0b;"></div></td>
+                  </tr>
+
+                  <!-- Main content card -->
+                  <tr>
+                    <td>
+                      <table width="100%" cellpadding="0" cellspacing="0" style="background: #ffffff; border: 1px solid #e2e8f0; border-top: none; border-bottom: none;">
+
+                        <!-- Title + timestamp -->
+                        <tr>
+                          <td style="padding: 24px 24px 0 24px;">
+                            <h1 style="margin: 0 0 6px 0; font-size: 20px; font-weight: 700; color: #1e293b; line-height: 1.3;">
+                              Human Review Required
+                            </h1>
+                            <span style="font-size: 12px; color: #94a3b8;">{display_ts}</span>
+                          </td>
+                        </tr>
+
+                        <!-- Description -->
+                        <tr>
+                          <td style="padding: 14px 24px 0 24px;">
+                            <p style="margin: 0; font-size: 14px; color: #475569; line-height: 1.6;">
+                              An AI agent decision requires your approval before it can be executed. The confidence score is below the auto-approve threshold.
+                            </p>
+                          </td>
+                        </tr>
+
+                        <!-- Divider -->
+                        <tr>
+                          <td style="padding: 18px 24px;">
+                            <div style="border-top: 1px solid #e2e8f0;"></div>
+                          </td>
+                        </tr>
+
+                        <!-- Detail rows -->
+                        <tr>
+                          <td style="padding: 0 24px;">
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                              <tr>
+                                <td style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 16px; width: 48%;">
+                                  <span style="display: block; font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Agent</span>
+                                  <span style="font-size: 15px; font-weight: 600; color: #1e293b;">{agent_type}</span>
+                                </td>
+                                <td style="width: 4%;"></td>
+                                <td style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 16px; width: 48%;">
+                                  <span style="display: block; font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Confidence</span>
+                                  <span style="font-size: 15px; font-weight: 700; color: {confidence_color};">{confidence_pct}</span>
+                                </td>
+                              </tr>
+                            </table>
+                          </td>
+                        </tr>
+
+                        <tr>
+                          <td style="padding: 12px 24px 0 24px;">
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                              <tr>
+                                <td style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 16px; width: 48%;">
+                                  <span style="display: block; font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Queue</span>
+                                  <span style="font-size: 15px; font-weight: 600; color: #1e293b;">{queue_name}</span>
+                                </td>
+                                <td style="width: 4%;"></td>
+                                <td style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 16px; width: 48%;">
+                                  <span style="display: block; font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Decision ID</span>
+                                  <span style="font-size: 13px; font-weight: 500; color: #64748b; font-family: monospace;">{decision_id[:12]}...</span>
+                                </td>
+                              </tr>
+                            </table>
+                          </td>
+                        </tr>
+
+                        <!-- Proposed action -->
+                        <tr>
+                          <td style="padding: 12px 24px 0 24px;">
+                            <table width="100%" cellpadding="0" cellspacing="0" style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; border-left: 4px solid #f59e0b;">
+                              <tr>
+                                <td style="padding: 14px 16px;">
+                                  <span style="display: block; font-size: 10px; font-weight: 600; color: #d97706; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Proposed Action</span>
+                                  <span style="font-size: 14px; color: #1e293b; font-weight: 500; line-height: 1.5;">{summary}</span>
+                                </td>
+                              </tr>
+                            </table>
+                          </td>
+                        </tr>
+
+                        <!-- CTA -->
+                        <tr>
+                          <td style="padding: 18px 24px 24px 24px;">
+                            <table width="100%" cellpadding="0" cellspacing="0" style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; border-left: 4px solid #2563eb;">
+                              <tr>
+                                <td style="padding: 14px 16px;">
+                                  <span style="display: block; font-size: 10px; font-weight: 600; color: #2563eb; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">&#9889; Action Needed</span>
+                                  <span style="font-size: 14px; color: #1e293b; font-weight: 500; line-height: 1.5;">Open the SentinelAI dashboard to approve or reject this decision. It will auto-approve in 30 seconds if no action is taken.</span>
+                                </td>
+                              </tr>
+                            </table>
+                          </td>
+                        </tr>
+
+                      </table>
+                    </td>
+                  </tr>
+
+                  <!-- Footer -->
+                  <tr>
+                    <td>
+                      <table width="100%" cellpadding="0" cellspacing="0" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0 0 12px 12px; border-top: none;">
+                        <tr>
+                          <td style="padding: 16px 24px;">
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                              <tr>
+                                <td>
+                                  <span style="font-size: 12px; font-weight: 600; color: #1e293b;">Sentinel</span><span style="font-size: 12px; font-weight: 600; color: #3b82f6;">AI</span>
+                                  <span style="font-size: 11px; color: #94a3b8;"> &mdash; Autonomous AI Operations</span>
+                                </td>
+                                <td align="right">
+                                  <span style="font-size: 11px; color: #94a3b8;">Built by </span><span style="font-size: 11px; font-weight: 600; color: #475569;">Cirrus</span><span style="font-size: 11px; font-weight: 600; color: #f87171;">Labs</span>
+                                </td>
+                              </tr>
+                            </table>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+        </html>
+        """
+
+        recipients = [r.strip() for r in settings.smtp_to.split(",") if r.strip()]
+
+        try:
+            await asyncio.to_thread(self._send_smtp, subject, html, recipients)
+            logger.info("Approval email sent to %s: %s — %s", recipients, agent_type, summary)
+            return True
+        except Exception as e:
+            logger.error("Approval email failed: %s", e)
+            return False
+
+    async def notify_pending_approval(self, decision: dict):
+        """Send email for a PENDING_HUMAN decision (fire-and-forget)."""
+        if settings.email_notify_on == "human_approval" and settings.smtp_host and settings.smtp_to:
+            try:
+                await self.send_pending_approval_email(decision)
+            except Exception as e:
+                logger.error("Pending approval notification error: %s", e)
 
     # ── Dispatch (called from alert pipeline) ───────────────────────────────
 

@@ -20,7 +20,7 @@ class NotificationConfig(BaseModel):
     smtp_password: str = ""
     smtp_from: str = ""
     smtp_to: str = ""
-    email_notify_on: str = "critical"
+    email_notify_on: str = "human_approval"
     notification_cooldown: int = 60
 
 

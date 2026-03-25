@@ -28,6 +28,11 @@ Thumbs.db
 frontend/dist/
 *.js.map
 
+# SQLite WAL temp files
+*.db-shm
+*.db-wal
+*.db-journal
+
 # Python
 .venv/
 .venv310/

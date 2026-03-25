@@ -26,8 +26,19 @@ from langgraph.graph import StateGraph, START, END
 
 from app.models import AgentType, NegotiationProposal
 from app.agents.guardrails import GuardrailStatus, guardrails
+from app.services.notifications import notification_service
 
 logger = logging.getLogger("sentinelai.orchestrator")
+
+
+def _notify_pending(d_dict: dict):
+    """Fire-and-forget email for PENDING_HUMAN decisions."""
+    import asyncio
+    try:
+        loop = asyncio.get_running_loop()
+        loop.create_task(notification_service.notify_pending_approval(d_dict))
+    except RuntimeError:
+        pass
 
 # Priority scores used in negotiation conflict resolution (higher wins)
 AGENT_PRIORITY = {
@@ -86,10 +97,13 @@ async def queue_balancer_node(state: OrchestratorState) -> dict:
         guardrail_state = _build_guardrail_state(d, state["metrics"])
         result = await guardrails.evaluate(d, guardrail_state)
         d_dict = d.model_dump(by_alias=True, mode="json")
+        d_dict["guardrailResult"] = result.status.value
         broadcasts.append({"event": "agent:reasoning", "data": d_dict})
         decisions.append(d_dict)
 
-        if result.status == GuardrailStatus.AUTO_APPROVE:
+        if result.status == GuardrailStatus.PENDING_HUMAN:
+            _notify_pending(d_dict)
+        elif result.status == GuardrailStatus.AUTO_APPROVE:
             ok = await _execute_queue_balancer(d)
             if ok:
                 executed.append(d.action or "move_agents")
@@ -114,11 +128,14 @@ async def predictive_prevention_node(state: OrchestratorState) -> dict:
         guardrail_state = _build_guardrail_state(d, state["metrics"])
         result = await guardrails.evaluate(d, guardrail_state)
         d_dict = d.model_dump(by_alias=True, mode="json")
+        d_dict["guardrailResult"] = result.status.value
         broadcasts.append({"event": "agent:reasoning", "data": d_dict})
         broadcasts.append({"event": "prediction:warning", "data": d_dict})
         decisions.append(d_dict)
 
-        if result.status == GuardrailStatus.AUTO_APPROVE:
+        if result.status == GuardrailStatus.PENDING_HUMAN:
+            _notify_pending(d_dict)
+        elif result.status == GuardrailStatus.AUTO_APPROVE:
             queue_id = (d.action or "").split(":")[-1]
             if queue_id:
                 ok = await agent.execute({"queue_id": queue_id})
@@ -145,10 +162,13 @@ async def skill_router_node(state: OrchestratorState) -> dict:
         guardrail_state = _build_guardrail_state(d, state["metrics"])
         result = await guardrails.evaluate(d, guardrail_state)
         d_dict = d.model_dump(by_alias=True, mode="json")
+        d_dict["guardrailResult"] = result.status.value
         broadcasts.append({"event": "agent:reasoning", "data": d_dict})
         decisions.append(d_dict)
 
-        if result.status == GuardrailStatus.AUTO_APPROVE:
+        if result.status == GuardrailStatus.PENDING_HUMAN:
+            _notify_pending(d_dict)
+        elif result.status == GuardrailStatus.AUTO_APPROVE:
             ok = await agent.execute({"action": d.action})
             if ok:
                 executed.append(d.action or "route_contact")
@@ -173,10 +193,13 @@ async def escalation_handler_node(state: OrchestratorState) -> dict:
         guardrail_state = _build_guardrail_state(d, state["metrics"])
         result = await guardrails.evaluate(d, guardrail_state)
         d_dict = d.model_dump(by_alias=True, mode="json")
+        d_dict["guardrailResult"] = result.status.value
         broadcasts.append({"event": "agent:reasoning", "data": d_dict})
         decisions.append(d_dict)
 
-        if result.status == GuardrailStatus.AUTO_APPROVE:
+        if result.status == GuardrailStatus.PENDING_HUMAN:
+            _notify_pending(d_dict)
+        elif result.status == GuardrailStatus.AUTO_APPROVE:
             ok = await agent.execute({"action": d.action})
             if ok:
                 executed.append(d.action or "escalate")

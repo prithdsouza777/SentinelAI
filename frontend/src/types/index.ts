@@ -49,7 +49,7 @@ export type DecisionPhase =
   | "acted"
   | "negotiating";
 
-export type GuardrailStatus = "AUTO_APPROVE" | "PENDING_HUMAN" | "BLOCKED";
+export type GuardrailStatus = "AUTO_APPROVE" | "PENDING_HUMAN" | "BLOCKED" | "NEGOTIATION_OVERRIDDEN";
 
 export interface AgentDecision {
   id: string;

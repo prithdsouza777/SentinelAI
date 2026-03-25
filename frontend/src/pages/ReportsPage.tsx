@@ -500,7 +500,7 @@ export default function ReportsPage() {
 
   const exportSkillRoutingsCsv = () => {
     if (!report) return;
-    const rows = visibleRoutingRows;
+    const rows = routingRows; // Export ALL routing rows, not just visible/filtered
     const header = ["Contact", "Agent", "Match Score", "Reasoning", "Tick"];
     const lines = [header.map(escapeCsvCell).join(",")];
     for (const r of rows) {
