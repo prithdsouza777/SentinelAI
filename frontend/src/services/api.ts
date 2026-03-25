@@ -136,6 +136,22 @@ export const notificationsApi = {
     request("/notifications/test/email", { method: "POST" }),
 };
 
+// ── Agent Chat ──
+
+export const agentChatApi = {
+  greeting: (agentId: string) =>
+    request<{ greeting: string; agentName: string; agentType: string }>(
+      `/agent-chat/greeting/${agentId}`
+    ),
+  send: (agentId: string, message: string) =>
+    request<{ message: string; agentName: string; agentType: string }>(
+      "/agent-chat",
+      { method: "POST", body: JSON.stringify({ agent_id: agentId, message }) }
+    ),
+  reset: (agentId: string) =>
+    request(`/agent-chat/reset/${agentId}`, { method: "POST" }),
+};
+
 // ── History ──
 
 export const historyApi = {

@@ -25,6 +25,10 @@ from app.config import settings
 logger = logging.getLogger("sentinelai.notifications")
 
 
+class NotificationError(Exception):
+    """Raised when a notification fails to send."""
+
+
 def _kpi_cell(label: str, value: object, color: str) -> str:
     """Return an inline-styled HTML KPI cell for use in email templates."""
     return (

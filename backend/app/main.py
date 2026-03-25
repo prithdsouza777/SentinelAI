@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.api.routes import alerts, agents, chat, health, queues, simulation
-from app.api.routes import reports, history, notifications
+from app.api.routes import reports, history, notifications, agent_chat
 from app.api.websocket import router as ws_router
 from app.config import settings
 
@@ -209,6 +209,7 @@ app.include_router(simulation.router, prefix="/api", tags=["simulation"])
 app.include_router(reports.router, prefix="/api", tags=["reports"])
 app.include_router(history.router, prefix="/api", tags=["history"])
 app.include_router(notifications.router, prefix="/api", tags=["notifications"])
+app.include_router(agent_chat.router, prefix="/api", tags=["agent-chat"])
 
 # WebSocket
 app.include_router(ws_router)

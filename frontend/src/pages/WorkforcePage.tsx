@@ -12,10 +12,17 @@ import {
   X,
   LayoutGrid,
   List,
+  Scale,
+  TrendingUp,
+  ShieldAlert,
+  MessageCircle,
+  Activity,
+  BrainCircuit,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useWorkforceStore } from "@/stores/workforceStore";
 import { useDashboardStore } from "@/stores/dashboardStore";
+import AgentChatDrawer from "@/components/workforce/AgentChatDrawer";
 import type { HumanAgentProfile, DepartmentFitness } from "@/types";
 
 const DEPARTMENTS = [
@@ -402,7 +409,13 @@ function DeptAgentBubble({
   );
 }
 
-function DeptAgentDetail({ agent }: { agent: HumanAgentProfile }) {
+function DeptAgentDetail({
+  agent,
+  onChat,
+}: {
+  agent: HumanAgentProfile;
+  onChat?: (agent: HumanAgentProfile) => void;
+}) {
   const sortedSkills = [...agent.skillProficiencies].sort((a, b) => b.proficiency - a.proficiency);
   const sortedDepts = [...agent.departmentScores].sort((a, b) => b.fitnessScore - a.fitnessScore);
 
@@ -417,9 +430,23 @@ function DeptAgentDetail({ agent }: { agent: HumanAgentProfile }) {
       <div className="mt-3 rounded-xl border border-[#e2e8f0] bg-white p-4">
         <div className="mb-2 flex items-center justify-between">
           <span className="text-xs font-bold text-[#1e293b]">{agent.name}</span>
-          <span className="text-[10px] text-[#94a3b8]">
-            Perf {(agent.perfScore * 100).toFixed(0)}%
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-[#94a3b8]">
+              Perf {(agent.perfScore * 100).toFixed(0)}%
+            </span>
+            {onChat && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onChat(agent);
+                }}
+                className="flex items-center gap-1 rounded-lg border border-[#2563eb]/20 bg-[#2563eb]/5 px-2.5 py-1 text-[10px] font-semibold text-[#2563eb] transition-all hover:bg-[#2563eb]/10"
+              >
+                <MessageCircle className="h-3 w-3" />
+                Talk to {agent.name}
+              </button>
+            )}
+          </div>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -448,7 +475,13 @@ function DeptAgentDetail({ agent }: { agent: HumanAgentProfile }) {
   );
 }
 
-function DepartmentMapView({ agents }: { agents: HumanAgentProfile[] }) {
+function DepartmentMapView({
+  agents,
+  onChatWithAgent,
+}: {
+  agents: HumanAgentProfile[];
+  onChatWithAgent?: (agent: HumanAgentProfile) => void;
+}) {
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
   const queues = useDashboardStore((s) => s.queues);
 
@@ -604,7 +637,7 @@ function DepartmentMapView({ agents }: { agents: HumanAgentProfile[] }) {
             {/* Selected agent detail panel (inline) */}
             <AnimatePresence>
               {selectedAgent && selectedAgent.currentQueueId === deptId && (
-                <DeptAgentDetail agent={selectedAgent} />
+                <DeptAgentDetail agent={selectedAgent} onChat={onChatWithAgent} />
               )}
             </AnimatePresence>
 
@@ -678,6 +711,14 @@ export default function WorkforcePage() {
 
   const [sortBy, setSortBy] = useState<"name" | "perf" | "fitness">("name");
   const [viewMode, setViewMode] = useState<"list" | "department">("department");
+  const [chatAgent, setChatAgent] = useState<{
+    id: string;
+    name: string;
+    type: "ai" | "human";
+    color: string;
+  } | null>(null);
+
+  const decisions = useDashboardStore((s) => s.decisions);
 
   useEffect(() => {
     fetchAgents();
@@ -773,7 +814,17 @@ export default function WorkforcePage() {
         ) : error ? (
           <div className="rounded-2xl border border-[#ef4444]/20 bg-[#ef4444]/5 p-4 text-sm text-[#ef4444]">{error}</div>
         ) : (
-          <DepartmentMapView agents={agents} />
+          <DepartmentMapView
+            agents={agents}
+            onChatWithAgent={(agent) =>
+              setChatAgent({
+                id: agent.id,
+                name: agent.name,
+                type: "human",
+                color: DEPT_COLORS[agent.currentQueueId] || "#6b7280",
+              })
+            }
+          />
         )
       )}
 
@@ -908,6 +959,151 @@ export default function WorkforcePage() {
           )}
         </>
       )}
+
+      {/* ── AI Workforce Section ───────────────────────────────────── */}
+      <div className="mt-2">
+        <div className="mb-4 flex items-center gap-2.5">
+          <BrainCircuit className="h-5 w-5 text-[#8b5cf6]" />
+          <h3 className="text-sm font-bold uppercase tracking-wider text-[#475569]">
+            AI Workforce
+          </h3>
+          <span className="text-[11px] text-[#94a3b8]">
+            Click to interact with autonomous agents
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          {([
+            {
+              id: "queue_balancer",
+              name: "Queue Balancer",
+              description: "Detects pressure imbalances and autonomously moves agents between queues",
+              icon: Scale,
+              color: "#2563eb",
+              gradient: "from-[#2563eb]/8 to-[#2563eb]/2",
+            },
+            {
+              id: "predictive_prevention",
+              name: "Predictive Prevention",
+              description: "Predicts overload 60s ahead using velocity tracking and cascade correlation",
+              icon: TrendingUp,
+              color: "#8b5cf6",
+              gradient: "from-[#8b5cf6]/8 to-[#8b5cf6]/2",
+            },
+            {
+              id: "escalation_handler",
+              name: "Escalation Handler",
+              description: "Activates on CRITICAL alerts, pulls emergency agents, pages supervisors",
+              icon: ShieldAlert,
+              color: "#ef4444",
+              gradient: "from-[#ef4444]/8 to-[#ef4444]/2",
+            },
+          ] as const).map((agent) => {
+            const Icon = agent.icon;
+            const agentDecisions = decisions.filter(
+              (d) => d.agentType === agent.id
+            );
+            const actedCount = agentDecisions.filter(
+              (d) => d.phase === "acted"
+            ).length;
+
+            return (
+              <motion.div
+                key={agent.id}
+                whileHover={{ scale: 1.02, y: -2 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() =>
+                  setChatAgent({
+                    id: agent.id,
+                    name: agent.name,
+                    type: "ai",
+                    color: agent.color,
+                  })
+                }
+                className={cn(
+                  "group cursor-pointer overflow-hidden rounded-2xl border-2 bg-gradient-to-br p-5 transition-all hover:shadow-lg",
+                  agent.gradient
+                )}
+                style={{ borderColor: `${agent.color}25` }}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="flex h-11 w-11 items-center justify-center rounded-xl"
+                      style={{
+                        backgroundColor: `${agent.color}15`,
+                        border: `2px solid ${agent.color}40`,
+                      }}
+                    >
+                      <Icon
+                        className="h-5 w-5"
+                        style={{ color: agent.color }}
+                      />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-[#1e293b]">
+                        {agent.name}
+                      </h4>
+                      <div className="flex items-center gap-2">
+                        <span className="flex items-center gap-1 text-[10px] font-medium text-[#10b981]">
+                          <Activity className="h-2.5 w-2.5" />
+                          Active
+                        </span>
+                        {actedCount > 0 && (
+                          <span
+                            className="text-[10px] font-semibold tabular-nums"
+                            style={{ color: agent.color }}
+                          >
+                            {actedCount} actions
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div
+                    className="flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold opacity-0 transition-opacity group-hover:opacity-100"
+                    style={{
+                      backgroundColor: `${agent.color}15`,
+                      color: agent.color,
+                    }}
+                  >
+                    <MessageCircle className="h-3 w-3" />
+                    Chat
+                  </div>
+                </div>
+
+                <p className="mt-3 text-[12px] leading-relaxed text-[#64748b]">
+                  {agent.description}
+                </p>
+
+                {agentDecisions.length > 0 && (
+                  <div className="mt-3 border-t pt-3" style={{ borderColor: `${agent.color}15` }}>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-[#94a3b8]">
+                      Latest
+                    </p>
+                    <p className="mt-1 text-[11px] text-[#475569] line-clamp-2">
+                      {agentDecisions[0]?.summary}
+                    </p>
+                  </div>
+                )}
+              </motion.div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Chat Drawer ────────────────────────────────────────────── */}
+      <AnimatePresence>
+        {chatAgent && (
+          <AgentChatDrawer
+            agentId={chatAgent.id}
+            agentName={chatAgent.name}
+            agentType={chatAgent.type}
+            color={chatAgent.color}
+            onClose={() => setChatAgent(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
