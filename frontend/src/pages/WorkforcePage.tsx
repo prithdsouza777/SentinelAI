@@ -302,12 +302,14 @@ function DeptAgentBubble({
   index,
   onClick,
   isSelected,
+  onChat,
 }: {
   agent: HumanAgentProfile;
   color: string;
   index: number;
   onClick: () => void;
   isSelected: boolean;
+  onChat?: (agent: HumanAgentProfile) => void;
 }) {
   const status: StatusInfo = STATUS_CONFIG[agent.status] ?? DEFAULT_STATUS;
   const role: RoleInfo = ROLE_BADGE[agent.role] ?? DEFAULT_ROLE;
@@ -385,6 +387,25 @@ function DeptAgentBubble({
           <span className="text-[9px] uppercase text-[#94a3b8]">{agent.role}</span>
         </div>
       </div>
+
+      {/* Chat button on hover */}
+      {onChat && (
+        <div
+          className="absolute -bottom-1 left-1/2 z-10 -translate-x-1/2 opacity-0 transition-all group-hover/bubble:opacity-100"
+          onClick={(e) => {
+            e.stopPropagation();
+            onChat(agent);
+          }}
+        >
+          <div
+            className="flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-[9px] font-bold text-white shadow-md transition-transform hover:scale-110"
+            style={{ backgroundColor: color }}
+          >
+            <MessageCircle className="h-2.5 w-2.5" />
+            Chat
+          </div>
+        </div>
+      )}
 
       {/* Hover tooltip: perf + top skill */}
       <div className="pointer-events-none absolute -top-16 left-1/2 z-20 -translate-x-1/2 opacity-0 transition-opacity group-hover/bubble:opacity-100">
@@ -624,6 +645,7 @@ function DepartmentMapView({
                         selectedAgentId === agent.id ? null : agent.id
                       )
                     }
+                    onChat={onChatWithAgent}
                   />
                 ))}
               </AnimatePresence>
