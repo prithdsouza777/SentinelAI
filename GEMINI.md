@@ -11,11 +11,11 @@
 |------|--------|
 | Project | SentinelAI — Autonomous AI Operations Layer for AWS Connect |
 | Company | CirrusLabs (cirruslabs.io) |
-| Status | Fully functional, demo-ready |
-| Frontend | React 18 + TypeScript + Zustand 5 + TailwindCSS 3 + shadcn/ui + Recharts + Framer Motion |
+| Status | Fully functional, demo-ready — Added Email Report with PDF Attachment |
+| Frontend | React 18 + TypeScript + Zustand 5 + TailwindCSS 3 + shadcn/ui + Recharts + Framer Motion + jspdf + html2canvas |
 | Backend | Python 3.10 + FastAPI + LangGraph 1.1.2 |
 | LLM | 3-tier: AWS Bedrock (primary) > Anthropic API (fallback) > NoKeyLLM (no-key) |
-| Tests | 19/19 passing (backend), 0 TypeScript errors (frontend) |
+| Tests | 20/20 passing (backend), 0 TypeScript errors (frontend) |
 | UI Theme | Dark + Light toggle — dark glassmorphism default, CirrusLabs light palette option |
 | Branch | `pritham/bedrock` (Bedrock integration) |
 | Pages | 10 (Landing, Login, Dashboard, Agents, Workforce, Alerts, Chat, Simulation, Reports, Settings) |
@@ -65,6 +65,8 @@ npm run dev     # starts frontend (:5173) + backend (:8000)
 | `backend/app/services/bedrock.py` | LLM service (Bedrock > Anthropic API > NoKeyLLM) |
 | `backend/app/services/simulation.py` | Contact center simulation engine |
 | `backend/app/api/routes/reports.py` | `GET /api/reports/session` — session export |
+| `backend/app/api/routes/reports.py` | `POST /api/reports/email` — Email report with PDF attachment |
+| `backend/app/services/notifications.py`| SMTP email delivery with attachment support |
 | `backend/app/api/routes/history.py` | `GET /api/metrics/history` — trending data |
 | `backend/app/api/websocket.py` | Bidirectional WebSocket manager |
 | `frontend/src/App.tsx` | Route definitions (10 routes) |
@@ -95,14 +97,11 @@ npm run dev     # starts frontend (:5173) + backend (:8000)
 | GET | `/api/simulation/status` | Simulation state |
 | POST | `/api/simulation/chaos` | Inject chaos event |
 | POST | `/api/simulation/whatif` | What-if analysis |
-| GET | `/api/reports/session` | Generate session report (JSON) |
-| GET | `/api/metrics/history` | Historical metrics time-series |
-| GET | `/api/cost-impact` | Cost impact summary |
-| GET | `/api/agents/human` | List all 24 human agents with proficiencies |
-| GET | `/api/agents/human/{id}` | Single human agent profile |
+| POST | `/api/reports/email` | Email session report (HTML + PDF attachment) |
 | GET | `/api/agents/human/by-department/{dept_id}` | Agents ranked by department fitness |
 | POST | `/api/ws-action` | HTTP fallback for client-to-server WS actions |
 | GET | `/api/stream` | SSE fallback for real-time events |
+| POST | `/api/reports/email` | Email current session report (HTML + PDF attachment) |
 
 ## UI Color Palette (CirrusLabs)
 
@@ -126,10 +125,10 @@ npm run dev     # starts frontend (:5173) + backend (:8000)
 - [x] SSE fallback for WebSocket (App Runner / proxy compatibility)
 - [x] HTTP action fallback endpoint (`/api/ws-action`)
 - [x] WebSocket ping/pong keep-alive (20s interval)
+- [x] PDF export for emailed reports (via jspdf/html2canvas)
 - [ ] AWS Connect integration (even partial API call strengthens demo)
-- [ ] Real-time trending chart on main dashboard using `/api/metrics/history`
-- [ ] PDF export for reports (currently JSON only)
-- [ ] Unit tests for skill_router.py agent logic
+- [x] Email Report with PDF attachment
+- [ ] Gemini LLM provider (google-genai SDK installed but not wired)
 
 ---
 
