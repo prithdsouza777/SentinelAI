@@ -30,7 +30,8 @@ Set AWS credentials in `backend/.env` for Bedrock, or `ANTHROPIC_API_KEY` for An
 ## Key Conventions
 
 - **Serialization**: Backend snake_case, frontend camelCase. Always use `model_dump(by_alias=True, mode="json")`.
-- **Singletons**: Import `simulation_engine`, `anomaly_engine`, `manager`, `orchestrator`, `agent_database` — never create new instances.
+- **Teams Bot**: Bot Framework REST API integration in `backend/app/services/teams_bot.py` — chat, approval cards, PDF reports via Teams
+- **Singletons**: Import `simulation_engine`, `anomaly_engine`, `manager`, `orchestrator`, `agent_database`, `teams_bot` — never create new instances.
 - **Pydantic v2**: Use `model_dump()` not `.dict()`, `model_validate()` not `.parse_obj()`.
 - **No circular imports**: Routes access shared state via `request.app.state`, not by importing from `main.py`.
 

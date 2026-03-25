@@ -11,9 +11,9 @@
 |------|--------|
 | Project | SentinelAI — Autonomous AI Operations Layer for AWS Connect |
 | Company | CirrusLabs (cirruslabs.io) |
-| Status | Fully functional, demo-ready — Added Email Report with PDF Attachment |
+| Status | Fully functional, demo-ready — Teams Bot integration (chat, approvals, PDF reports) |
 | Frontend | React 18 + TypeScript + Zustand 5 + TailwindCSS 3 + shadcn/ui + Recharts + Framer Motion + jspdf + html2canvas |
-| Backend | Python 3.10 + FastAPI + LangGraph 1.1.2 |
+| Backend | Python 3.10 + FastAPI + LangGraph 1.1.2 + fpdf2 (server-side PDF) |
 | LLM | 3-tier: AWS Bedrock (primary) > Anthropic API (fallback) > NoKeyLLM (no-key) |
 | Tests | 20/20 passing (backend), 0 TypeScript errors (frontend) |
 | UI Theme | Dark + Light toggle — dark glassmorphism default, CirrusLabs light palette option |
@@ -79,6 +79,9 @@ npm run dev     # starts frontend (:5173) + backend (:8000)
 | `frontend/src/stores/workforceStore.ts` | Workforce state (search, filters, agent selection) |
 | `backend/app/services/agent_database.py` | SQLite-backed workforce DB (24 agents, 12 skills) |
 | `backend/app/models/proficiency.py` | SkillProficiency, DepartmentFitness, HumanAgentProfile |
+| `backend/app/services/teams_bot.py` | Teams Bot service (chat, approval cards, PDF reports) |
+| `backend/app/api/routes/teams.py` | `POST /api/teams/messages` — Bot Framework endpoint |
+| `backend/app/services/pdf_report.py` | Server-side PDF generation (fpdf2) |
 
 ## API Endpoints
 
@@ -102,6 +105,7 @@ npm run dev     # starts frontend (:5173) + backend (:8000)
 | POST | `/api/ws-action` | HTTP fallback for client-to-server WS actions |
 | GET | `/api/stream` | SSE fallback for real-time events |
 | POST | `/api/reports/email` | Email current session report (HTML + PDF attachment) |
+| POST | `/api/teams/messages` | Teams Bot Framework messaging endpoint |
 
 ## UI Color Palette (CirrusLabs)
 
@@ -128,6 +132,7 @@ npm run dev     # starts frontend (:5173) + backend (:8000)
 - [x] PDF export for emailed reports (via jspdf/html2canvas)
 - [ ] AWS Connect integration (even partial API call strengthens demo)
 - [x] Email Report with PDF attachment
+- [x] Teams Bot integration (chat, approval cards, PDF reports)
 - [ ] Gemini LLM provider (google-genai SDK installed but not wired)
 
 ---
