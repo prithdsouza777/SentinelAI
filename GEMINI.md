@@ -14,10 +14,10 @@
 | Status | Fully functional, demo-ready |
 | Frontend | React 18 + TypeScript + Zustand 5 + TailwindCSS 3 + shadcn/ui + Recharts + Framer Motion |
 | Backend | Python 3.10 + FastAPI + LangGraph 1.1.2 |
-| LLM | Anthropic Claude (claude-sonnet-4-20250514) primary, MockLLM fallback |
+| LLM | 3-tier: AWS Bedrock (primary) > Anthropic API (fallback) > NoKeyLLM (no-key) |
 | Tests | 19/19 passing (backend), 0 TypeScript errors (frontend) |
 | UI Theme | Dark + Light toggle — dark glassmorphism default, CirrusLabs light palette option |
-| Branch | `main` |
+| Branch | `pritham/bedrock` (Bedrock integration) |
 | Pages | 10 (Landing, Login, Dashboard, Agents, Workforce, Alerts, Chat, Simulation, Reports, Settings) |
 
 ---
@@ -31,7 +31,7 @@ npm run dev     # starts frontend (:5173) + backend (:8000)
 ```
 
 **Python**: Must use Python 3.10-3.12. Venv at `backend/.venv/`. Python 3.14 breaks pydantic-core.
-**Environment**: `backend/.env` needs `ANTHROPIC_API_KEY` for live AI. Without it, falls back to mock responses.
+**Environment**: `backend/.env` — set AWS credentials for Bedrock (primary) or `ANTHROPIC_API_KEY` for Anthropic API (fallback). Without either, NoKeyLLM shows setup instructions.
 
 ---
 
@@ -40,11 +40,13 @@ npm run dev     # starts frontend (:5173) + backend (:8000)
 - **3-second tick loop** in `backend/app/main.py` drives everything
 - **LangGraph orchestrator** runs **4 agents in parallel**, then conditional negotiation
 - **5 Agents**: QueueBalancer, PredictivePrevention, EscalationHandler, SkillRouter, Analytics
-- **2-tier LLM fallback**: Anthropic Claude > MockLLM (context-aware dynamic responses)
+- **3-tier LLM fallback**: AWS Bedrock (Converse API) > Anthropic API > NoKeyLLM
+- **Bedrock Converse API**: Native tool-use, conversation memory (30 messages), 5-round tool loops, 3s agent timeout
 - **Guardrails**: AUTO_APPROVE (>=0.9), PENDING_HUMAN (0.7-0.9, 30s timeout), BLOCKED (<0.7)
 - **Skill Router**: Zero-LLM latency, proficiency-weighted scoring from agent database
 - **Agent Proficiency DB**: SQLite (`agents.db`) — 24 human agents, 12 skills, 5 departments, fitness scoring
-- **WebSocket** broadcasts all events to frontend in real time
+- **Real-time**: WebSocket (primary) + SSE fallback (`/api/stream`) + HTTP action fallback (`/api/ws-action`)
+- **WebSocket keep-alive**: Server-side ping every 20s, client pong response
 - **Simulation-first**: all demo data is generated, real AWS Connect is optional
 
 ## Key Files
@@ -60,7 +62,7 @@ npm run dev     # starts frontend (:5173) + backend (:8000)
 | `backend/app/agents/analytics.py` | NL query agent for chat |
 | `backend/app/agents/negotiation.py` | Multi-agent conflict resolution |
 | `backend/app/agents/guardrails.py` | Action scopes, rate limits, approval logic |
-| `backend/app/services/bedrock.py` | LLM service (Anthropic Claude / MockLLM) |
+| `backend/app/services/bedrock.py` | LLM service (Bedrock > Anthropic API > NoKeyLLM) |
 | `backend/app/services/simulation.py` | Contact center simulation engine |
 | `backend/app/api/routes/reports.py` | `GET /api/reports/session` — session export |
 | `backend/app/api/routes/history.py` | `GET /api/metrics/history` — trending data |
@@ -99,6 +101,8 @@ npm run dev     # starts frontend (:5173) + backend (:8000)
 | GET | `/api/agents/human` | List all 24 human agents with proficiencies |
 | GET | `/api/agents/human/{id}` | Single human agent profile |
 | GET | `/api/agents/human/by-department/{dept_id}` | Agents ranked by department fitness |
+| POST | `/api/ws-action` | HTTP fallback for client-to-server WS actions |
+| GET | `/api/stream` | SSE fallback for real-time events |
 
 ## UI Color Palette (CirrusLabs)
 
@@ -114,15 +118,18 @@ npm run dev     # starts frontend (:5173) + backend (:8000)
 2. Skill Router intentionally avoids LLM calls for minimum latency in the tick loop.
 3. All chart colors must use the CirrusLabs palette defined above.
 4. Python venv at `backend/.venv/` — never use system Python 3.14.
-5. LLM service in `bedrock.py` uses Anthropic direct API (not AWS Bedrock despite filename).
+5. LLM service in `bedrock.py` now uses AWS Bedrock Converse API (primary), Anthropic direct API (fallback), NoKeyLLM (no-key).
 
 ## Remaining Work (Optional)
 
+- [x] AWS Bedrock integration with Converse API (3-tier fallback chain)
+- [x] SSE fallback for WebSocket (App Runner / proxy compatibility)
+- [x] HTTP action fallback endpoint (`/api/ws-action`)
+- [x] WebSocket ping/pong keep-alive (20s interval)
 - [ ] AWS Connect integration (even partial API call strengthens demo)
 - [ ] Real-time trending chart on main dashboard using `/api/metrics/history`
 - [ ] PDF export for reports (currently JSON only)
 - [ ] Unit tests for skill_router.py agent logic
-- [ ] Gemini LLM provider (google-genai SDK installed but not wired)
 
 ---
 

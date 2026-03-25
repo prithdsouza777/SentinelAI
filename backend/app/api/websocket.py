@@ -61,6 +61,21 @@ manager = ConnectionManager()
 @router.websocket("/ws/dashboard")
 async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
+
+    async def ping_loop():
+        """Send ping every 20s to keep the connection alive."""
+        try:
+            while True:
+                await asyncio.sleep(20)
+                await websocket.send_text(json.dumps({
+                    "event": "ping",
+                    "data": {},
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                }))
+        except Exception:
+            pass  # Connection closed, stop pinging
+
+    ping_task = asyncio.create_task(ping_loop())
     try:
         while True:
             data = await websocket.receive_text()
@@ -71,6 +86,10 @@ async def websocket_endpoint(websocket: WebSocket):
                 continue
 
             event = message.get("event", "")
+
+            # Ignore pong responses
+            if event == "pong":
+                continue
 
             try:
                 if event == "chat:message":
@@ -142,6 +161,7 @@ async def websocket_endpoint(websocket: WebSocket):
     except Exception as e:
         logger.exception("WebSocket connection error: %s", e)
     finally:
+        ping_task.cancel()
         manager.disconnect(websocket)
 
 

@@ -1,6 +1,6 @@
 # SentinelAI — Build Status
 > Tracks the implementation state of every component.
-> Updated: 2026-03-24
+> Updated: 2026-03-25
 
 ---
 
@@ -18,7 +18,7 @@
 | Anomaly Detection | 100% | — | — |
 | Simulation Metrics | 100% | chaos, adjust_queue, clear_spike | — |
 | Simulation Loop (3s tick) | 100% | app.state | — |
-| WebSocket Infra | 100% | approve/reject/chaos/chat handlers, exponential backoff | — |
+| WebSocket Infra | 100% | WS + SSE fallback + HTTP action fallback, ping/pong keep-alive | — |
 | API: Simulation Routes | 100% | start/stop/chaos/status/scenarios/whatif, clean restart | — |
 | API: Queue Routes | 100% | live data from state | — |
 | API: Alert Routes | 100% | list + acknowledge | — |
@@ -37,7 +37,7 @@
 | GuardrailsLayer | 100% | policies, rate limits, auto-approve 30s, audit | — |
 | Agent Proficiency DB | 100% | SQLite, 24 agents, 12 skills, dept fitness | — |
 | PII Sanitizer | 100% | regex-based redaction | — |
-| LLM Service (bedrock.py) | 100% | Anthropic Claude primary + MockLLM fallback | — |
+| LLM Service (bedrock.py) | 100% | 3-tier: Bedrock > Anthropic API > NoKeyLLM | — |
 | Scripted Demo Scenario | 100% | sentinelai_demo 3-min timeline | — |
 | NL Policy Engine | 100% | CRUD via /chat/policy endpoints | — |
 | Redis Cache | — | 10% | connection configured, not used |
@@ -64,14 +64,17 @@
 | Alert acknowledge button | Working — AlertsPage + backend |
 | Critical alert flash animation | Working — red border flash on new CRITICAL |
 | Simulation event log | Working — live decisions + alerts stream |
-| Chat: "What happened?" | Working — Anthropic Claude with context-enriched responses |
+| Chat: "What happened?" | Working — Bedrock/Anthropic with context-enriched tool-use responses |
 | Scripted 3-min demo scenario | Working — sentinelai_demo with timed chaos events |
 | NL Policy Engine | Working — create/list/delete via REST |
 | Workforce page | Working — search, dept/status filters, expandable agent profiles |
 | Agent proficiency database | Working — SQLite, 24 agents, 12 skills, 5 departments |
 | Human agent API endpoints | Working — list/detail/by-department with fitness scoring |
 | MOVE_AGENT chat command | Working — move agents by name via conversational command |
-| WS reconnect with backoff | Working — exponential backoff + "Reconnecting..." indicator |
+| WS reconnect with backoff | Working — exponential backoff + auto SSE fallback after 2 failures |
+| SSE fallback | Working — `/api/stream` for environments blocking WebSocket |
+| HTTP action fallback | Working — `/api/ws-action` for client-to-server actions over SSE |
+| WS ping/pong keep-alive | Working — server pings every 20s, client responds |
 | Clean demo restart | Working — stop clears all state, start is fresh |
 | SentinelAI branding | Working — header + sidebar updated |
 | Landing page | Working — animated hero, feature cards, tech stack ribbon |
@@ -116,5 +119,5 @@ Weeks 1-4 are all done. Remaining optional items:
 - Redis cache integration (not needed for demo)
 - CDK infra completion (not needed for demo)
 - Real AWS Connect integration (Week 4 bonus, not needed)
-- Gemini LLM provider (google-genai installed but not wired)
+- Gemini LLM provider (optional fourth tier)
 - Demo rehearsals and backup video recording
