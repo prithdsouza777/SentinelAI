@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.api.routes import alerts, agents, chat, health, queues, simulation
-from app.api.routes import reports, history, notifications, agent_chat
+from app.api.routes import reports, history, notifications, agent_chat, governance
 from app.api.websocket import router as ws_router
 from app.config import settings
 
@@ -165,6 +165,10 @@ async def lifespan(app: FastAPI):
     from app.services.redis_client import redis_client
     await redis_client.connect()
 
+    # Initialize RAIA trace SDK
+    from app.services.raia_tracer import initialize as raia_init
+    raia_init()
+
     logger.info("SentinelAI backend starting...")
     logger.info("  Simulation mode: %s", settings.simulation_mode)
     logger.info("  Redis: %s", "connected" if redis_client.available else "in-memory fallback")
@@ -174,6 +178,8 @@ async def lifespan(app: FastAPI):
 
     # Shutdown
     logger.info("SentinelAI backend shutting down...")
+    from app.services.raia_tracer import end_session as raia_end
+    raia_end()
     task.cancel()
     try:
         await task
@@ -210,6 +216,7 @@ app.include_router(reports.router, prefix="/api", tags=["reports"])
 app.include_router(history.router, prefix="/api", tags=["history"])
 app.include_router(notifications.router, prefix="/api", tags=["notifications"])
 app.include_router(agent_chat.router, prefix="/api", tags=["agent-chat"])
+app.include_router(governance.router, prefix="/api", tags=["governance"])
 
 # WebSocket
 app.include_router(ws_router)

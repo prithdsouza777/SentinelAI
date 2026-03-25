@@ -82,6 +82,10 @@ async def start_simulation(request: SimulationStartRequest, req: Request):
     req.app.state.recent_decisions.clear()
     req.app.state.recent_alerts.clear()
     req.app.state.recent_negotiations.clear()
+    # Start RAIA trace session
+    from app.services.raia_tracer import start_session as raia_start
+    raia_start(request.scenario_id)
+
     await simulation_engine.start(scenario=request.scenario_id)
     return {"status": "started", "scenario_id": request.scenario_id}
 
@@ -90,6 +94,9 @@ async def start_simulation(request: SimulationStartRequest, req: Request):
 async def stop_simulation(request: Request):
     """Stop the current simulation and clear in-memory state for clean restart."""
     await simulation_engine.stop()
+    # End RAIA trace session
+    from app.services.raia_tracer import end_session as raia_end
+    raia_end()
     # Clear in-memory state so next demo starts fresh
     request.app.state.latest_metrics.clear()
     request.app.state.recent_decisions.clear()

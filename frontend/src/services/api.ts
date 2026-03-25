@@ -152,6 +152,37 @@ export const agentChatApi = {
     request(`/agent-chat/reset/${agentId}`, { method: "POST" }),
 };
 
+// ── Governance ──
+
+export const governanceApi = {
+  getStatus: () =>
+    request<{
+      raia: {
+        enabled: boolean;
+        active?: boolean;
+        interactions?: number;
+        traceId?: string;
+        sessionId?: string;
+        reason?: string;
+      };
+      lockthreat: {
+        connected: boolean;
+        frameworks: Array<{
+          name: string;
+          status: string;
+          controls: number;
+          passing: number;
+        }>;
+        checks: Array<{
+          name: string;
+          passed: boolean;
+          detail: string;
+        }>;
+      };
+      governance: Record<string, unknown>;
+    }>("/governance/status"),
+};
+
 // ── History ──
 
 export const historyApi = {
