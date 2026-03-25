@@ -47,6 +47,12 @@ export default function SettingsPage() {
   // Notification config state
   const [teamsWebhookUrl, setTeamsWebhookUrl] = useState("");
   const [teamsNotifyOn, setTeamsNotifyOn] = useState("critical");
+  const [smtpHost, setSmtpHost] = useState("");
+  const [smtpPort, setSmtpPort] = useState(587);
+  const [smtpUser, setSmtpUser] = useState("");
+  const [smtpPassword, setSmtpPassword] = useState("");
+  const [smtpFrom, setSmtpFrom] = useState("");
+  const [smtpTo, setSmtpTo] = useState("");
   const [emailNotifyOn, setEmailNotifyOn] = useState("human_approval");
   const [notifSaving, setNotifSaving] = useState(false);
   const [notifSaved, setNotifSaved] = useState(false);
@@ -80,6 +86,12 @@ export default function SettingsPage() {
       const data = raw as Record<string, unknown>;
       setTeamsWebhookUrl((data.teamsWebhookUrl as string) || "");
       setTeamsNotifyOn((data.teamsNotifyOn as string) || "critical");
+      setSmtpHost((data.smtpHost as string) || "");
+      setSmtpPort((data.smtpPort as number) || 587);
+      setSmtpUser((data.smtpUser as string) || "");
+      setSmtpPassword((data.smtpPassword as string) || "");
+      setSmtpFrom((data.smtpFrom as string) || "");
+      setSmtpTo((data.smtpTo as string) || "");
       setEmailNotifyOn((data.emailNotifyOn as string) || "human_approval");
     }).catch(() => {});
   }, []);
@@ -106,11 +118,21 @@ export default function SettingsPage() {
     setNotifSaving(true);
     setNotifSaved(false);
     try {
-      await notificationsApi.updateConfig({
+      const payload: Record<string, unknown> = {
         teams_webhook_url: teamsWebhookUrl,
         teams_notify_on: teamsNotifyOn,
+        smtp_host: smtpHost,
+        smtp_port: smtpPort,
+        smtp_user: smtpUser,
+        smtp_from: smtpFrom,
+        smtp_to: smtpTo,
         email_notify_on: emailNotifyOn,
-      });
+      };
+      // Only send password if user changed it from the masked placeholder
+      if (smtpPassword && smtpPassword !== "********") {
+        payload.smtp_password = smtpPassword;
+      }
+      await notificationsApi.updateConfig(payload);
       setNotifSaved(true);
       setTimeout(() => setNotifSaved(false), 3000);
     } catch {
@@ -170,10 +192,15 @@ export default function SettingsPage() {
     setTestingTeams(true);
     setTestResult(null);
     try {
+      // Auto-save webhook URL before testing
+      await notificationsApi.updateConfig({
+        teams_webhook_url: teamsWebhookUrl,
+        teams_notify_on: teamsNotifyOn,
+      });
       const res = await notificationsApi.testTeams() as { status: string; message: string };
       setTestResult({ channel: "teams", ...res });
     } catch {
-      setTestResult({ channel: "teams", status: "error", message: "Request failed" });
+      setTestResult({ channel: "teams", status: "error", message: "Request failed — is the backend running?" });
     } finally {
       setTestingTeams(false);
     }
@@ -183,10 +210,23 @@ export default function SettingsPage() {
     setTestingEmail(true);
     setTestResult(null);
     try {
+      // Auto-save current settings before testing so the backend uses latest values
+      const payload: Record<string, unknown> = {
+        smtp_host: smtpHost,
+        smtp_port: smtpPort,
+        smtp_user: smtpUser,
+        smtp_from: smtpFrom,
+        smtp_to: smtpTo,
+        email_notify_on: emailNotifyOn,
+      };
+      if (smtpPassword && smtpPassword !== "********") {
+        payload.smtp_password = smtpPassword;
+      }
+      await notificationsApi.updateConfig(payload);
       const res = await notificationsApi.testEmail() as { status: string; message: string };
       setTestResult({ channel: "email", ...res });
     } catch {
-      setTestResult({ channel: "email", status: "error", message: "Request failed" });
+      setTestResult({ channel: "email", status: "error", message: "Request failed — is the backend running?" });
     } finally {
       setTestingEmail(false);
     }
@@ -691,29 +731,92 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* Gmail Email Notifications — configured via .env */}
+      {/* Email / SMTP Notifications */}
       <div className="rounded-xl border border-[#e2e8f0] bg-white shadow-sm">
         <div className="flex items-center justify-between border-b border-[#e2e8f0] px-4 py-3">
           <div className="flex items-center gap-2">
             <Send className="h-4 w-4 text-[#2563eb]" />
             <span className="text-xs font-semibold uppercase tracking-wider text-[#64748b]">
-              Gmail Email Notifications
+              Email Notifications (SMTP)
             </span>
           </div>
           <Button
             size="sm"
             onClick={handleTestEmail}
-            disabled={testingEmail}
-            className="h-7 border border-[#e2e8f0] bg-white px-2.5 text-[11px] font-medium text-[#475569] hover:bg-[#f1f5f9]"
+            disabled={testingEmail || !smtpHost || !smtpTo}
+            title={!smtpHost ? "Set SMTP host first" : !smtpTo ? "Set recipient email first" : "Send a test email"}
+            className="h-7 border border-[#e2e8f0] bg-white px-2.5 text-[11px] font-medium text-[#475569] hover:bg-[#f1f5f9] disabled:opacity-40"
           >
             <Send className={cn("mr-1 h-3 w-3", testingEmail && "animate-spin")} />
             Send Test Email
           </Button>
         </div>
         <div className="space-y-3 p-4">
-          <p className="text-xs text-[#64748b]">
-            Email settings (SMTP host, credentials, recipients) are configured via environment variables in <code className="rounded bg-[#f1f5f9] px-1.5 py-0.5 text-[11px] font-mono text-[#1e293b]">.env</code>
-          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-[#475569]">SMTP Host</label>
+              <input
+                type="text"
+                value={smtpHost}
+                onChange={(e) => setSmtpHost(e.target.value)}
+                placeholder="smtp.gmail.com"
+                className="w-full rounded-lg border border-[#e2e8f0] bg-[#f8fafc] px-3 py-2 text-sm text-[#1e293b] placeholder:text-[#94a3b8] focus:border-[#2563eb] focus:outline-none focus:ring-1 focus:ring-[#2563eb]"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-[#475569]">SMTP Port</label>
+              <input
+                type="number"
+                value={smtpPort}
+                onChange={(e) => setSmtpPort(Number(e.target.value))}
+                className="w-full rounded-lg border border-[#e2e8f0] bg-[#f8fafc] px-3 py-2 text-sm text-[#1e293b] placeholder:text-[#94a3b8] focus:border-[#2563eb] focus:outline-none focus:ring-1 focus:ring-[#2563eb]"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-[#475569]">SMTP Username</label>
+              <input
+                type="email"
+                value={smtpUser}
+                onChange={(e) => setSmtpUser(e.target.value)}
+                placeholder="user@gmail.com"
+                className="w-full rounded-lg border border-[#e2e8f0] bg-[#f8fafc] px-3 py-2 text-sm text-[#1e293b] placeholder:text-[#94a3b8] focus:border-[#2563eb] focus:outline-none focus:ring-1 focus:ring-[#2563eb]"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-[#475569]">SMTP Password</label>
+              <input
+                type="password"
+                value={smtpPassword}
+                onChange={(e) => setSmtpPassword(e.target.value)}
+                placeholder="App password"
+                className="w-full rounded-lg border border-[#e2e8f0] bg-[#f8fafc] px-3 py-2 text-sm text-[#1e293b] placeholder:text-[#94a3b8] focus:border-[#2563eb] focus:outline-none focus:ring-1 focus:ring-[#2563eb]"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-[#475569]">From Address</label>
+              <input
+                type="email"
+                value={smtpFrom}
+                onChange={(e) => setSmtpFrom(e.target.value)}
+                placeholder="alerts@yourcompany.com"
+                className="w-full rounded-lg border border-[#e2e8f0] bg-[#f8fafc] px-3 py-2 text-sm text-[#1e293b] placeholder:text-[#94a3b8] focus:border-[#2563eb] focus:outline-none focus:ring-1 focus:ring-[#2563eb]"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-[#475569]">To (comma-separated)</label>
+              <input
+                type="text"
+                value={smtpTo}
+                onChange={(e) => setSmtpTo(e.target.value)}
+                placeholder="team@company.com, lead@company.com"
+                className="w-full rounded-lg border border-[#e2e8f0] bg-[#f8fafc] px-3 py-2 text-sm text-[#1e293b] placeholder:text-[#94a3b8] focus:border-[#2563eb] focus:outline-none focus:ring-1 focus:ring-[#2563eb]"
+              />
+            </div>
+          </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-[#475569]">Email mode</label>
             <select
@@ -735,12 +838,15 @@ export default function SettingsPage() {
                   : "Emails sent when anomaly alerts match the selected severity"}
             </p>
           </div>
+          <p className="text-[10px] text-[#94a3b8]">
+            Initial values are loaded from <code className="rounded bg-[#f1f5f9] px-1 py-0.5 font-mono text-[10px] text-[#64748b]">.env</code>. Changes here are runtime-only (not persisted to .env).
+          </p>
           {testResult?.channel === "email" && (
             <motion.div
               initial={{ opacity: 0, y: -4 }}
               animate={{ opacity: 1, y: 0 }}
               className={cn(
-                "mt-3 rounded-lg px-3 py-2 text-xs font-medium",
+                "rounded-lg px-3 py-2 text-xs font-medium",
                 testResult.status === "ok"
                   ? "bg-[#10b981]/10 text-[#10b981]"
                   : "bg-[#ef4444]/10 text-[#ef4444]"

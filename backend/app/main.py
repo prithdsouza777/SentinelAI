@@ -125,6 +125,9 @@ async def _tick():
     for d in decisions:
         _recent_decisions.appendleft(d)
         await redis_client.push_json("sentinelai:decisions", d, maxlen=200)
+        # Fire-and-forget approval email for pending decisions
+        if d.get("guardrailResult") == "PENDING_HUMAN":
+            asyncio.create_task(notification_service.notify_pending_decision(d))
 
 
 async def _simulation_loop():
