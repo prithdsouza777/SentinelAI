@@ -92,23 +92,40 @@ async def test_teams():
 
 @router.post("/notifications/test/email")
 async def test_email():
-    """Send a test notification via email."""
+    """Send a test notification via email (adapts to current email mode)."""
     if not settings.smtp_host or not settings.smtp_to:
         return {"status": "error", "message": "SMTP not configured or no recipients set"}
 
-    test_alert = {
-        "id": "test-alert",
-        "severity": "critical",
-        "title": "Test Alert - SentinelAI Notifications",
-        "description": "This is a test email from SentinelAI. If you see this, Gmail/email integration is working.",
-        "queueName": "Test Queue",
-        "recommendedAction": "No action needed - this is a test",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-    }
-
     # Bypass cooldown for test
     notification_service._cooldowns.pop("email", None)
-    ok = await notification_service.send_email(test_alert)
+    notification_service._cooldowns.pop("email_approval", None)
+
+    if settings.email_notify_on == "human_approval":
+        # Send a test approval email
+        test_decision = {
+            "id": "test-decision-0001",
+            "agentType": "queue_balancer",
+            "confidence": 0.72,
+            "action": "move_agents:from=q-sales:to=q-support:count=2",
+            "summary": "Test — Move 2 agents from Sales to Support (this is a test notification)",
+            "queueId": "q-support",
+            "guardrailResult": "PENDING_HUMAN",
+            "policyViolations": [],
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+        ok = await notification_service.send_pending_approval_email(test_decision)
+    else:
+        test_alert = {
+            "id": "test-alert",
+            "severity": "critical",
+            "title": "Test Alert - SentinelAI Notifications",
+            "description": "This is a test email from SentinelAI. If you see this, Gmail/email integration is working.",
+            "queueName": "Test Queue",
+            "recommendedAction": "No action needed - this is a test",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+        ok = await notification_service.send_email(test_alert)
+
     if ok:
         return {"status": "ok", "message": f"Test email sent to {settings.smtp_to}"}
     return {"status": "error", "message": "Failed to send email. Check SMTP settings."}

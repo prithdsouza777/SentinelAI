@@ -721,7 +721,7 @@ export default function SettingsPage() {
               onChange={(e) => setEmailNotifyOn(e.target.value)}
               className="w-full rounded-lg border border-[#e2e8f0] bg-[#f8fafc] px-3 py-2 text-sm text-[#1e293b] focus:border-[#2563eb] focus:outline-none focus:ring-1 focus:ring-[#2563eb]"
             >
-              <option value="human_approval">Human approval required (default)</option>
+              <option value="human_approval">Human approval required</option>
               <option value="critical">Critical alerts only</option>
               <option value="warning">Warning + Critical alerts</option>
               <option value="all">All alerts</option>

@@ -55,7 +55,7 @@ function DecisionCard({ decision }: { decision: AgentDecision }) {
     rejectDecision(decision.id);
   };
 
-  const isPending = decision.requiresApproval && decision.approved == null && decision.phase === "decided";
+  const isPending = decision.requiresApproval && decision.approved == null && decision.phase !== "acted";
   const isApproved = decision.approved === true;
   const isRejected = decision.approved === false;
 

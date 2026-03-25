@@ -31,14 +31,12 @@ from app.services.notifications import notification_service
 logger = logging.getLogger("sentinelai.orchestrator")
 
 
-def _notify_pending(d_dict: dict):
-    """Fire-and-forget email for PENDING_HUMAN decisions."""
-    import asyncio
+async def _notify_needs_human(d_dict: dict):
+    """Send email when a decision needs human attention (PENDING_HUMAN or BLOCKED)."""
     try:
-        loop = asyncio.get_running_loop()
-        loop.create_task(notification_service.notify_pending_approval(d_dict))
-    except RuntimeError:
-        pass
+        await notification_service.notify_pending_approval(d_dict)
+    except Exception as e:
+        logger.warning("Failed to send approval email: %s", e)
 
 # Priority scores used in negotiation conflict resolution (higher wins)
 AGENT_PRIORITY = {
@@ -101,9 +99,10 @@ async def queue_balancer_node(state: OrchestratorState) -> dict:
         broadcasts.append({"event": "agent:reasoning", "data": d_dict})
         decisions.append(d_dict)
 
-        if result.status == GuardrailStatus.PENDING_HUMAN:
-            _notify_pending(d_dict)
-        elif result.status == GuardrailStatus.AUTO_APPROVE:
+        if result.status in (GuardrailStatus.PENDING_HUMAN, GuardrailStatus.BLOCKED):
+            await _notify_needs_human(d_dict)
+
+        if result.status == GuardrailStatus.AUTO_APPROVE:
             ok = await _execute_queue_balancer(d)
             if ok:
                 executed.append(d.action or "move_agents")
@@ -133,9 +132,10 @@ async def predictive_prevention_node(state: OrchestratorState) -> dict:
         broadcasts.append({"event": "prediction:warning", "data": d_dict})
         decisions.append(d_dict)
 
-        if result.status == GuardrailStatus.PENDING_HUMAN:
-            _notify_pending(d_dict)
-        elif result.status == GuardrailStatus.AUTO_APPROVE:
+        if result.status in (GuardrailStatus.PENDING_HUMAN, GuardrailStatus.BLOCKED):
+            await _notify_needs_human(d_dict)
+
+        if result.status == GuardrailStatus.AUTO_APPROVE:
             queue_id = (d.action or "").split(":")[-1]
             if queue_id:
                 ok = await agent.execute({"queue_id": queue_id})
@@ -166,9 +166,10 @@ async def skill_router_node(state: OrchestratorState) -> dict:
         broadcasts.append({"event": "agent:reasoning", "data": d_dict})
         decisions.append(d_dict)
 
-        if result.status == GuardrailStatus.PENDING_HUMAN:
-            _notify_pending(d_dict)
-        elif result.status == GuardrailStatus.AUTO_APPROVE:
+        if result.status in (GuardrailStatus.PENDING_HUMAN, GuardrailStatus.BLOCKED):
+            await _notify_needs_human(d_dict)
+
+        if result.status == GuardrailStatus.AUTO_APPROVE:
             ok = await agent.execute({"action": d.action})
             if ok:
                 executed.append(d.action or "route_contact")
@@ -197,9 +198,10 @@ async def escalation_handler_node(state: OrchestratorState) -> dict:
         broadcasts.append({"event": "agent:reasoning", "data": d_dict})
         decisions.append(d_dict)
 
-        if result.status == GuardrailStatus.PENDING_HUMAN:
-            _notify_pending(d_dict)
-        elif result.status == GuardrailStatus.AUTO_APPROVE:
+        if result.status in (GuardrailStatus.PENDING_HUMAN, GuardrailStatus.BLOCKED):
+            await _notify_needs_human(d_dict)
+
+        if result.status == GuardrailStatus.AUTO_APPROVE:
             ok = await agent.execute({"action": d.action})
             if ok:
                 executed.append(d.action or "escalate")
