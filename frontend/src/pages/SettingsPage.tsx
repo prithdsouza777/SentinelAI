@@ -47,6 +47,7 @@ export default function SettingsPage() {
   // Notification config state
   const [teamsWebhookUrl, setTeamsWebhookUrl] = useState("");
   const [teamsNotifyOn, setTeamsNotifyOn] = useState("critical");
+  const [emailNotifyOn, setEmailNotifyOn] = useState("human_approval");
   const [notifSaving, setNotifSaving] = useState(false);
   const [notifSaved, setNotifSaved] = useState(false);
   const [testingTeams, setTestingTeams] = useState(false);
@@ -79,6 +80,7 @@ export default function SettingsPage() {
       const data = raw as Record<string, unknown>;
       setTeamsWebhookUrl((data.teamsWebhookUrl as string) || "");
       setTeamsNotifyOn((data.teamsNotifyOn as string) || "critical");
+      setEmailNotifyOn((data.emailNotifyOn as string) || "human_approval");
     }).catch(() => {});
   }, []);
 
@@ -107,6 +109,7 @@ export default function SettingsPage() {
       await notificationsApi.updateConfig({
         teams_webhook_url: teamsWebhookUrl,
         teams_notify_on: teamsNotifyOn,
+        email_notify_on: emailNotifyOn,
       });
       setNotifSaved(true);
       setTimeout(() => setNotifSaved(false), 3000);
@@ -707,10 +710,31 @@ export default function SettingsPage() {
             Send Test Email
           </Button>
         </div>
-        <div className="p-4">
+        <div className="space-y-3 p-4">
           <p className="text-xs text-[#64748b]">
             Email settings (SMTP host, credentials, recipients) are configured via environment variables in <code className="rounded bg-[#f1f5f9] px-1.5 py-0.5 text-[11px] font-mono text-[#1e293b]">.env</code>
           </p>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-[#475569]">Email mode</label>
+            <select
+              value={emailNotifyOn}
+              onChange={(e) => setEmailNotifyOn(e.target.value)}
+              className="w-full rounded-lg border border-[#e2e8f0] bg-[#f8fafc] px-3 py-2 text-sm text-[#1e293b] focus:border-[#2563eb] focus:outline-none focus:ring-1 focus:ring-[#2563eb]"
+            >
+              <option value="human_approval">Human approval required (default)</option>
+              <option value="critical">Critical alerts only</option>
+              <option value="warning">Warning + Critical alerts</option>
+              <option value="all">All alerts</option>
+              <option value="none">Disabled</option>
+            </select>
+            <p className="mt-1 text-[10px] text-[#94a3b8]">
+              {emailNotifyOn === "human_approval"
+                ? "Emails sent only when an AI decision needs human approval"
+                : emailNotifyOn === "none"
+                  ? "Email notifications disabled"
+                  : "Emails sent when anomaly alerts match the selected severity"}
+            </p>
+          </div>
           {testResult?.channel === "email" && (
             <motion.div
               initial={{ opacity: 0, y: -4 }}

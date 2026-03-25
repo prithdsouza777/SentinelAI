@@ -69,7 +69,7 @@ function DecisionCard({ decision }: { decision: AgentDecision }) {
         isRejected && "opacity-40"
       )}
     >
-      <div className="mb-2 flex items-center gap-2">
+      <div className="mb-2 flex flex-wrap items-center gap-2">
         <div className={cn("flex items-center gap-1.5 rounded-full border px-2.5 py-1", phase.bg)}>
           <PhaseIcon className={cn("h-3.5 w-3.5", phase.color)} />
           <span className={cn("text-[11px] font-semibold", phase.color)}>
@@ -82,18 +82,20 @@ function DecisionCard({ decision }: { decision: AgentDecision }) {
 
         {decision.guardrailResult && (
           <span className={cn(
-            "flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold",
+            "flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold",
             decision.guardrailResult === "AUTO_APPROVE" && "border-[#10b981]/20 bg-[#10b981]/10 text-[#10b981]",
             decision.guardrailResult === "PENDING_HUMAN" && "border-[#f59e0b]/20 bg-[#f59e0b]/10 text-[#f59e0b]",
             decision.guardrailResult === "BLOCKED" && "border-[#ef4444]/20 bg-[#ef4444]/10 text-[#ef4444]",
+            decision.guardrailResult === "NEGOTIATION_OVERRIDDEN" && "border-[#f97316]/20 bg-[#f97316]/10 text-[#f97316]",
           )}>
             <Shield className="h-3 w-3" />
             {decision.guardrailResult === "AUTO_APPROVE" ? "Auto" :
-             decision.guardrailResult === "PENDING_HUMAN" ? "Pending" : "Blocked"}
+             decision.guardrailResult === "PENDING_HUMAN" ? "Pending" :
+             decision.guardrailResult === "NEGOTIATION_OVERRIDDEN" ? "Overridden" : "Blocked"}
           </span>
         )}
 
-        <span className="ml-auto text-[11px] tabular-nums text-[#94a3b8]">
+        <span className="ml-auto shrink-0 text-[11px] tabular-nums text-[#94a3b8]">
           {new Date(decision.timestamp).toLocaleTimeString()}
         </span>
       </div>

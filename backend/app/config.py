@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     smtp_password: str = ""
     smtp_from: str = ""
     smtp_to: str = ""  # comma-separated recipient emails
-    email_notify_on: str = "critical"  # "critical", "warning", "all", "none"
+    email_notify_on: str = "human_approval"  # "human_approval", "critical", "warning", "all", "none"
 
     # Notification cooldown (seconds) — prevents spam for repeated alerts
     notification_cooldown: int = 60

@@ -72,7 +72,7 @@ export default function Header() {
               <Button
                 onClick={handleStopDemo}
                 size="sm"
-                className="gap-2 bg-[#ef4444] text-white shadow-md hover:bg-[#dc2626]"
+                className="gap-2 rounded-full bg-[#ef4444] text-white shadow-md hover:bg-[#dc2626]"
               >
                 <Square className="h-3.5 w-3.5" />
                 Stop Demo
@@ -89,7 +89,7 @@ export default function Header() {
                 onClick={handleStartDemo}
                 disabled={demoLoading}
                 size="sm"
-                className="gap-2 bg-[#2563eb] text-white shadow-md hover:bg-[#1d4ed8]"
+                className="gap-2 rounded-full bg-[#2563eb] text-white shadow-md hover:bg-[#1d4ed8]"
               >
                 <Play className="h-3.5 w-3.5" />
                 {demoLoading ? "Starting..." : "Start Demo"}

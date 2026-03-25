@@ -183,7 +183,7 @@ export default function PrintReportView({
         }
       `}</style>
 
-      <div style={{ paddingBottom: 40 }}>
+      <div style={{ paddingBottom: 0 }}>
         {/* [PAGE 1] Branding header */}
         <div
           style={{
@@ -222,7 +222,8 @@ export default function PrintReportView({
         </div>
 
         {/* SECTION 1 — Executive Summary */}
-        <div className="print-section print-section-heading">Executive Summary</div>
+        <div className="print-section">
+        <div className="print-section-heading">Executive Summary</div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <div className="print-kpi">
             <div style={{ fontSize: 11, color: "#475569", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 800 }}>
@@ -257,8 +258,10 @@ export default function PrintReportView({
             </div>
           </div>
         </div>
+        </div>
 
         {/* SECTION 2 — Session Overview */}
+        <div className="print-section">
         <div className="print-section-heading">Session Overview</div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 0 }}>
           {[
@@ -285,17 +288,13 @@ export default function PrintReportView({
             </div>
           ))}
         </div>
+        </div>
 
-        {/* SECTION 3 — Performance Metrics */}
+        {/* SECTION 3 — Performance Metrics (3-column) */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
-          <div className="print-section print-section-heading">Alerts by Severity</div>
-
-          <div className="print-section print-section-heading">Guardrail Outcomes</div>
-
-          <div className="print-section print-section-heading">Decisions by Agent</div>
-
-          {/* Column content */}
-          <div style={{ gridColumn: "1 / span 1" }}>
+          {/* Column 1: Alerts by Severity */}
+          <div className="print-section">
+            <div className="print-section-heading">Alerts by Severity</div>
             <div className="print-bar-lines" style={{ marginTop: 6 }}>
               <div>
                 <strong>Warning:</strong> {warningCount}{" "}
@@ -317,7 +316,9 @@ export default function PrintReportView({
             </div>
           </div>
 
-          <div style={{ gridColumn: "2 / span 1" }}>
+          {/* Column 2: Guardrail Outcomes */}
+          <div className="print-section">
+            <div className="print-section-heading">Guardrail Outcomes</div>
             <div style={{ marginTop: 6 }} className="print-bar-lines">
               <div>
                 <strong>Auto-Approved:</strong> {gov.autoApproved}{" "}
@@ -334,7 +335,9 @@ export default function PrintReportView({
             </div>
           </div>
 
-          <div style={{ gridColumn: "3 / span 1" }}>
+          {/* Column 3: Decisions by Agent */}
+          <div className="print-section">
+            <div className="print-section-heading">Decisions by Agent</div>
             <div style={{ marginTop: 6, fontSize: 12 }} className="print-bar-lines">
               <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
                 <span>Skill Router</span>
@@ -357,6 +360,7 @@ export default function PrintReportView({
         </div>
 
         {/* SECTION 4 — Queue Performance Table */}
+        <div className="print-section">
         <div className="print-section-heading">Queue Performance</div>
         <table className="print-table">
           <thead>
@@ -389,8 +393,10 @@ export default function PrintReportView({
             })}
           </tbody>
         </table>
+        </div>
 
         {/* SECTION 5 — Recent Skill Routings */}
+        <div className="print-section">
         <div className="print-section-heading">Recent Skill Routings</div>
         <table className="print-table">
           <thead>
@@ -426,6 +432,7 @@ export default function PrintReportView({
             })}
           </tbody>
         </table>
+        </div>
       </div>
 
       <div className="print-footer">
