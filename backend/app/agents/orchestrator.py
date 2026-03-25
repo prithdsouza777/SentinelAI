@@ -515,9 +515,7 @@ class AgentOrchestrator:
         # Store negotiations
         if recent_negotiations is not None:
             for neg in final_state.get("negotiations", []):
-                recent_negotiations.insert(0, neg)
-                if len(recent_negotiations) > 50:
-                    recent_negotiations.pop()
+                recent_negotiations.appendleft(neg)
 
         return final_state.get("decisions", [])
 

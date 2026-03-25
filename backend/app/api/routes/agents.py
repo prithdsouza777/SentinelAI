@@ -49,13 +49,13 @@ async def list_agents():
 @router.get("/agents/decisions")
 async def get_decisions(request: Request):
     """Get the AI agent decision log with reasoning chains."""
-    return {"decisions": request.app.state.recent_decisions}
+    return {"decisions": list(request.app.state.recent_decisions)}
 
 
 @router.get("/agents/negotiations")
 async def get_negotiations(request: Request):
     """Get inter-agent negotiation history."""
-    return {"negotiations": request.app.state.recent_negotiations}
+    return {"negotiations": list(request.app.state.recent_negotiations)}
 
 
 @router.get("/agents/audit")

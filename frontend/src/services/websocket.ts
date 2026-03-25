@@ -51,13 +51,22 @@ class WebSocketService {
     };
 
     this.ws.onmessage = (event) => {
-      const message = JSON.parse(event.data);
-      // Respond to server pings to keep connection alive
-      if (message.event === "ping") {
-        this.ws?.send(JSON.stringify({ event: "pong", data: {}, timestamp: new Date().toISOString() }));
-        return;
+      let parsed;
+      try {
+        parsed = JSON.parse(event.data);
+      } catch {
+        return; // Ignore malformed messages
       }
-      this.dispatchMessage(message);
+      // Support batch messages (JSON array) for efficiency
+      const messages = Array.isArray(parsed) ? parsed : [parsed];
+      for (const message of messages) {
+        // Respond to server pings to keep connection alive
+        if (message.event === "ping") {
+          this.ws?.send(JSON.stringify({ event: "pong", data: {}, timestamp: new Date().toISOString() }));
+          continue;
+        }
+        this.dispatchMessage(message);
+      }
     };
 
     this.ws.onclose = (event) => {

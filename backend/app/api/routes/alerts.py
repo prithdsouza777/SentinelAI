@@ -10,7 +10,7 @@ router = APIRouter()
 @router.get("/alerts")
 async def list_alerts(request: Request):
     """List active and recent alerts."""
-    return {"alerts": request.app.state.recent_alerts}
+    return {"alerts": list(request.app.state.recent_alerts)}
 
 
 @router.post("/alerts/{alert_id}/acknowledge")

@@ -127,7 +127,9 @@ export const useDashboardStore = create<DashboardState>((set) => ({
 
   chatMessages: [],
   addChatMessage: (message) =>
-    set((state) => ({ chatMessages: [...state.chatMessages, message] })),
+    set((state) => ({
+      chatMessages: [...state.chatMessages, message].slice(-200),
+    })),
 
   simulationActive: false,
   setSimulationActive: (active) => set({ simulationActive: active }),

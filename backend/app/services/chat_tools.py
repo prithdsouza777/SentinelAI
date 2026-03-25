@@ -191,62 +191,70 @@ def _exec_queue_status(inp: dict, ctx: dict) -> str:
 
 
 def _exec_agents_by_dept(inp: dict, ctx: dict) -> str:
-    dept_name = inp.get("department", "").strip().title()
-    workforce = ctx.get("workforce", [])
-    if not workforce:
-        return "Workforce data not available."
+    dept_name = inp.get("department", "").strip().lower()
+    dept_id = DEPT_NAME_TO_ID.get(dept_name)
+    if not dept_id:
+        return f"Invalid department '{dept_name}'. Valid: Support, Billing, Sales, General, VIP."
 
-    if dept_name not in DEPT_NAME_TO_ID.values() and dept_name.lower() in DEPT_NAME_TO_ID:
-        dept_name = dept_name.title()
+    try:
+        from app.services.agent_database import agent_database
+        agents = agent_database.get_all_agents()
+        agents.sort(key=lambda a: a.department_score_for(dept_id), reverse=True)
 
-    ranked = sorted(workforce, key=lambda a: -a["deptScores"].get(dept_name, 0))
-
-    lines = [f"Agents ranked by {dept_name} fitness:"]
-    for i, a in enumerate(ranked[:10], 1):
-        score = a["deptScores"].get(dept_name, 0)
-        current = a["currentQueue"].replace("q-", "").title()
-        relocated = " (RELOCATED)" if a["currentQueue"] != a["homeQueue"] else ""
-        skills_str = ", ".join(f"{s[0]}={s[1]:.0%}" for s in a["topSkills"][:3])
-        lines.append(
-            f"{i}. {a['name']} ({a['role']}) — fitness: {score:.0%} | "
-            f"status: {a['status']} | current: {current}{relocated} | top skills: {skills_str}"
-        )
-    return "\n".join(lines)
+        dept_display = dept_name.title()
+        lines = [f"Agents ranked by {dept_display} fitness:"]
+        for i, a in enumerate(agents[:10], 1):
+            score = a.department_score_for(dept_id)
+            current = a.current_queue_id.replace("q-", "").title()
+            relocated = " (RELOCATED)" if a.current_queue_id != a.home_queue_id else ""
+            top_skills = sorted(a.skill_proficiencies, key=lambda s: -s.proficiency)[:3]
+            skills_str = ", ".join(f"{s.skill_name}={s.proficiency:.0%}" for s in top_skills)
+            lines.append(
+                f"{i}. {a.name} ({a.role}) — fitness: {score:.0%} | "
+                f"status: {a.status} | current: {current}{relocated} | top skills: {skills_str}"
+            )
+        return "\n".join(lines)
+    except Exception as e:
+        return f"Error querying workforce: {e}"
 
 
 def _exec_agent_profile(inp: dict, ctx: dict) -> str:
-    name = inp.get("agent_name", "").strip().lower()
-    workforce = ctx.get("workforce", [])
-    if not workforce:
-        return "Workforce data not available."
+    name = inp.get("agent_name", "").strip()
 
-    agent = next((a for a in workforce if a["name"].lower() == name), None)
-    if not agent:
-        names = ", ".join(a["name"] for a in workforce[:10])
-        return f"Agent '{name}' not found. Available agents include: {names}..."
+    try:
+        from app.services.agent_database import agent_database
 
-    current = agent["currentQueue"].replace("q-", "").title()
-    home = agent["homeQueue"].replace("q-", "").title()
-    relocated = " (RELOCATED from " + home + ")" if agent["currentQueue"] != agent["homeQueue"] else ""
+        agent = agent_database.get_agent_by_name(name)
+        if not agent:
+            # Show available names for help
+            all_agents = agent_database.get_all_agents()
+            names = ", ".join(a.name for a in all_agents[:10])
+            return f"Agent '{name}' not found. Available agents include: {names}..."
 
-    lines = [
-        f"Agent: {agent['name']}",
-        f"Role: {agent['role']}",
-        f"Status: {agent['status']}",
-        f"Current department: {current}{relocated}",
-        f"Home department: {home}",
-        f"",
-        f"Department fitness scores:",
-    ]
-    for dept, score in sorted(agent["deptScores"].items(), key=lambda x: -x[1]):
-        bar = "#" * int(score * 20)
-        lines.append(f"  {dept}: {score:.0%} {bar}")
+        current = agent.current_queue_id.replace("q-", "").title()
+        home = agent.home_queue_id.replace("q-", "").title()
+        relocated = f" (RELOCATED from {home})" if agent.current_queue_id != agent.home_queue_id else ""
 
-    lines.append(f"\nTop skills:")
-    for skill, prof in agent["topSkills"]:
-        lines.append(f"  {skill.replace('_', ' ')}: {prof:.0%}")
+        lines = [
+            f"Agent: {agent.name}",
+            f"Role: {agent.role}",
+            f"Status: {agent.status}",
+            f"Current department: {current}{relocated}",
+            f"Home department: {home}",
+            f"",
+            f"Department fitness scores:",
+        ]
+        for ds in sorted(agent.department_scores, key=lambda d: -d.fitness_score):
+            bar = "#" * int(ds.fitness_score * 20)
+            lines.append(f"  {ds.department_name}: {ds.fitness_score:.0%} {bar}")
 
-    return "\n".join(lines)
+        lines.append(f"\nTop skills:")
+        for sp in sorted(agent.skill_proficiencies, key=lambda s: -s.proficiency)[:8]:
+            lines.append(f"  {sp.skill_name.replace('_', ' ')}: {sp.proficiency:.0%}")
+
+        return "\n".join(lines)
+    except Exception as e:
+        return f"Error querying agent: {e}"
 
 
 def _exec_check_move(inp: dict, ctx: dict) -> str:
@@ -260,12 +268,7 @@ def _exec_check_move(inp: dict, ctx: dict) -> str:
     try:
         from app.services.agent_database import agent_database
 
-        agent = None
-        for a in agent_database.get_all_agents():
-            if a.name.lower() == agent_name.lower():
-                agent = a
-                break
-
+        agent = agent_database.get_agent_by_name(agent_name)
         if not agent:
             return f"Agent '{agent_name}' not found."
 
@@ -318,12 +321,7 @@ def _exec_move_agent(inp: dict, ctx: dict) -> str:
         from app.services.agent_database import agent_database
         from app.services.simulation import simulation_engine
 
-        agent = None
-        for a in agent_database.get_all_agents():
-            if a.name.lower() == agent_name.lower():
-                agent = a
-                break
-
+        agent = agent_database.get_agent_by_name(agent_name)
         if not agent:
             return f"Agent '{agent_name}' not found."
 
@@ -400,13 +398,13 @@ def _exec_decisions(inp: dict, ctx: dict) -> str:
 
 
 def _exec_cost_summary(inp: dict, ctx: dict) -> str:
-    cost = ctx.get("cost_data", {})
-    governance = ctx.get("governance", {})
+    from app.agents.orchestrator import orchestrator
+    from app.agents.guardrails import guardrails
 
-    saved = cost.get("totalSaved", 0)
-    risk = cost.get("revenueAtRisk", 0)
-    prevented = cost.get("totalPreventedAbandoned", 0)
-    actions = cost.get("actionsToday", 0)
+    saved = orchestrator._total_saved
+    risk = orchestrator._revenue_at_risk
+    prevented = orchestrator._prevented_abandoned
+    actions = orchestrator._actions_today
     recovery = min(100, (saved / (saved + risk)) * 100) if (saved + risk) > 0 else 0
 
     lines = [
@@ -418,6 +416,7 @@ def _exec_cost_summary(inp: dict, ctx: dict) -> str:
         f"  AI actions taken: {actions}",
     ]
 
+    governance = guardrails.get_governance_summary()
     total_dec = governance.get("totalDecisions", 0)
     if total_dec:
         lines.append(f"\nGovernance: {governance.get('autoApproved', 0)} auto-approved, "
@@ -428,10 +427,15 @@ def _exec_cost_summary(inp: dict, ctx: dict) -> str:
 
 
 def _exec_incident_summary(inp: dict, ctx: dict) -> str:
+    from app.agents.orchestrator import orchestrator
+
     alerts = ctx.get("recent_alerts", [])
     decisions = ctx.get("recent_decisions", [])
     negotiations = ctx.get("recent_negotiations", [])
-    cost = ctx.get("cost_data", {})
+    cost = {
+        "totalSaved": orchestrator._total_saved,
+        "totalPreventedAbandoned": orchestrator._prevented_abandoned,
+    }
     queues = ctx.get("queue_metrics", [])
 
     active = [a for a in alerts[:20] if not a.get("resolvedAt")]

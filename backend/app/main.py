@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from collections import deque
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -27,10 +28,22 @@ logger = logging.getLogger("sentinelai")
 
 # ── In-memory state (imported by routes via app.state) ────────────────────────
 _latest_metrics: dict[str, dict] = {}       # queue_id → latest QueueMetrics (camelCase)
-_recent_decisions: list[dict] = []          # newest first, max 200
-_recent_alerts: list[dict] = []             # newest first, max 100
-_recent_negotiations: list[dict] = []       # newest first, max 50
-_metrics_history: list[dict] = []           # all metrics snapshots for trending (max 600)
+_recent_decisions: deque[dict] = deque(maxlen=200)    # newest first
+_recent_alerts: deque[dict] = deque(maxlen=100)       # newest first
+_recent_negotiations: deque[dict] = deque(maxlen=50)  # newest first
+_metrics_history: deque[dict] = deque(maxlen=600)     # trending (≈ 30 min @ 3s ticks)
+
+
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
+def _safe_fire_and_forget(coro):
+    """Schedule a coroutine as a fire-and-forget task with exception logging."""
+    def _log_exception(t):
+        if not t.cancelled() and t.exception():
+            logger.warning("Fire-and-forget task failed: %s", t.exception())
+    task = asyncio.create_task(coro)
+    task.add_done_callback(_log_exception)
+    return task
 
 
 # ── Simulation tick loop ───────────────────────────────────────────────────────
@@ -49,6 +62,9 @@ async def _tick():
     # Sync agent statuses (available/busy/on_break) based on queue load
     simulation_engine.sync_agent_statuses(metrics)
 
+    # Collect all WS events for batch broadcast (reduces per-message overhead)
+    ws_batch: list[tuple[str, dict]] = []
+
     for m in metrics:
         # Anomaly detection (takes QueueMetrics object)
         alerts_list = anomaly_engine.evaluate(m)
@@ -56,30 +72,36 @@ async def _tick():
         # Serialize to camelCase for WS broadcast + REST cache
         m_dict = m.model_dump(by_alias=True, mode="json")
         _latest_metrics[m.queue_id] = m_dict
-        await manager.broadcast("queue:update", m_dict)
+        ws_batch.append(("queue:update", m_dict))
 
-        # Track history for trending (capped at 600 snapshots ≈ 30 min @ 3s ticks)
+        # Track history for trending (deque auto-caps at 600 snapshots)
         _metrics_history.append(m_dict)
-        if len(_metrics_history) > 600:
-            _metrics_history.pop(0)
 
         for a in alerts_list:
             a_dict = a.model_dump(by_alias=True, mode="json")
-            _recent_alerts.insert(0, a_dict)
-            if len(_recent_alerts) > 100:
-                _recent_alerts.pop()
-            await manager.broadcast("alert:new", a_dict)
+            _recent_alerts.appendleft(a_dict)
+            ws_batch.append(("alert:new", a_dict))
             await redis_client.push_json("sentinelai:alerts", a_dict, maxlen=100)
             # Fire-and-forget external notifications (Teams + Gmail)
-            asyncio.create_task(notification_service.notify(a_dict))
+            _safe_fire_and_forget(notification_service.notify(a_dict))
 
-    # Run agents with camelCase dicts
+    # Send all queue updates + alerts in a single WS frame
+    await manager.broadcast_batch(ws_batch)
+
+    # Run agents with camelCase dicts (10s timeout prevents tick loop from hanging)
     metrics_dicts = [m.model_dump(by_alias=True, mode="json") for m in metrics]
-    decisions = await orchestrator.process_metrics(
-        metrics_dicts,
-        active_alerts=_recent_alerts,
-        recent_negotiations=_recent_negotiations,
-    )
+    try:
+        decisions = await asyncio.wait_for(
+            orchestrator.process_metrics(
+                metrics_dicts,
+                active_alerts=_recent_alerts,
+                recent_negotiations=_recent_negotiations,
+            ),
+            timeout=10.0,
+        )
+    except asyncio.TimeoutError:
+        logger.warning("Orchestrator timed out (10s) — skipping this tick")
+        decisions = []
 
     # Collect predictive alerts from the PredictivePreventionAgent
     from app.models import AgentType
@@ -87,12 +109,10 @@ async def _tick():
     if pp_agent and hasattr(pp_agent, "pending_alerts") and pp_agent.pending_alerts:
         for pa in pp_agent.pending_alerts:
             pa_dict = pa.model_dump(by_alias=True, mode="json")
-            _recent_alerts.insert(0, pa_dict)
-            if len(_recent_alerts) > 100:
-                _recent_alerts.pop()
+            _recent_alerts.appendleft(pa_dict)
             await manager.broadcast("alert:new", pa_dict)
             await redis_client.push_json("sentinelai:alerts", pa_dict, maxlen=100)
-            asyncio.create_task(notification_service.notify(pa_dict))
+            _safe_fire_and_forget(notification_service.notify(pa_dict))
         pp_agent.pending_alerts.clear()
 
     # Tick revenue-at-risk: count unresolved critical alerts
@@ -103,9 +123,7 @@ async def _tick():
     await orchestrator.tick_revenue_at_risk(critical_count)
 
     for d in decisions:
-        _recent_decisions.insert(0, d)
-        if len(_recent_decisions) > 200:
-            _recent_decisions.pop()
+        _recent_decisions.appendleft(d)
         await redis_client.push_json("sentinelai:decisions", d, maxlen=200)
 
 
