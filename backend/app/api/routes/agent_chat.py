@@ -197,6 +197,22 @@ def _build_agent_context(request: Request, agent_key: str) -> str:
             for n in negotiations:
                 lines.append(f"- {n.get('topic', '?')}: {n.get('resolution', '?')}")
 
+        # Workforce data (all 24 human agents)
+        from app.services.agent_database import agent_database
+        if agent_database._initialized:
+            all_agents = agent_database.get_all_agents()
+            lines.append(f"\n## Human Workforce ({len(all_agents)} agents)")
+            for a in all_agents:
+                current = a.current_queue_id.replace("q-", "").title()
+                home = a.home_queue_id.replace("q-", "").title()
+                relocated = f" (RELOCATED from {home})" if a.current_queue_id != a.home_queue_id else ""
+                top_skills = sorted(a.skill_proficiencies, key=lambda s: -s.proficiency)[:3]
+                skills_str = ", ".join(f"{s.skill_name.replace('_', ' ')} {s.proficiency:.0%}" for s in top_skills)
+                lines.append(
+                    f"- {a.name} ({a.role}) — {current}{relocated} — "
+                    f"status: {a.status}, perf: {a.perf_score:.0%}, skills: {skills_str}"
+                )
+
         # Cost data
         from app.agents.orchestrator import orchestrator
         lines.append(f"\n## Cost Impact")
