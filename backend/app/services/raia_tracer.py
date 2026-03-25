@@ -233,6 +233,31 @@ def log_decisions(decisions: list[dict], metrics: list[dict]) -> None:
             logger.debug("RAIA log_interaction failed for %s: %s", d.get("agentType"), e)
 
 
+def connect() -> dict:
+    """Attempt to connect/verify RAIA SDK and start a trace session if needed.
+
+    Called when user clicks 'Connect RAIA' in the governance panel.
+    Returns connection result with real SDK status.
+    """
+    if not _sdk_available:
+        # Try to initialize if not yet done
+        initialize()
+
+    if not _sdk_available:
+        return {
+            "connected": False,
+            "reason": "RAIA SDK not configured — set RAIA_EMAIL and RAIA_PASSWORD in .env",
+        }
+
+    # Start a trace session if one isn't active
+    if _trace is None:
+        start_session("SentinelAI Live Connection")
+
+    status = get_trace_status()
+    status["connected"] = True
+    return status
+
+
 def get_trace_status() -> dict:
     """Return current trace session status for the governance panel."""
     if not _sdk_available:

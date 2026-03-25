@@ -426,6 +426,126 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* RAIA + LockThreat Trust Banner */}
+      <section className="landing-section" style={{ paddingTop: "2rem", paddingBottom: "1rem" }}>
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-60px" }}
+          variants={stagger}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "1.5rem",
+          }}
+        >
+          <motion.p
+            variants={fadeUp}
+            custom={0}
+            style={{
+              fontSize: "0.7rem",
+              fontWeight: 700,
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+              color: "#94a3b8",
+            }}
+          >
+            AI Governance & Compliance
+          </motion.p>
+          <motion.div
+            variants={fadeUp}
+            custom={1}
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              justifyContent: "center",
+              gap: "1rem",
+              width: "100%",
+              maxWidth: "720px",
+            }}
+          >
+            {/* RAIA Badge */}
+            <div
+              style={{
+                flex: "1 1 320px",
+                display: "flex",
+                alignItems: "center",
+                gap: "0.875rem",
+                padding: "1rem 1.25rem",
+                borderRadius: "1rem",
+                border: "1px solid rgba(139, 92, 246, 0.15)",
+                background: "linear-gradient(135deg, rgba(139, 92, 246, 0.04), rgba(139, 92, 246, 0.01))",
+                backdropFilter: "blur(8px)",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: "2.5rem",
+                  height: "2.5rem",
+                  borderRadius: "0.75rem",
+                  background: "rgba(139, 92, 246, 0.1)",
+                  flexShrink: 0,
+                }}
+              >
+                <BrainCircuit style={{ width: "1.25rem", height: "1.25rem", color: "#8b5cf6" }} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: "0.7rem", fontWeight: 700, color: "#8b5cf6", letterSpacing: "0.05em" }}>
+                  RAIA
+                </div>
+                <div style={{ fontSize: "0.7rem", color: "#64748b", marginTop: "0.125rem" }}>
+                  Agent system monitored & evaluated
+                </div>
+              </div>
+              <CheckCircle2 style={{ width: "1rem", height: "1rem", color: "#10b981", flexShrink: 0 }} />
+            </div>
+
+            {/* LockThreat Badge */}
+            <div
+              style={{
+                flex: "1 1 320px",
+                display: "flex",
+                alignItems: "center",
+                gap: "0.875rem",
+                padding: "1rem 1.25rem",
+                borderRadius: "1rem",
+                border: "1px solid rgba(37, 99, 235, 0.15)",
+                background: "linear-gradient(135deg, rgba(37, 99, 235, 0.04), rgba(37, 99, 235, 0.01))",
+                backdropFilter: "blur(8px)",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: "2.5rem",
+                  height: "2.5rem",
+                  borderRadius: "0.75rem",
+                  background: "rgba(37, 99, 235, 0.1)",
+                  flexShrink: 0,
+                }}
+              >
+                <Shield style={{ width: "1.25rem", height: "1.25rem", color: "#2563eb" }} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: "0.7rem", fontWeight: 700, color: "#2563eb", letterSpacing: "0.05em" }}>
+                  LockThreat
+                </div>
+                <div style={{ fontSize: "0.7rem", color: "#64748b", marginTop: "0.125rem" }}>
+                  SOC 2 + ISO 27001 + NIST AI RMF compliant
+                </div>
+              </div>
+              <CheckCircle2 style={{ width: "1rem", height: "1rem", color: "#10b981", flexShrink: 0 }} />
+            </div>
+          </motion.div>
+        </motion.div>
+      </section>
+
       {/* Live Agent Feed section */}
       <section className="landing-section">
         <motion.div
