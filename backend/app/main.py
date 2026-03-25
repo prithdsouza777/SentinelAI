@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.api.routes import alerts, agents, chat, health, queues, simulation
-from app.api.routes import reports, history, notifications, agent_chat
+from app.api.routes import reports, history, notifications, agent_chat, teams
 from app.api.websocket import router as ws_router
 from app.config import settings
 
@@ -125,9 +125,12 @@ async def _tick():
     for d in decisions:
         _recent_decisions.appendleft(d)
         await redis_client.push_json("sentinelai:decisions", d, maxlen=200)
-        # Fire-and-forget approval email for pending decisions
+        # Fire-and-forget approval email + Teams bot card for pending decisions
         if d.get("guardrailResult") == "PENDING_HUMAN":
             asyncio.create_task(notification_service.notify_pending_decision(d))
+            from app.services.teams_bot import teams_bot
+            if teams_bot.has_conversations():
+                _safe_fire_and_forget(teams_bot.send_proactive_approval_card(d))
 
 
 async def _simulation_loop():
@@ -210,6 +213,7 @@ app.include_router(reports.router, prefix="/api", tags=["reports"])
 app.include_router(history.router, prefix="/api", tags=["history"])
 app.include_router(notifications.router, prefix="/api", tags=["notifications"])
 app.include_router(agent_chat.router, prefix="/api", tags=["agent-chat"])
+app.include_router(teams.router, prefix="/api", tags=["teams-bot"])
 
 # WebSocket
 app.include_router(ws_router)

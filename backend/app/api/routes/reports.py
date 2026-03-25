@@ -16,18 +16,19 @@ from app.config import settings
 router = APIRouter()
 
 
-async def _build_report(request: Request) -> dict:
+def _build_report_from_state(app_state) -> dict:
     """Aggregate in-memory state into a session report dict.
 
-    Shared by GET /reports/session (JSON export) and
-    POST /reports/email (email delivery) to avoid duplication.
+    Accepts either a Request object (app_state = request.app.state) or
+    a raw state object with the same attributes. Used by the REST route,
+    email delivery, and Teams bot report generation.
     """
     from app.agents.orchestrator import orchestrator
     from app.services.simulation import simulation_engine
 
-    alerts = list(getattr(request.app.state, "recent_alerts", []))
-    decisions = list(getattr(request.app.state, "recent_decisions", []))
-    negotiations = list(getattr(request.app.state, "recent_negotiations", []))
+    alerts = list(getattr(app_state, "recent_alerts", []))
+    decisions = list(getattr(app_state, "recent_decisions", []))
+    negotiations = list(getattr(app_state, "recent_negotiations", []))
 
     # ── Alert summary ──
     active_alerts = [a for a in alerts if not a.get("resolvedAt")]
@@ -50,7 +51,7 @@ async def _build_report(request: Request) -> dict:
 
     # ── Queue performance summary ──
     queue_summary: dict = {}
-    latest_metrics = getattr(request.app.state, "latest_metrics", {})
+    latest_metrics = getattr(app_state, "latest_metrics", {})
     for qid, m in latest_metrics.items():
         queue_summary[m.get("queueName", qid)] = {
             "queueId": qid,
@@ -167,6 +168,11 @@ async def _build_report(request: Request) -> dict:
         },
         "workforce": workforce_summary,
     }
+
+
+async def _build_report(request: Request) -> dict:
+    """Convenience wrapper: extract app.state from a Request and delegate."""
+    return _build_report_from_state(request.app.state)
 
 
 @router.get("/reports/session")

@@ -76,7 +76,7 @@ export default function PrintReportView({
   const queueBalancerCount = byAgent.queue_balancer ?? 0;
   const predictivePreventionCount = byAgent.predictive_prevention ?? 0;
 
-  const queueNames = ["Support", "Billing", "Sales", "General", "VIP"];
+  const queueNames = Object.keys(report.queues ?? {});
   const routingRows = (report.skillRouting.recentRoutings ?? []).slice(0, 10);
 
   return (
@@ -186,6 +186,7 @@ export default function PrintReportView({
       <div style={{ paddingBottom: 0 }}>
         {/* [PAGE 1] Branding header */}
         <div
+          data-pdf-section
           style={{
             border: "2px solid #3B82F6",
             padding: 14,
@@ -222,7 +223,7 @@ export default function PrintReportView({
         </div>
 
         {/* SECTION 1 — Executive Summary */}
-        <div className="print-section">
+        <div className="print-section" data-pdf-section>
         <div className="print-section-heading">Executive Summary</div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <div className="print-kpi">
@@ -261,7 +262,7 @@ export default function PrintReportView({
         </div>
 
         {/* SECTION 2 — Session Overview */}
-        <div className="print-section">
+        <div className="print-section" data-pdf-section>
         <div className="print-section-heading">Session Overview</div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 0 }}>
           {[
@@ -291,7 +292,7 @@ export default function PrintReportView({
         </div>
 
         {/* SECTION 3 — Performance Metrics (3-column) */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
+        <div data-pdf-section style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
           {/* Column 1: Alerts by Severity */}
           <div className="print-section">
             <div className="print-section-heading">Alerts by Severity</div>
@@ -360,7 +361,7 @@ export default function PrintReportView({
         </div>
 
         {/* SECTION 4 — Queue Performance Table */}
-        <div className="print-section">
+        <div className="print-section" data-pdf-section>
         <div className="print-section-heading">Queue Performance</div>
         <table className="print-table">
           <thead>
@@ -395,8 +396,71 @@ export default function PrintReportView({
         </table>
         </div>
 
-        {/* SECTION 5 — Recent Skill Routings */}
-        <div className="print-section">
+        {/* SECTION 5 — Workforce Summary */}
+        {report.workforce && report.workforce.totalAgents > 0 && (
+          <div className="print-section" data-pdf-section>
+            <div className="print-section-heading">Workforce Summary</div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 0, marginBottom: 14 }}>
+              {[
+                ["Total Agents", report.workforce.totalAgents],
+                ["Available", report.workforce.byStatus?.available ?? 0],
+                ["Busy", report.workforce.byStatus?.busy ?? 0],
+                ["On Break", report.workforce.byStatus?.on_break ?? 0],
+                ["Relocated", report.workforce.relocated],
+                ["Avg Performance", `${(report.workforce.avgPerfScore * 100).toFixed(0)}%`],
+              ].map(([k, v], idx) => (
+                <div
+                  key={String(k)}
+                  style={{
+                    flex: 1,
+                    textAlign: "center",
+                    padding: "10px 0",
+                    borderLeft: idx === 0 ? "none" : "1px solid #E2E8F0",
+                  }}
+                >
+                  <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.05em", color: "#475569", fontWeight: 800 }}>
+                    {k}
+                  </div>
+                  <div style={{ fontSize: 14, fontWeight: 900, color: "#0F172A", marginTop: 3 }}>{String(v)}</div>
+                </div>
+              ))}
+            </div>
+
+            {report.workforce.topPerformers.length > 0 && (
+              <>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>
+                  Top Performers
+                </div>
+                <table className="print-table">
+                  <thead>
+                    <tr>
+                      {["#", "Name", "Role", "Department", "Performance", "Top Skill"].map((h) => (
+                        <th key={h} className="print-th">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {report.workforce.topPerformers.map((p, i) => (
+                      <tr key={p.name} className={i % 2 === 1 ? "print-row-alt" : ""}>
+                        <td className="print-td">{i + 1}</td>
+                        <td className="print-td" style={{ fontWeight: 800 }}>{p.name}</td>
+                        <td className="print-td" style={{ textTransform: "capitalize" }}>{p.role}</td>
+                        <td className="print-td">{p.department}</td>
+                        <td className="print-td" style={{ textAlign: "right", fontWeight: 900, color: p.perfScore >= 0.85 ? "#10B981" : "#0F172A" }}>
+                          {(p.perfScore * 100).toFixed(0)}%
+                        </td>
+                        <td className="print-td" style={{ textTransform: "capitalize" }}>{p.topSkill}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* SECTION 6 — Recent Skill Routings */}
+        <div className="print-section" data-pdf-section>
         <div className="print-section-heading">Recent Skill Routings</div>
         <table className="print-table">
           <thead>

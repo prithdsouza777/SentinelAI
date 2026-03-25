@@ -27,9 +27,13 @@ class Settings(BaseSettings):
     anthropic_model: str = "claude-sonnet-4-20250514"
     temperature: float = 0.01
 
-    # Notifications — Microsoft Teams
+    # Notifications — Microsoft Teams (Incoming Webhook)
     teams_webhook_url: str = ""
-    teams_notify_on: str = "critical"  # "critical", "warning", "all", "none"
+    teams_notify_on: str = "none"  # "critical", "warning", "all", "none"
+
+    # Microsoft Teams Bot (Bot Framework)
+    teams_bot_app_id: str = ""
+    teams_bot_app_secret: str = ""
 
     # Notifications — Gmail SMTP email
     smtp_host: str = ""

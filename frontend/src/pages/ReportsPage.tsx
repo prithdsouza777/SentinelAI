@@ -256,28 +256,85 @@ export default function ReportsPage() {
     setEmailSending(true);
     setEmailFeedback(null);
     try {
-      // 1. Generate PDF content
+      // 1. Generate PDF content — capture each section individually for clean page breaks
       let pdfBase64: string | null = null;
       const pdfElement = document.getElementById("pdf-capture-root");
-      
+
       if (pdfElement) {
-        // Wait for charts to settle (recharts animations)
         await new Promise(r => setTimeout(r, 800));
-        
-        const canvas = await html2canvas(pdfElement, {
-          scale: 2,
-          useCORS: true,
-          logging: false,
-          backgroundColor: "#ffffff"
-        });
-        
-        const imgData = canvas.toDataURL("image/jpeg", 0.9);
-        const pdf = new jsPDF("p", "mm", "a4");
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-        
-        pdf.addImage(imgData, "JPEG", 0, 0, pdfWidth, pdfHeight);
-        pdfBase64 = pdf.output("datauristring");
+
+        const sections = pdfElement.querySelectorAll<HTMLElement>("[data-pdf-section]");
+        if (sections.length > 0) {
+          const pdf = new jsPDF("p", "mm", "a4");
+          const pageWidth = pdf.internal.pageSize.getWidth();
+          const pageHeight = pdf.internal.pageSize.getHeight();
+          const margin = 8; // mm margin top/bottom
+          const usableHeight = pageHeight - margin * 2;
+          let cursorY = margin;
+          let isFirstSection = true;
+
+          for (const section of Array.from(sections)) {
+            const canvas = await html2canvas(section, {
+              scale: 2,
+              useCORS: true,
+              logging: false,
+              backgroundColor: "#ffffff",
+            });
+
+            const imgWidth = pageWidth - margin * 2;
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+            // If this section won't fit on the current page, start a new one
+            if (!isFirstSection && cursorY + imgHeight > pageHeight - margin) {
+              pdf.addPage();
+              cursorY = margin;
+            }
+
+            const imgData = canvas.toDataURL("image/jpeg", 0.92);
+
+            // If a single section is taller than a page, slice it across pages
+            if (imgHeight > usableHeight) {
+              const pxPerMm = canvas.width / imgWidth;
+              let remainingPx = canvas.height;
+              let srcY = 0;
+
+              while (remainingPx > 0) {
+                const sliceHeightMm = Math.min(pageHeight - margin - cursorY, imgHeight - (srcY / pxPerMm));
+                const sliceHeightPx = Math.min(Math.round(sliceHeightMm * pxPerMm), remainingPx);
+
+                const sliceCanvas = document.createElement("canvas");
+                sliceCanvas.width = canvas.width;
+                sliceCanvas.height = sliceHeightPx;
+                const ctx = sliceCanvas.getContext("2d");
+                if (ctx) {
+                  ctx.fillStyle = "#ffffff";
+                  ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
+                  ctx.drawImage(canvas, 0, srcY, canvas.width, sliceHeightPx, 0, 0, canvas.width, sliceHeightPx);
+                }
+
+                const sliceData = sliceCanvas.toDataURL("image/jpeg", 0.92);
+                const sliceMmH = (sliceHeightPx * imgWidth) / canvas.width;
+                pdf.addImage(sliceData, "JPEG", margin, cursorY, imgWidth, sliceMmH);
+
+                srcY += sliceHeightPx;
+                remainingPx -= sliceHeightPx;
+                cursorY += sliceMmH;
+
+                if (remainingPx > 0) {
+                  pdf.addPage();
+                  cursorY = margin;
+                }
+              }
+            } else {
+              pdf.addImage(imgData, "JPEG", margin, cursorY, imgWidth, imgHeight);
+              cursorY += imgHeight + 4; // 4mm gap between sections
+            }
+
+            isFirstSection = false;
+          }
+
+          pdfBase64 = pdf.output("datauristring");
+        }
       }
 
       // 2. Send to backend
@@ -662,35 +719,44 @@ export default function ReportsPage() {
         </div>
       </div>
 
-      {/* Email feedback banner */}
-      <AnimatePresence>
-        {emailFeedback && (
-          <motion.div
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.2 }}
-            className={cn(
-              "print-hide flex items-center gap-2 rounded-md border px-4 py-2.5 text-sm font-medium",
-              emailFeedback.ok
-                ? "border-[var(--success)] bg-[var(--success)]/10 text-[var(--success)]"
-                : "border-[var(--danger)] bg-[var(--danger)]/10 text-[var(--danger)]"
+      {/* Email feedback toast */}
+      {createPortal(
+        <div className="pointer-events-none fixed bottom-6 right-6 z-50">
+          <AnimatePresence>
+            {emailFeedback && (
+              <motion.div
+                initial={{ opacity: 0, y: 40, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 20, scale: 0.95 }}
+                transition={{ type: "spring", damping: 22, stiffness: 300 }}
+                className={cn(
+                  "pointer-events-auto flex items-center gap-3 rounded-xl border px-4 py-3 shadow-lg backdrop-blur-sm",
+                  "min-w-[280px] max-w-[400px]",
+                  emailFeedback.ok
+                    ? "border-[var(--success)]/30 bg-[var(--bg-card)] text-[var(--success)]"
+                    : "border-[var(--danger)]/30 bg-[var(--bg-card)] text-[var(--danger)]"
+                )}
+              >
+                {emailFeedback.ok
+                  ? <CheckCircle2 className="h-5 w-5 shrink-0" />
+                  : <AlertTriangle className="h-5 w-5 shrink-0" />}
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-semibold">{emailFeedback.ok ? "Email Sent" : "Email Failed"}</p>
+                  <p className="mt-0.5 text-[13px] text-[var(--text-secondary)]">{emailFeedback.msg}</p>
+                </div>
+                <button
+                  onClick={() => setEmailFeedback(null)}
+                  className="shrink-0 rounded p-1 text-[var(--text-muted)] transition-colors hover:bg-[var(--accent-subtle)] hover:text-[var(--text-secondary)]"
+                  aria-label="Dismiss"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </motion.div>
             )}
-          >
-            {emailFeedback.ok
-              ? <CheckCircle2 className="h-4 w-4 shrink-0" />
-              : <AlertTriangle className="h-4 w-4 shrink-0" />}
-            <span>{emailFeedback.msg}</span>
-            <button
-              onClick={() => setEmailFeedback(null)}
-              className="ml-auto opacity-60 hover:opacity-100 transition-opacity"
-              aria-label="Dismiss"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </AnimatePresence>
+        </div>,
+        document.body
+      )}
 
       {/* Empty state */}
       {!report ? (
@@ -1339,10 +1405,10 @@ export default function ReportsPage() {
                           )}
                         >
                           <td className="py-2 font-medium text-[var(--text-primary)]">{q.queueName}</td>
-                          <td className="py-2 text-right tabular-nums">{q.contacts}</td>
-                          <td className="py-2 text-right tabular-nums">{q.agentsOnline}</td>
-                          <td className="py-2 text-right tabular-nums">{q.agentsAvailable}</td>
-                          <td className="py-2 text-right tabular-nums">{q.waitTime.toFixed(1)}s</td>
+                          <td className="py-2 text-right tabular-nums text-[var(--text-primary)]">{q.contacts}</td>
+                          <td className="py-2 text-right tabular-nums text-[var(--text-primary)]">{q.agentsOnline}</td>
+                          <td className="py-2 text-right tabular-nums text-[var(--text-primary)]">{q.agentsAvailable}</td>
+                          <td className="py-2 text-right tabular-nums text-[var(--text-primary)]">{q.waitTime.toFixed(1)}s</td>
                           <td
                             className={cn(
                               "py-2 text-right tabular-nums",
