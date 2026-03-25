@@ -3,12 +3,18 @@
 Receives all Bot Framework activities at POST /api/teams/messages:
 - message: user chat, Action.Submit from Adaptive Cards
 - conversationUpdate: bot installed/removed
+
+Bot Framework expects a 200 response within ~15 seconds, so long-running
+operations (LLM chat, report generation) are dispatched to background tasks
+and replies are sent proactively.
 """
 
+import asyncio
 import logging
 import re
 
 from fastapi import APIRouter, Request
+from starlette.responses import JSONResponse
 
 from app.services.teams_bot import teams_bot
 
@@ -22,16 +28,25 @@ _REPORT_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
+_OK = JSONResponse({"status": "ok"}, status_code=200)
+
+
+def _fire_and_forget(coro):
+    """Schedule a coroutine as a background task with error logging."""
+    def _on_done(t):
+        if not t.cancelled() and t.exception():
+            logger.error("Teams background task failed: %s", t.exception(), exc_info=t.exception())
+    task = asyncio.create_task(coro)
+    task.add_done_callback(_on_done)
+    return task
+
 
 @router.post("/teams/messages")
 async def teams_messages(request: Request):
     """Bot Framework messaging endpoint.
 
-    Azure Bot Service sends all activities here. We handle:
-    - conversationUpdate: bot added → welcome message
-    - message with value: Adaptive Card Action.Submit (approve/reject)
-    - message matching report pattern: generate + send PDF
-    - message (text): route through Analytics Agent chat
+    Returns 200 immediately for all activity types.
+    Long-running work (chat, reports) runs in background tasks.
     """
     body = await request.json()
     activity_type = body.get("type", "")
@@ -44,36 +59,36 @@ async def teams_messages(request: Request):
     reply_to = body.get("id")
 
     if activity_type == "conversationUpdate":
-        return await _handle_conversation_update(body, service_url, conv_id)
+        # Welcome message is fast — can handle inline
+        _fire_and_forget(_handle_conversation_update(body, service_url, conv_id))
+        return _OK
 
     if activity_type == "message":
-        # Card Action.Submit — approval buttons
+        # Card Action.Submit — approval buttons (fast path)
         if body.get("value") and body["value"].get("sentinelAction"):
-            result_text = await teams_bot.handle_approval_action(body, request.app.state)
-            await teams_bot.send_reply(service_url, conv_id, reply_to, result_text)
-            return {"status": "ok"}
+            _fire_and_forget(_handle_approval(body, request.app.state, service_url, conv_id, reply_to))
+            return _OK
 
         # Regular text message
         text = (body.get("text") or "").strip()
-        # Remove bot @mention tags
         text_clean = re.sub(r"<at>.*?</at>\s*", "", text).strip()
 
         # Report request detection
         if text_clean and _REPORT_PATTERN.search(text_clean):
-            return await _handle_report(body, request, service_url, conv_id, reply_to)
+            _fire_and_forget(_handle_report(body, request.app.state, service_url, conv_id, reply_to))
+            return _OK
 
-        # Chat message → Analytics Agent
-        response_text = await teams_bot.handle_chat_message(body, request.app.state)
-        await teams_bot.send_reply(service_url, conv_id, reply_to, response_text)
-        return {"status": "ok"}
+        # Chat message → Analytics Agent (slow — background task)
+        _fire_and_forget(_handle_chat(body, request.app.state, service_url, conv_id, reply_to))
+        return _OK
 
     # Unhandled activity types (invoke, etc.) — acknowledge
-    return {"status": "ok"}
+    return _OK
 
 
 async def _handle_conversation_update(
     body: dict, service_url: str, conv_id: str
-) -> dict:
+) -> None:
     """Send welcome message when bot is added to a conversation."""
     members_added = body.get("membersAdded", [])
     bot_id = body.get("recipient", {}).get("id", "")
@@ -91,23 +106,52 @@ async def _handle_conversation_update(
         )
         await teams_bot.send_reply(service_url, conv_id, body.get("id"), welcome)
 
-    return {"status": "ok"}
+
+async def _handle_approval(
+    body: dict, app_state, service_url: str, conv_id: str, reply_to: str | None,
+) -> None:
+    """Handle Adaptive Card approval/reject action."""
+    try:
+        result_text = await teams_bot.handle_approval_action(body, app_state)
+        await teams_bot.send_reply(service_url, conv_id, reply_to, result_text)
+    except Exception as e:
+        logger.error("Teams approval error: %s", e, exc_info=True)
+        await teams_bot.send_reply(service_url, conv_id, reply_to, "Error processing approval action.")
+
+
+async def _handle_chat(
+    body: dict, app_state, service_url: str, conv_id: str, reply_to: str | None,
+) -> None:
+    """Process chat message through Analytics Agent and send reply."""
+    try:
+        response_text = await teams_bot.handle_chat_message(body, app_state)
+        await teams_bot.send_reply(service_url, conv_id, reply_to, response_text)
+    except Exception as e:
+        logger.error("Teams chat error: %s", e, exc_info=True)
+        await teams_bot.send_reply(
+            service_url, conv_id, reply_to,
+            "Sorry, something went wrong processing your message. Please try again.",
+        )
 
 
 async def _handle_report(
     body: dict,
-    request: Request,
+    app_state,
     service_url: str,
     conv_id: str,
     reply_to: str | None,
-) -> dict:
+) -> None:
     """Generate PDF report and send as attachment."""
-    # Send a "working on it" message first
-    await teams_bot.send_reply(
-        service_url, conv_id, reply_to,
-        "Generating your session report..."
-    )
-
-    text, attachments = await teams_bot.handle_report_request(body, request.app.state)
-    await teams_bot.send_reply(service_url, conv_id, None, text, attachments)
-    return {"status": "ok"}
+    try:
+        await teams_bot.send_reply(
+            service_url, conv_id, reply_to,
+            "Generating your session report..."
+        )
+        text, attachments = await teams_bot.handle_report_request(body, app_state)
+        await teams_bot.send_reply(service_url, conv_id, None, text, attachments)
+    except Exception as e:
+        logger.error("Teams report error: %s", e, exc_info=True)
+        await teams_bot.send_reply(
+            service_url, conv_id, reply_to,
+            "Failed to generate the report. Please try again.",
+        )
