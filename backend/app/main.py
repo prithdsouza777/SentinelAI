@@ -117,7 +117,7 @@ async def _tick():
 
     # Tick revenue-at-risk: count unresolved critical alerts
     critical_count = sum(
-        1 for a in _recent_alerts[:20]
+        1 for a in list(_recent_alerts)[:20]
         if a.get("severity") == "critical" and not a.get("resolvedAt")
     )
     await orchestrator.tick_revenue_at_risk(critical_count)
