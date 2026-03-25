@@ -1,4 +1,4 @@
-"""Governance status endpoint — RAIA + LockThreat compliance panel data."""
+"""Compliance verification endpoint — RAIA (Responsible & Explainable AI) + LockThreat (GRC)."""
 
 from fastapi import APIRouter
 
