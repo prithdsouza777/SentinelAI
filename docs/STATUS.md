@@ -1,6 +1,6 @@
 # SentinelAI — Build Status
 > Tracks the implementation state of every component.
-> Updated: 2026-03-25
+> Updated: 2026-03-26
 
 ---
 
@@ -25,7 +25,7 @@
 | API: Agent Routes | 100% | agents/decisions/negotiations/audit/governance/human | — |
 | API: Cost/Actions Routes | 100% | cost-impact + actions/log | — |
 | API: Chat Routes | 100% | Analytics Agent, prompt injection guard, NL policies | — |
-| API: Reports Routes | 100% | session report export (JSON + Email) | — |
+| API: Reports Routes | 100% | session report export (JSON + Email + server-side PDF) | — |
 | API: History Routes | 100% | metrics time-series | — |
 | Queue Balancer Agent | 100% | pressure scoring, execute, confidence | — |
 | Predictive Prevention | 100% | velocity tracking, cascade, cooldown | — |
@@ -40,6 +40,8 @@
 | LLM Service (bedrock.py) | 100% | 3-tier: Bedrock > Anthropic API > NoKeyLLM | — |
 | Scripted Demo Scenario | 100% | sentinelai_demo 3-min timeline | — |
 | NL Policy Engine | 100% | CRUD via /chat/policy endpoints | — |
+| Teams Bot Integration | 100% | Chat, approval cards, PDF reports via Bot Framework REST API | — |
+| Server-side PDF Generation | 100% | fpdf2, full session report | — |
 | Redis Cache | — | 10% | connection configured, not used |
 | CDK Infra | — | 30% | DynamoDB tables only |
 
@@ -81,6 +83,9 @@
 | Login gate | Working — authentication before dashboard access |
 | Reports page | Working — session analytics with Recharts charts |
 | Dark/Light theme toggle | Working — glassmorphism dark default |
+| Teams Bot: Chat | Working — same LLM pipeline as Command Center |
+| Teams Bot: Approval cards | Working — Adaptive Cards with Approve/Reject buttons |
+| Teams Bot: PDF reports | Working — server-side fpdf2 generation, sent as attachment |
 
 ---
 
@@ -106,3 +111,4 @@ Weeks 1-4 are all done. Remaining optional items:
 - Real AWS Connect integration (Week 4 bonus, not needed)
 - Gemini LLM provider (optional fourth tier)
 - Demo rehearsals and backup video recording
+- Teams Bot requires Azure Bot registration (App ID + Secret) — see `.env.example`

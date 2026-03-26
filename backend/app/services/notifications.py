@@ -472,6 +472,60 @@ class NotificationService:
         auto_pct = round(auto_approved / max(total_decisions, 1) * 100)
         avg_conf = round(gov.get("avgConfidence", 0) * 100)
 
+        # Build workforce HTML
+        workforce = report.get("workforce", {})
+        workforce_html = ""
+        if workforce.get("totalAgents", 0) > 0:
+            by_status = workforce.get("byStatus", {})
+            avg_perf = round(workforce.get("avgPerfScore", 0) * 100)
+            top_rows = ""
+            for i, p in enumerate(workforce.get("topPerformers", [])[:5]):
+                perf_pct = round(p.get("perfScore", 0) * 100)
+                perf_color = "#10b981" if perf_pct >= 85 else "#475569"
+                top_rows += (
+                    f'<tr style="border-bottom:1px solid #f1f5f9;">'
+                    f'<td style="padding:6px 8px;color:#475569;">{i+1}</td>'
+                    f'<td style="padding:6px 8px;color:#1e293b;font-weight:500;">{p.get("name","")}</td>'
+                    f'<td style="padding:6px 8px;color:#475569;text-transform:capitalize;">{p.get("role","")}</td>'
+                    f'<td style="padding:6px 8px;color:#475569;">{p.get("department","")}</td>'
+                    f'<td style="padding:6px 8px;text-align:right;color:{perf_color};font-weight:600;">{perf_pct}%</td>'
+                    f'<td style="padding:6px 8px;color:#475569;text-transform:capitalize;">{p.get("topSkill","")}</td>'
+                    f'</tr>'
+                )
+            top_table = ""
+            if top_rows:
+                top_table = f"""
+                <div style="margin-top:14px;">
+                  <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:#64748b;margin-bottom:8px;">
+                    Top Performers
+                  </div>
+                  <table style="width:100%;border-collapse:collapse;font-size:12px;">
+                    <thead><tr style="background:#f8fafc;">
+                      <th style="padding:6px 8px;text-align:left;color:#475569;font-weight:600;">#</th>
+                      <th style="padding:6px 8px;text-align:left;color:#475569;font-weight:600;">Name</th>
+                      <th style="padding:6px 8px;text-align:left;color:#475569;font-weight:600;">Role</th>
+                      <th style="padding:6px 8px;text-align:left;color:#475569;font-weight:600;">Dept</th>
+                      <th style="padding:6px 8px;text-align:right;color:#475569;font-weight:600;">Perf</th>
+                      <th style="padding:6px 8px;text-align:left;color:#475569;font-weight:600;">Top Skill</th>
+                    </tr></thead>
+                    <tbody>{top_rows}</tbody>
+                  </table>
+                </div>"""
+
+            workforce_html = f"""
+            <div style="padding:20px 28px;border-bottom:1px solid #e2e8f0;">
+              <h2 style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;
+                          color:#64748b;margin:0 0 14px 0;">👥 Workforce</h2>
+              <div style="display:flex;gap:0;">
+                {_kpi_cell('Total Agents', workforce.get('totalAgents', 0), '#3b82f6')}
+                {_kpi_cell('Available', by_status.get('available', 0), '#10b981')}
+                {_kpi_cell('Busy', by_status.get('busy', 0), '#f59e0b')}
+                {_kpi_cell('Relocated', workforce.get('relocated', 0), '#f59e0b')}
+                {_kpi_cell('Avg Perf', f"{avg_perf}%", '#3b82f6')}
+              </div>
+              {top_table}
+            </div>"""
+
         # Build queue rows HTML
         queue_rows_html = ""
         for qname, q in queues.items():
@@ -538,6 +592,8 @@ class NotificationService:
                 {_kpi_cell('Total Decisions', total_decisions, '#64748b')}
               </div>
             </div>
+
+            {workforce_html}
 
             <!-- Queue Performance -->
             <div style="padding:20px 28px;border-bottom:1px solid #e2e8f0;">
