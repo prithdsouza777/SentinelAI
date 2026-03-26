@@ -956,6 +956,9 @@ export default function LandingPage() {
                 </div>
                 <h4>PDF Reports</h4>
                 <p>Paginated governance reports with workforce analytics and trend charts.</p>
+                <div className="landing-integration-lines">
+                  <span /><span /><span />
+                </div>
               </div>
             </div>
           </motion.div>
@@ -1008,7 +1011,7 @@ export default function LandingPage() {
             Integrated with CirrusLabs Products
           </motion.h2>
           <motion.p variants={fadeUp} custom={1} className="landing-section-desc">
-            Real data, not mocked --- both integrations pull from the live orchestrator and guardrail engine.
+            RAIA pulls live data from the orchestrator and guardrail engine. LockThreat integration is compatibility-ready.
           </motion.p>
         </motion.div>
 

@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     # Microsoft Teams Bot (Bot Framework)
     teams_bot_app_id: str = ""
     teams_bot_app_secret: str = ""
+    teams_bot_tenant_id: str = ""
 
     # Notifications — Gmail SMTP email
     smtp_host: str = ""

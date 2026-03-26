@@ -57,15 +57,20 @@ class TeamsBotService:
         if self._token and time.monotonic() < self._token_expires:
             return self._token
 
-        url = "https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token"
+        # Single-tenant bots use tenant-specific endpoint; multi-tenant uses botframework.com
+        tenant = settings.teams_bot_tenant_id or "botframework.com"
+        url = f"https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token"
         data = {
             "grant_type": "client_credentials",
             "client_id": settings.teams_bot_app_id,
             "client_secret": settings.teams_bot_app_secret,
             "scope": "https://api.botframework.com/.default",
         }
+        logger.info("Requesting Bot Framework token (tenant=%s, app_id=%s...)", tenant[:12], settings.teams_bot_app_id[:8])
         async with httpx.AsyncClient(timeout=15.0) as client:
             resp = await client.post(url, data=data)
+            if resp.status_code != 200:
+                logger.error("Token request failed %s: %s", resp.status_code, resp.text[:500])
             resp.raise_for_status()
             body = resp.json()
 
@@ -113,6 +118,15 @@ class TeamsBotService:
         if not service_url or not conversation_id:
             return None
 
+        # Bot Framework requires 'from' and 'conversation' on outgoing activities
+        ref = self._conversation_refs.get(conversation_id)
+        if "from" not in activity_payload:
+            bot_id = ref.bot_id if ref else settings.teams_bot_app_id
+            bot_name = ref.bot_name if ref else "SentinelAI"
+            activity_payload["from"] = {"id": bot_id, "name": bot_name}
+        if "conversation" not in activity_payload:
+            activity_payload["conversation"] = {"id": conversation_id}
+
         url = f"{service_url}/v3/conversations/{conversation_id}/activities"
         headers: dict[str, str] = {"Content-Type": "application/json"}
 
@@ -121,8 +135,10 @@ class TeamsBotService:
             headers["Authorization"] = f"Bearer {token}"
 
         try:
+            logger.info("Sending reply to %s", url)
             async with httpx.AsyncClient(timeout=15.0) as client:
                 resp = await client.post(url, json=activity_payload, headers=headers)
+                logger.info("Reply response: %s %s", resp.status_code, resp.text[:200])
                 if resp.status_code in (200, 201, 202):
                     return resp.json()
                 logger.warning("Bot send failed HTTP %s: %s", resp.status_code, resp.text[:300])

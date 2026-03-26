@@ -50,6 +50,8 @@ async def teams_messages(request: Request):
     """
     body = await request.json()
     activity_type = body.get("type", "")
+    logger.info("Teams activity received: type=%s text=%s serviceUrl=%s",
+                activity_type, (body.get("text") or "")[:50], body.get("serviceUrl", ""))
 
     # Always store conversation reference for proactive messaging
     teams_bot.store_conversation_ref(body)
