@@ -208,6 +208,11 @@ export default function ReportsPage() {
 
   const [pdfGenerating, setPdfGenerating] = useState(false);
 
+  // Always fetch latest report data when page is opened
+  useEffect(() => {
+    generateReport();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     const t = window.setTimeout(() => setDebouncedRoutingSearch(routingSearch), 200);
     return () => window.clearTimeout(t);
@@ -227,19 +232,19 @@ export default function ReportsPage() {
     if (!report) return;
     setPdfGenerating(true);
     try {
+      // Refresh report data on the page
+      const freshRes = await fetch("/api/reports/session");
+      if (freshRes.ok) setReport(await freshRes.json());
       const res = await fetch("/api/reports/session/pdf");
       if (!res.ok) throw new Error("Failed to generate PDF");
-      
+
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
-      const win = window.open(url, "_blank");
-      if (!win) {
-        // Fallback to download if popup blocked
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `SentinelAI_Report_${(report.simulationScenario || "session").toLowerCase().replace(/[\s-]/g, "_")}_${report.simulationTick || 0}.pdf`;
-        a.click();
-      }
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `SentinelAI_Report_${(report.simulationScenario || "session").toLowerCase().replace(/[\s-]/g, "_")}_${report.simulationTick || 0}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
     } catch (err) {
       console.error("PDF generation error:", err);
       setEmailFeedback({ ok: false, msg: "Failed to generate PDF report." });
@@ -253,6 +258,9 @@ export default function ReportsPage() {
     setEmailSending(true);
     setEmailFeedback(null);
     try {
+      // Refresh report data on the page
+      const freshRes = await fetch("/api/reports/session");
+      if (freshRes.ok) setReport(await freshRes.json());
       const res = await fetch("/api/reports/email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
