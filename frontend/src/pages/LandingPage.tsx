@@ -559,8 +559,8 @@ export default function LandingPage() {
           <div className="landing-tech-track">
             {[...techStack, ...techStack].map((tech, i) => (
               <div key={i} className="landing-tech-item">
-                <img src={tech.logo} alt={tech.name} className={`${tech.wide === "sm" ? "landing-tech-logo-wide-sm" : tech.wide ? "landing-tech-logo-wide" : "landing-tech-logo"}${tech.logoDark ? " landing-logo-light" : ""}`} />
-                {tech.logoDark && <img src={tech.logoDark} alt={tech.name} className={`${tech.wide === "sm" ? "landing-tech-logo-wide-sm" : tech.wide ? "landing-tech-logo-wide" : "landing-tech-logo"} landing-logo-dark`} />}
+                <img src={tech.logo} alt={tech.name} className={`${(tech.wide as any) === "sm" ? "landing-tech-logo-wide-sm" : tech.wide ? "landing-tech-logo-wide" : "landing-tech-logo"}${tech.logoDark ? " landing-logo-light" : ""}`} />
+                {tech.logoDark && <img src={tech.logoDark} alt={tech.name} className={`${(tech.wide as any) === "sm" ? "landing-tech-logo-wide-sm" : tech.wide ? "landing-tech-logo-wide" : "landing-tech-logo"} landing-logo-dark`} />}
                 <span className="landing-tech-name">{tech.name}</span>
               </div>
             ))}

@@ -368,7 +368,7 @@ export default function AIDecisionFeed() {
   const decisions = useDashboardStore((s) => s.decisions);
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-2xl border border-[#e2e8f0] bg-white shadow-sm">
+    <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-[#e2e8f0] bg-white shadow-sm">
       <div className="flex items-center justify-between border-b border-[#e2e8f0] px-5 py-4">
         <div className="flex items-center gap-2.5">
           <BrainCircuit className="h-5 w-5 text-[#8b5cf6]" />

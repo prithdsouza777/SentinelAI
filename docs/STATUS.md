@@ -11,7 +11,7 @@
 | Frontend UI (10 pages) | 100% | — | — |
 | Frontend State / WS | 100% | — | — |
 | Frontend Governance (confidence bars, approve/reject) | 100% | — | — |
-| Frontend Polish (W4) | 100% | empty states, animations, demo button, branding | — |
+| Frontend Polish (W4) | 100% | empty states, animations, demo button, branding, real-time Trend Chart, scroll-safe layout | — |
 | Frontend Landing + Login + Reports | 100% | — | — |
 | Backend Models | 100% | camelCase aliases, governance fields | — |
 | Backend Config | 100% | — | — |

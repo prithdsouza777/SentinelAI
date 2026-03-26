@@ -140,6 +140,19 @@ async def _tick():
             from app.services.teams_bot import teams_bot
             if teams_bot.has_conversations():
                 _safe_fire_and_forget(teams_bot.send_proactive_approval_card(d))
+    
+    # Broadcast aggregated operations:tick for Trend Chart
+    avg_sl = sum(m.service_level for m in metrics) / len(metrics) if metrics else 85
+    total_wait = sum(m.avg_wait_time for m in metrics) / len(metrics) if metrics else 0
+    total_depth = sum(m.contacts_in_queue for m in metrics)
+    
+    await manager.broadcast("operations:tick", {
+        "tick": simulation_engine.tick,
+        "waitTime": round(total_wait, 1),
+        "queueDepth": total_depth,
+        "serviceLevel": round(avg_sl, 1),
+        "totalActions": orchestrator._actions_today,
+    })
 
 
 async def _simulation_loop():

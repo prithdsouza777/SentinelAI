@@ -37,10 +37,11 @@ npm run dev     # starts frontend (:5173) + backend (:8000)
 
 ## Architecture
 
-- **3-second tick loop** in `backend/app/main.py` drives everything
+- **3-second tick loop** in `backend/app/main.py` drives everything, including the real-time **Trend Chart**
 - **LangGraph orchestrator** runs **4 agents in parallel**, then conditional negotiation
 - **5 Agents**: QueueBalancer, PredictivePrevention, EscalationHandler, SkillRouter, Analytics
 - **3-tier LLM fallback**: AWS Bedrock (Converse API) > Anthropic API > NoKeyLLM
+- **Dashboard Layout**: Fixed-height scroll-safe architecture for multi-agent collaboration stability
 - **Bedrock Converse API**: Native tool-use, conversation memory (30 messages), 5-round tool loops, 3s agent timeout
 - **Guardrails**: AUTO_APPROVE (>=0.9), PENDING_HUMAN (0.7-0.9, 30s timeout), BLOCKED (<0.7)
 - **Skill Router**: Zero-LLM latency, proficiency-weighted scoring from agent database

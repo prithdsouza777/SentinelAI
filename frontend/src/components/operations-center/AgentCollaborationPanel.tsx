@@ -1,7 +1,7 @@
-import { GitMerge } from "lucide-react";
+import { GitMerge } from 'lucide-react';
 import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
-import { useDashboardStore } from "../../stores/dashboardStore";
+import { useDashboardStore } from '@/stores/dashboardStore';
 import { motion, AnimatePresence } from "framer-motion";
 
 const agentColors: Record<string, string> = {
@@ -20,15 +20,15 @@ const agentBgs: Record<string, string> = {
 
 export default function AgentCollaborationPanel() {
   const negotiations = useDashboardStore((s) => s.negotiations);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const prevCountRef = useRef(negotiations.length);
+    const scrollRef = useRef<HTMLDivElement>(null);
+    const prevCountRef = useRef(negotiations.length);
 
-  useEffect(() => {
-    if (negotiations.length > prevCountRef.current && scrollRef.current) {
-      scrollRef.current.scrollTo({ top: 0, behavior: "smooth" });
-    }
-    prevCountRef.current = negotiations.length;
-  }, [negotiations.length]);
+    useEffect(() => {
+        if (negotiations.length > prevCountRef.current && scrollRef.current) {
+            scrollRef.current.scrollTo({ top: 0, behavior: "smooth" });
+        }
+        prevCountRef.current = negotiations.length;
+    }, [negotiations.length]);
 
   const newestId = negotiations[0]?.id;
   const isRecent =
@@ -36,7 +36,7 @@ export default function AgentCollaborationPanel() {
     Date.now() - new Date(negotiations[0].timestamp).getTime() < 8000;
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-2xl border border-[#e2e8f0] bg-white shadow-sm">
+    <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-[#e2e8f0] bg-white shadow-sm">
       <div className="flex items-center justify-between border-b border-[#e2e8f0] px-5 py-4">
         <div className="flex items-center gap-2.5">
           <GitMerge className="h-5 w-5 text-[#f97316]" />
@@ -50,6 +50,7 @@ export default function AgentCollaborationPanel() {
       </div>
 
       <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto p-4">
+
         <div className="space-y-3">
           <AnimatePresence initial={false}>
             {negotiations.length === 0 ? (

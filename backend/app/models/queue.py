@@ -17,4 +17,5 @@ class QueueMetrics(CamelModel):
     abandonment_rate: float = 0.0
     service_level: float = 0.0
     contacts_handled: int = 0
+    tick: int = 0
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

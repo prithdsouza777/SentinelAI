@@ -228,6 +228,7 @@ class SimulationEngine:
                 abandonment_rate=abandon_rate,
                 service_level=service_level,
                 contacts_handled=random.randint(20, 60),
+                tick=self.tick,
                 timestamp=now,
             ))
 
