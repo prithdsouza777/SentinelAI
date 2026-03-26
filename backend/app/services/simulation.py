@@ -216,6 +216,13 @@ class SimulationEngine:
             abandon_rate = max(0, min(100, (contacts / max(agents_online, 1)) * 5 + random.gauss(0, 2)))
             service_level = max(0, min(100, 95 - contacts * 2 + random.gauss(0, 3)))
 
+            # Contact Lens sentiment: inversely correlated with pressure
+            # High wait times + high abandonment = negative sentiment
+            pressure = contacts / max(agents_available, 1)
+            base_sentiment = max(0.15, min(0.95, 0.85 - pressure * 0.08 - abandon_rate * 0.005))
+            sentiment = round(base_sentiment + random.gauss(0, 0.04), 2)
+            sentiment = max(0.10, min(0.98, sentiment))
+
             metrics.append(QueueMetrics(
                 queue_id=queue["id"],
                 queue_name=queue["name"],
@@ -228,6 +235,7 @@ class SimulationEngine:
                 abandonment_rate=abandon_rate,
                 service_level=service_level,
                 contacts_handled=random.randint(20, 60),
+                sentiment_score=sentiment,
                 timestamp=now,
             ))
 
@@ -246,6 +254,7 @@ class SimulationEngine:
                         m.service_level = max(0, m.service_level * 0.5)
                         m.agents_available = max(0, m.agents_available - m.contacts_in_queue // 3)
                         m.avg_wait_time = m.avg_wait_time * multiplier
+                        m.sentiment_score = max(0.15, m.sentiment_score * 0.5)  # sentiment tanks during spikes
 
             elif etype == "kill_agents":
                 queue_id = params.get("queue_id")

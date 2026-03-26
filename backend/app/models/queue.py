@@ -17,4 +17,6 @@ class QueueMetrics(CamelModel):
     abandonment_rate: float = 0.0
     service_level: float = 0.0
     contacts_handled: int = 0
+    # Contact Lens sentiment (0.0 = very negative, 0.5 = neutral, 1.0 = very positive)
+    sentiment_score: float = 0.75
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

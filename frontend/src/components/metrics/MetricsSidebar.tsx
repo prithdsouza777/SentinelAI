@@ -1,6 +1,21 @@
-import { Users, PhoneIncoming, Clock, Radio } from "lucide-react";
+import { Users, PhoneIncoming, Clock, Radio, SmilePlus } from "lucide-react";
 import { useDashboardStore } from "../../stores/dashboardStore";
 import { cn } from "@/lib/utils";
+
+function SentimentBadge({ score }: { score: number }) {
+  const pct = Math.round(score * 100);
+  const label = pct >= 75 ? "Positive" : pct >= 50 ? "Neutral" : "Negative";
+  const color = pct >= 75 ? "text-[#10b981]" : pct >= 50 ? "text-[#f59e0b]" : "text-[#ef4444]";
+  const bg = pct >= 75 ? "bg-[#10b981]/10" : pct >= 50 ? "bg-[#f59e0b]/10" : "bg-[#ef4444]/10";
+  const emoji = pct >= 75 ? "😊" : pct >= 50 ? "😐" : "😟";
+
+  return (
+    <span className={cn("flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold", bg, color)}>
+      <span>{emoji}</span>
+      {pct}%
+    </span>
+  );
+}
 
 export default function MetricsSidebar() {
   const queues = useDashboardStore((s) => s.queues);
@@ -12,8 +27,10 @@ export default function MetricsSidebar() {
       agentsAvailable: acc.agentsAvailable + q.agentsAvailable,
       avgWaitTime:
         acc.avgWaitTime + q.avgWaitTime / Math.max(queues.length, 1),
+      avgSentiment:
+        acc.avgSentiment + (q.sentimentScore ?? 0.75) / Math.max(queues.length, 1),
     }),
-    { contactsInQueue: 0, agentsOnline: 0, agentsAvailable: 0, avgWaitTime: 0 }
+    { contactsInQueue: 0, agentsOnline: 0, agentsAvailable: 0, avgWaitTime: 0, avgSentiment: 0 }
   );
 
   const metrics = [
@@ -51,8 +68,20 @@ export default function MetricsSidebar() {
             ))}
           </div>
 
-          {/* Compact queue list — single tight table */}
-          <div className="mt-4 overflow-hidden rounded-xl border border-[#e2e8f0]">
+          {/* Contact Lens Sentiment — powered by AWS */}
+          <div className="mt-3 flex items-center justify-between rounded-xl border border-[#8b5cf6]/15 bg-gradient-to-r from-[#8b5cf6]/5 to-transparent px-3.5 py-2.5">
+            <div className="flex items-center gap-2">
+              <SmilePlus className="h-4 w-4 text-[#8b5cf6]" />
+              <div>
+                <span className="text-[11px] font-semibold text-[#475569]">Contact Lens</span>
+                <span className="ml-1.5 text-[9px] text-[#94a3b8]">Sentiment</span>
+              </div>
+            </div>
+            <SentimentBadge score={totals.avgSentiment} />
+          </div>
+
+          {/* Compact queue list with sentiment */}
+          <div className="mt-3 overflow-hidden rounded-xl border border-[#e2e8f0]">
             {queues.map((q, i) => {
               const pressure = q.contactsInQueue / Math.max(q.agentsAvailable, 1);
               const status = pressure > 4 ? "critical" : pressure > 2 ? "warning" : "normal";
@@ -74,9 +103,10 @@ export default function MetricsSidebar() {
                     )} />
                     <span className="font-semibold text-[#1e293b]">{q.queueName}</span>
                   </div>
-                  <div className="flex gap-4 text-xs text-[#64748b]">
+                  <div className="flex items-center gap-3 text-xs text-[#64748b]">
                     <span className="tabular-nums">{q.contactsInQueue} waiting</span>
                     <span className="tabular-nums">{q.agentsAvailable} avail</span>
+                    <SentimentBadge score={q.sentimentScore ?? 0.75} />
                   </div>
                 </div>
               );
