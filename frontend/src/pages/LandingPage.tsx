@@ -13,7 +13,6 @@ import {
   LayoutDashboard,
   ArrowRight,
   ChevronDown,
-  Bot,
   Network,
   CheckCircle2,
   Eye,
@@ -80,7 +79,7 @@ const pillars = [
   {
     icon: LayoutDashboard,
     title: "AI Operations Center",
-    desc: "Live AI decision feed with agent reasoning visibility and real-time cost impact tracking.",
+    desc: "Live decision feed showing every agent's reasoning chain, cost impact, and governance status in real-time.",
     color: "#3b82f6",
     bg: "rgba(59, 130, 246, 0.08)",
     gradient: "linear-gradient(135deg, #3b82f6, #2563eb)",
@@ -88,7 +87,7 @@ const pillars = [
   {
     icon: AlertTriangle,
     title: "AI Anomaly Engine",
-    desc: "Statistical anomaly detection with predictive prevention and cascade correlation analysis.",
+    desc: "Detects spikes, predicts cascades, and scores anomaly velocity — catching problems minutes before humans notice.",
     color: "#f59e0b",
     bg: "rgba(245, 158, 11, 0.08)",
     gradient: "linear-gradient(135deg, #f59e0b, #d97706)",
@@ -96,7 +95,7 @@ const pillars = [
   {
     icon: BrainCircuit,
     title: "Autonomous Agents",
-    desc: "Five AI agents running in parallel via LangGraph — Queue Balancer, Predictive Prevention, Escalation Handler, Skill Router, and Analytics.",
+    desc: "Autonomous AI agents running in parallel via LangGraph — balancing queues, preventing cascades, handling escalations, routing by skill, and analyzing trends.",
     color: "#10b981",
     bg: "rgba(16, 185, 129, 0.08)",
     gradient: "linear-gradient(135deg, #10b981, #059669)",
@@ -120,7 +119,7 @@ const pillars = [
   {
     icon: MessageSquare,
     title: "Conversational Command",
-    desc: "Natural language queries, what-if simulations, agent chat, and policy creation through an AI command center.",
+    desc: "Ask questions in plain English, run what-if simulations, chat with individual agents, and create policies — all through natural language.",
     color: "#06b6d4",
     bg: "rgba(6, 182, 212, 0.08)",
     gradient: "linear-gradient(135deg, #06b6d4, #0891b2)",
@@ -128,7 +127,7 @@ const pillars = [
   {
     icon: FlaskConical,
     title: "Simulation Engine",
-    desc: "Built-in demo mode with choreographed scenarios, chaos injection, and live metric visualization.",
+    desc: "Choreographed crisis scenarios with live chaos injection — watch agents detect, negotiate, and resolve incidents in real-time.",
     color: "#ef4444",
     bg: "rgba(239, 68, 68, 0.08)",
     gradient: "linear-gradient(135deg, #ef4444, #dc2626)",
@@ -136,7 +135,7 @@ const pillars = [
   {
     icon: FileBarChart,
     title: "Reports & PDF Export",
-    desc: "Paginated PDF reports with workforce analytics, governance audit trails, and exportable insights.",
+    desc: "One-click PDF reports with session analytics, governance audit trails, and workforce performance breakdowns.",
     color: "#14b8a6",
     bg: "rgba(20, 184, 166, 0.08)",
     gradient: "linear-gradient(135deg, #14b8a6, #0d9488)",
@@ -152,8 +151,7 @@ const pillars = [
 ];
 
 const stats = [
-  { value: 5, label: "AI Agents", icon: Bot, suffix: "" },
-  { value: 3, label: "Tick Interval", icon: Zap, suffix: "s" },
+  { value: 3, label: "Second Response", icon: Zap, suffix: "s" },
   { value: 24, label: "Human Agents", icon: Users, suffix: "" },
   { value: 12, label: "Skills Tracked", icon: Target, suffix: "" },
   { value: 5, label: "Departments", icon: Layers, suffix: "" },
@@ -161,16 +159,16 @@ const stats = [
 ];
 
 const workflow = [
-  { step: "01", title: "Observe", desc: "Metrics stream in real-time from queues", icon: Eye },
-  { step: "02", title: "Analyze", desc: "AI agents detect anomalies & patterns", icon: Cpu },
-  { step: "03", title: "Decide", desc: "Agents propose actions with confidence scores", icon: GitBranch },
-  { step: "04", title: "Execute", desc: "Approved actions stabilize operations", icon: CheckCircle2 },
+  { step: "01", title: "Observe", desc: "Every 3 seconds, live metrics stream from all queues", icon: Eye },
+  { step: "02", title: "Analyze", desc: "Agents detect anomalies, predict cascades, score risk", icon: Cpu },
+  { step: "03", title: "Negotiate", desc: "Conflicting proposals resolve through weighted priority", icon: GitBranch },
+  { step: "04", title: "Execute", desc: "High-confidence actions fire instantly — the rest get human review", icon: CheckCircle2 },
 ];
 
 const agents = [
   {
     name: "Queue Balancer",
-    desc: "Monitors queue depths and redistributes agents across departments based on real-time demand and fitness scoring.",
+    desc: "Detects pressure imbalances and autonomously redistributes agents — turning a 20-minute manual process into a 3-second decision.",
     color: "#3b82f6",
     icon: BarChart3,
     status: "Executing",
@@ -178,7 +176,7 @@ const agents = [
   },
   {
     name: "Predictive Prevention",
-    desc: "Detects cascade risks before they materialize using statistical analysis and preemptive scaling.",
+    desc: "Sees problems 60 seconds before they hit — tracking velocity, correlating cross-queue patterns, and scaling preemptively.",
     color: "#10b981",
     icon: Shield,
     status: "Analyzing",
@@ -186,7 +184,7 @@ const agents = [
   },
   {
     name: "Escalation Handler",
-    desc: "Auto-routes critical tickets to the best-fit Tier 2 agents based on skill proficiency and availability.",
+    desc: "Takes command during crises — pulling emergency resources, paging supervisors, and executing recovery plans autonomously.",
     color: "#f59e0b",
     icon: AlertTriangle,
     status: "Watching",
@@ -194,7 +192,7 @@ const agents = [
   },
   {
     name: "Skill Router",
-    desc: "Matches incoming interactions to agents using weighted proficiency scores across 12 tracked skills.",
+    desc: "Matches every interaction to the best-fit agent using proficiency-weighted scoring across 12 skills and 5 departments.",
     color: "#ec4899",
     icon: Route,
     status: "Routing",
@@ -202,7 +200,7 @@ const agents = [
   },
   {
     name: "Analytics",
-    desc: "Chat-only agent that answers natural language queries about operations data, trends, and agent performance.",
+    desc: "Answers any question about your operations in plain English — with real numbers, trend analysis, and cost breakdowns.",
     color: "#8b5cf6",
     icon: Sparkles,
     status: "Ready",
@@ -451,9 +449,9 @@ export default function LandingPage() {
           </motion.p>
 
           <motion.p variants={fadeUp} custom={2} className="landing-hero-subtitle">
-            SentinelAI deploys five autonomous agents that monitor, analyze, and optimize
-            your AWS Connect queues in real-time — intelligently routing by skill proficiency,
-            detecting anomalies before they cascade, and resolving issues without human intervention.
+            SentinelAI deploys autonomous AI agents that monitor, analyze, and optimize
+            your AWS Connect queues in real-time — detecting anomalies before they cascade,
+            negotiating actions across agents, and resolving incidents in seconds, not minutes.
           </motion.p>
 
           <motion.div variants={fadeUp} custom={3} className="landing-hero-actions">
@@ -568,7 +566,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Five Agents showcase */}
+      {/* Agents showcase */}
       <section className="landing-section" id="agents">
         <motion.div
           className="landing-section-header"
@@ -581,11 +579,11 @@ export default function LandingPage() {
             Multi-Agent Architecture
           </motion.div>
           <motion.h2 variants={fadeUp} custom={0.5} className="landing-section-title">
-            Five Autonomous Agents, One Orchestrator
+            Autonomous Agents, One Orchestrator
           </motion.h2>
           <motion.p variants={fadeUp} custom={1} className="landing-section-desc">
-            Powered by LangGraph, our agents run in parallel with multi-agent negotiation,
-            confidence-based guardrails, and full reasoning transparency.
+            Powered by LangGraph, our agents run in parallel — negotiating conflicts,
+            enforcing guardrails, and explaining every decision they make.
           </motion.p>
         </motion.div>
 
@@ -648,8 +646,8 @@ export default function LandingPage() {
             Confidence-Based Guardrails
           </motion.h2>
           <motion.p variants={fadeUp} custom={1} className="landing-section-desc">
-            Every agent action is scored. Only high-confidence decisions execute automatically.
-            Everything else gets human review.
+            Every agent action carries a confidence score. High-confidence decisions execute instantly.
+            Low-confidence ones require human approval. Nothing runs unchecked.
           </motion.p>
         </motion.div>
 
@@ -714,7 +712,7 @@ export default function LandingPage() {
             Real-Time Agent Intelligence
           </motion.h2>
           <motion.p variants={fadeUp} custom={1} className="landing-section-desc">
-            Watch autonomous agents make decisions in real-time. Every action is logged, reasoned, and auditable.
+            Watch agents think, negotiate, and act — every decision logged with full reasoning chains and audit trails.
           </motion.p>
         </motion.div>
         <motion.div
@@ -740,7 +738,7 @@ export default function LandingPage() {
             How It Works
           </motion.h2>
           <motion.p variants={fadeUp} custom={1} className="landing-section-desc">
-            From observation to execution in seconds --- a fully autonomous loop.
+            From anomaly detection to resolution in seconds — a closed-loop autonomous pipeline.
           </motion.p>
         </motion.div>
 
@@ -783,10 +781,10 @@ export default function LandingPage() {
             Core Capabilities
           </motion.div>
           <motion.h2 variants={fadeUp} custom={0.5} className="landing-section-title">
-            Nine Pillars of Intelligence
+            The Full Intelligence Stack
           </motion.h2>
           <motion.p variants={fadeUp} custom={1} className="landing-section-desc">
-            A comprehensive autonomous operations layer built on top of AWS Connect.
+            Every capability an autonomous contact center needs — from anomaly detection to compliance reporting.
           </motion.p>
         </motion.div>
 
@@ -838,9 +836,9 @@ export default function LandingPage() {
               Know Your Agents Better Than They Know Themselves
             </h2>
             <p className="landing-split-desc">
-              Track 24 human agents across 5 departments with proficiency scoring across 12 skills.
-              Our fitness algorithm combines skill match (50%), experience (25%), and performance (25%)
-              to find the perfect agent for every interaction.
+              24 human agents, 5 departments, 12 skills — all scored by a fitness algorithm that
+              combines skill match, experience, and real-time performance to route every interaction
+              to the right person, every time.
             </p>
             <div className="landing-split-features">
               <div className="landing-split-feature">
@@ -968,9 +966,9 @@ export default function LandingPage() {
               Connected Everywhere That Matters
             </h2>
             <p className="landing-split-desc">
-              From Microsoft Teams approval workflows to real-time WebSocket feeds
-              and paginated PDF governance reports --- SentinelAI integrates into your
-              existing operations without friction.
+              Microsoft Teams approval workflows, real-time WebSocket feeds, and
+              exportable PDF governance reports — SentinelAI plugs into your
+              existing operations stack with zero friction.
             </p>
             <div className="landing-split-features">
               <div className="landing-split-feature">
@@ -1007,10 +1005,10 @@ export default function LandingPage() {
             Enterprise Compliance
           </motion.div>
           <motion.h2 variants={fadeUp} custom={0.5} className="landing-section-title">
-            Integrated with CirrusLabs Products
+            Built on CirrusLabs Compliance Stack
           </motion.h2>
           <motion.p variants={fadeUp} custom={1} className="landing-section-desc">
-            RAIA pulls live data from the orchestrator and guardrail engine. LockThreat integration is compatibility-ready.
+            Every AI decision is traced, evaluated, and auditable — powered by CirrusLabs' own compliance platforms.
           </motion.p>
         </motion.div>
 
@@ -1120,11 +1118,12 @@ export default function LandingPage() {
           <div className="landing-cta-glow" aria-hidden="true" />
           <div className="landing-cta-glow-2" aria-hidden="true" />
           <h2 className="landing-cta-title">
-            Ready to see autonomous intelligence in action?
+
+            See What Autonomous AI Looks Like
           </h2>
           <p className="landing-cta-desc">
-            Launch the dashboard and experience SentinelAI with our built-in
-            simulation engine --- full demo mode, zero setup.
+            Launch the dashboard, start the simulation, and watch AI agents
+            detect, negotiate, and resolve a live crisis — zero setup required.
           </p>
           <div className="landing-cta-actions">
             <button onClick={() => navigate("/login")} className="landing-btn-hero">
@@ -1147,7 +1146,7 @@ export default function LandingPage() {
             </span>
           </div>
           <p className="landing-footer-copy">
-            Built by <span className="font-semibold text-[#475569]">Cirrus<span className="text-[#f87171]">Labs</span></span> --- Enterprise AI Strategy & Compliance
+            Built by <span className="font-semibold text-[#475569]">Cirrus<span className="text-[#f87171]">Labs</span></span> --- Autonomous AI for Enterprise Operations
           </p>
         </div>
       </footer>

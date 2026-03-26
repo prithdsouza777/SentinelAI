@@ -12,6 +12,7 @@ export interface QueueMetrics {
   abandonmentRate: number;
   serviceLevel: number;
   contactsHandled: number;
+  sentimentScore: number;
   timestamp: string;
 }
 

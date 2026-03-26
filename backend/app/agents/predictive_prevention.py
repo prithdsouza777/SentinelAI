@@ -158,6 +158,13 @@ class PredictivePreventionAgent:
             # Threshold-based defaults
             cascade_risk = "HIGH" if predicted_60s > critical_threshold * 2 else "MEDIUM"
             confidence = self._forecast_confidence(queue_id)
+            sentiment = q.get("sentimentScore", 0.75)
+            sentiment_label = "positive" if sentiment >= 0.75 else "neutral" if sentiment >= 0.5 else "negative"
+            sentiment_note = (
+                f" Contact Lens sentiment {sentiment:.0%} ({sentiment_label}) — "
+                + ("customer satisfaction at risk, " if sentiment < 0.5 else "")
+                + ("urgency elevated." if sentiment < 0.5 else "monitoring closely.")
+            )
             reasoning = (
                 f"Holt's forecast: {queue_name} trend +{trend:.2f} contacts/tick "
                 f"(+{velocity:.2f}/sec, smoothed level {level:.1f}). "
@@ -165,7 +172,8 @@ class PredictivePreventionAgent:
                 f"Predicted in 60s: {predicted_60s:.0f} contacts. "
                 f"Critical threshold: {critical_threshold:.0f} (agents_online x 2.5). "
                 f"Exceeds threshold by {predicted_60s - critical_threshold:.0f}. "
-                f"Cascade risk: {cascade_risk}. "
+                f"Cascade risk: {cascade_risk}."
+                f"{sentiment_note} "
                 f"Recommend preemptive reinforcement now."
             )
 
@@ -231,6 +239,9 @@ class PredictivePreventionAgent:
         """Call LLM for enriched reasoning on a detected velocity anomaly."""
         from app.services.bedrock import bedrock_service
 
+        sentiment = queue_data.get("sentimentScore", 0.75)
+        sentiment_label = "positive" if sentiment >= 0.75 else "neutral" if sentiment >= 0.5 else "negative"
+
         prompt = (
             f"Queue: {queue_name} ({queue_id})\n"
             f"Current contacts: {contacts}\n"
@@ -240,8 +251,9 @@ class PredictivePreventionAgent:
             f"Critical threshold: {critical_threshold:.0f}\n"
             f"Wait time: {queue_data.get('avgWaitTime', 0):.0f}s\n"
             f"Abandonment rate: {queue_data.get('abandonmentRate', 0):.1f}%\n"
-            f"Service level: {queue_data.get('serviceLevel', 0):.0f}%\n\n"
-            f"Analyze cascade risk and recommend action."
+            f"Service level: {queue_data.get('serviceLevel', 0):.0f}%\n"
+            f"Contact Lens sentiment: {sentiment:.0%} ({sentiment_label})\n\n"
+            f"Analyze cascade risk and recommend action. Factor in customer sentiment."
         )
 
         result = await bedrock_service.invoke_with_system(PP_SYSTEM_PROMPT, prompt, max_tokens=300)
