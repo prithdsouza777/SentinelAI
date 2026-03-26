@@ -37,16 +37,23 @@ export default function Header() {
 
   // Poll RAIA trace count when simulation is active
   useEffect(() => {
-    if (!simulationActive) return;
+    if (!simulationActive) {
+      setRaiaTraces(0);
+      return;
+    }
     const poll = async () => {
       try {
         const res = await governanceApi.getStatus();
-        prevTraces.current = raiaTraces;
-        setRaiaTraces(res.raia.interactions ?? 0);
+        const count = res.raia.interactions ?? 0;
+        if (count !== raiaTraces) {
+          prevTraces.current = raiaTraces;
+          setRaiaTraces(count);
+        }
       } catch { /* ignore */ }
     };
     poll();
-    const interval = setInterval(poll, 4000);
+    // Poll fast initially (every 2s), then slow down after first trace
+    const interval = setInterval(poll, 2000);
     return () => clearInterval(interval);
   }, [simulationActive]);
 
