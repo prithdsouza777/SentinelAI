@@ -18,13 +18,9 @@ import {
   Mail,
   CheckCircle2,
 } from "lucide-react";
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { AnimatePresence, motion } from "framer-motion";
-import PrintReportView from "@/components/reports/PrintReportView";
-import { getValidSession } from "@/components/auth/authToken";
 import {
   BarChart,
   Bar,
@@ -210,36 +206,12 @@ export default function ReportsPage() {
   const [minScorePill, setMinScorePill] = useState<0.85 | 0.9 | 0.95 | null>(null);
   const [expandedRoutingId, setExpandedRoutingId] = useState<string | null>(null);
 
-  const [printPreviewOpen, setPrintPreviewOpen] = useState(false);
-  const [printRootEl, setPrintRootEl] = useState<HTMLDivElement | null>(null);
-  const operatorRole = getValidSession()?.role ?? "Operator";
+  const [pdfGenerating, setPdfGenerating] = useState(false);
 
   useEffect(() => {
     const t = window.setTimeout(() => setDebouncedRoutingSearch(routingSearch), 200);
     return () => window.clearTimeout(t);
   }, [routingSearch]);
-
-  useEffect(() => {
-    if (!printPreviewOpen) return;
-
-    let el = document.getElementById("print-report-root") as HTMLDivElement | null;
-    if (!el) {
-      el = document.createElement("div");
-      el.id = "print-report-root";
-      document.body.appendChild(el);
-    }
-
-    setPrintRootEl(el);
-
-    const onAfterPrint = () => setPrintPreviewOpen(false);
-    window.addEventListener("afterprint", onAfterPrint);
-
-    return () => {
-      window.removeEventListener("afterprint", onAfterPrint);
-      if (el?.parentNode) el.parentNode.removeChild(el);
-      setPrintRootEl(null);
-    };
-  }, [printPreviewOpen]);
 
   const generateReport = async () => {
     setLoading(true);
@@ -251,102 +223,40 @@ export default function ReportsPage() {
     }
   };
 
-  // Auto-generate report on page load / refresh
-  useEffect(() => {
-    generateReport();
-  }, []);
+  const handlePrintReport = async () => {
+    if (!report) return;
+    setPdfGenerating(true);
+    try {
+      const res = await fetch("/api/reports/session/pdf");
+      if (!res.ok) throw new Error("Failed to generate PDF");
+      
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const win = window.open(url, "_blank");
+      if (!win) {
+        // Fallback to download if popup blocked
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `SentinelAI_Report_${(report.simulationScenario || "session").toLowerCase().replace(/[\s-]/g, "_")}_${report.simulationTick || 0}.pdf`;
+        a.click();
+      }
+    } catch (err) {
+      console.error("PDF generation error:", err);
+      setEmailFeedback({ ok: false, msg: "Failed to generate PDF report." });
+    } finally {
+      setPdfGenerating(false);
+    }
+  };
 
   const sendReportEmail = async () => {
     if (!report) return;
     setEmailSending(true);
     setEmailFeedback(null);
     try {
-      // 1. Generate PDF content — capture each section individually for clean page breaks
-      let pdfBase64: string | null = null;
-      const pdfElement = document.getElementById("pdf-capture-root");
-
-      if (pdfElement) {
-        await new Promise(r => setTimeout(r, 800));
-
-        const sections = pdfElement.querySelectorAll<HTMLElement>("[data-pdf-section]");
-        if (sections.length > 0) {
-          const pdf = new jsPDF("p", "mm", "a4");
-          const pageWidth = pdf.internal.pageSize.getWidth();
-          const pageHeight = pdf.internal.pageSize.getHeight();
-          const margin = 8; // mm margin top/bottom
-          const usableHeight = pageHeight - margin * 2;
-          let cursorY = margin;
-          let isFirstSection = true;
-
-          for (const section of Array.from(sections)) {
-            const canvas = await html2canvas(section, {
-              scale: 2,
-              useCORS: true,
-              logging: false,
-              backgroundColor: "#ffffff",
-            });
-
-            const imgWidth = pageWidth - margin * 2;
-            const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-            // If this section won't fit on the current page, start a new one
-            if (!isFirstSection && cursorY + imgHeight > pageHeight - margin) {
-              pdf.addPage();
-              cursorY = margin;
-            }
-
-            const imgData = canvas.toDataURL("image/jpeg", 0.92);
-
-            // If a single section is taller than a page, slice it across pages
-            if (imgHeight > usableHeight) {
-              const pxPerMm = canvas.width / imgWidth;
-              let remainingPx = canvas.height;
-              let srcY = 0;
-
-              while (remainingPx > 0) {
-                const sliceHeightMm = Math.min(pageHeight - margin - cursorY, imgHeight - (srcY / pxPerMm));
-                const sliceHeightPx = Math.min(Math.round(sliceHeightMm * pxPerMm), remainingPx);
-
-                const sliceCanvas = document.createElement("canvas");
-                sliceCanvas.width = canvas.width;
-                sliceCanvas.height = sliceHeightPx;
-                const ctx = sliceCanvas.getContext("2d");
-                if (ctx) {
-                  ctx.fillStyle = "#ffffff";
-                  ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
-                  ctx.drawImage(canvas, 0, srcY, canvas.width, sliceHeightPx, 0, 0, canvas.width, sliceHeightPx);
-                }
-
-                const sliceData = sliceCanvas.toDataURL("image/jpeg", 0.92);
-                const sliceMmH = (sliceHeightPx * imgWidth) / canvas.width;
-                pdf.addImage(sliceData, "JPEG", margin, cursorY, imgWidth, sliceMmH);
-
-                srcY += sliceHeightPx;
-                remainingPx -= sliceHeightPx;
-                cursorY += sliceMmH;
-
-                if (remainingPx > 0) {
-                  pdf.addPage();
-                  cursorY = margin;
-                }
-              }
-            } else {
-              pdf.addImage(imgData, "JPEG", margin, cursorY, imgWidth, imgHeight);
-              cursorY += imgHeight + 4; // 4mm gap between sections
-            }
-
-            isFirstSection = false;
-          }
-
-          pdfBase64 = pdf.output("datauristring");
-        }
-      }
-
-      // 2. Send to backend
       const res = await fetch("/api/reports/email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pdfBase64 })
+        body: "{}",
       });
       
       const data = await res.json();
@@ -594,7 +504,6 @@ export default function ReportsPage() {
     return rows;
   }, [debouncedRoutingSearch, minScorePill, routingRows, routingSortKey, routingSortDir]);
 
-  const visibleRoutingRows = useMemo(() => filteredRoutingRows.slice(0, 10), [filteredRoutingRows]);
 
   const totalAlerts = report?.alerts.total ?? 0;
   const totalDecisions = report?.decisions.total ?? 0;
@@ -713,20 +622,13 @@ export default function ReportsPage() {
 
           {report && (
             <Button
-              onClick={() => {
-                setPrintPreviewOpen(true);
-                requestAnimationFrame(() => {
-                  setTimeout(() => {
-                    window.print();
-                  }, 300);
-                });
-              }}
+              onClick={handlePrintReport}
               variant="secondary"
               className="print-hide gap-2"
-              disabled={printPreviewOpen}
+              disabled={pdfGenerating}
             >
-              <Printer className="mr-2 h-4 w-4" />
-              {printPreviewOpen ? "Generating..." : "Print Report"}
+              <Printer className={cn("mr-2 h-4 w-4", pdfGenerating && "animate-pulse")} />
+              {pdfGenerating ? "Generating..." : "Print Report"}
             </Button>
           )}
 
@@ -1548,7 +1450,7 @@ export default function ReportsPage() {
                           </td>
                         </tr>
                       ) : (
-                        visibleRoutingRows.map((r, idx) => {
+                        filteredRoutingRows.map((r, idx) => {
                           const isExpanded = expandedRoutingId === r.id;
                           const isHighlighted = agentHighlight != null && r.agentId === agentHighlight;
                           const scoreBadge =
@@ -1581,42 +1483,7 @@ export default function ReportsPage() {
         </div>
       )}
 
-      {/* Hidden PDF Capture Area */}
-      {report && (
-        <div 
-          id="pdf-capture-root" 
-          className="fixed -left-[9999px] top-0 w-[800px] bg-white text-black p-8"
-          style={{ zIndex: -100 }}
-        >
-          <PrintReportView 
-            report={report} 
-            operatorRole={operatorRole}
-            sessionName={report.simulationScenario || "Idle"}
-            generatedAt={report.generatedAt}
-            durationSeconds={report.simulationTick * 2}
-          />
-        </div>
-      )}
 
-      {printPreviewOpen && report && printRootEl
-        ? createPortal(
-            <div
-              style={{
-                background: "#FFFFFF",
-                minHeight: "100vh",
-              }}
-            >
-              <PrintReportView
-                report={report}
-                operatorRole={operatorRole}
-                sessionName={report.simulationScenario || "Idle"}
-                generatedAt={report.generatedAt}
-                durationSeconds={report.simulationTick * 2}
-              />
-            </div>,
-            printRootEl
-          )
-        : null}
     </div>
   );
 }

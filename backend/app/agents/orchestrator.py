@@ -542,7 +542,15 @@ class AgentOrchestrator:
             for neg in final_state.get("negotiations", []):
                 recent_negotiations.appendleft(neg)
 
-        return final_state.get("decisions", [])
+        # Log all decisions to RAIA for responsible AI tracing
+        all_decisions = final_state.get("decisions", [])
+        try:
+            from app.services.raia_tracer import log_decisions
+            log_decisions(all_decisions, metrics)
+        except Exception:
+            pass  # RAIA tracing is non-critical
+
+        return all_decisions
 
     async def tick_revenue_at_risk(self, critical_count: int):
         """Called from main.py each tick. Accumulates revenue-at-risk during crises.

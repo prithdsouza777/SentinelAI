@@ -152,6 +152,69 @@ export const agentChatApi = {
     request(`/agent-chat/reset/${agentId}`, { method: "POST" }),
 };
 
+// ── Governance ──
+
+export const governanceApi = {
+  getStatus: () =>
+    request<{
+      raia: {
+        enabled: boolean;
+        active?: boolean;
+        interactions?: number;
+        traceId?: string;
+        sessionId?: string;
+        reason?: string;
+      };
+      lockthreat: {
+        connected: boolean;
+        frameworks: Array<{
+          name: string;
+          status: string;
+          controls: number;
+          passing: number;
+        }>;
+        checks: Array<{
+          name: string;
+          passed: boolean;
+          detail: string;
+        }>;
+      };
+      governance: Record<string, unknown>;
+    }>("/governance/status"),
+
+  connectRaia: () =>
+    request<{
+      connected: boolean;
+      enabled: boolean;
+      active: boolean;
+      interactions: number;
+      traceId?: string;
+      sessionId?: string;
+      reason?: string;
+      checks: Array<{
+        name: string;
+        passed: boolean;
+        detail: string;
+      }>;
+    }>("/governance/connect/raia", { method: "POST" }),
+
+  connectLockThreat: () =>
+    request<{
+      connected: boolean;
+      frameworks: Array<{
+        name: string;
+        status: string;
+        controls: number;
+        passing: number;
+      }>;
+      checks: Array<{
+        name: string;
+        passed: boolean;
+        detail: string;
+      }>;
+    }>("/governance/connect/lockthreat", { method: "POST" }),
+};
+
 // ── History ──
 
 export const historyApi = {

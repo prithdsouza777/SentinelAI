@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, BrainCircuit, Sparkles, BookOpen, Zap } from "lucide-react";
+import { Send, BrainCircuit, Sparkles, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDashboardStore } from "../stores/dashboardStore";
 import { chatApi } from "../services/api";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
+import GovernancePanel from "@/components/chat/GovernancePanel";
 import type { ChatMessage } from "../types";
 
 function renderMarkdown(text: string) {
@@ -219,28 +220,12 @@ export default function ChatPage() {
         </div>
       </div>
 
-      {/* Policies sidebar */}
-      <div className="hidden w-72 flex-col gap-4 overflow-auto lg:flex">
-        <div className="flex-1 rounded-2xl border border-[#e2e8f0] bg-white p-4 shadow-sm">
-          <div className="mb-3 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <BookOpen className="h-4 w-4 text-[#2563eb]" />
-              <span className="text-xs font-semibold uppercase tracking-wider text-[#64748b]">
-                Active Policies
-              </span>
-            </div>
-          </div>
-          <p className="text-[12px] text-[#64748b]">
-            Create policies via chat, e.g. &quot;If support queue exceeds 20 contacts,
-            pull from sales first.&quot;
-          </p>
-          <div className="mt-3 space-y-2">
-            <div className="rounded-lg border border-[#e2e8f0] bg-[#f8fafc] px-3 py-2 text-[12px] italic text-[#94a3b8]">
-              No policies created yet
-            </div>
-          </div>
-        </div>
+      {/* Governance + Policies sidebar */}
+      <div className="hidden w-80 flex-col gap-4 overflow-auto lg:flex">
+        {/* RAIA + LockThreat Governance Panel */}
+        <GovernancePanel />
 
+        {/* Example Commands (compact) */}
         <div className="rounded-2xl border border-[#e2e8f0] bg-white p-4 shadow-sm">
           <div className="mb-3 flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-[#8b5cf6]" />
@@ -257,9 +242,6 @@ export default function ChatPage() {
             </p>
             <p className="rounded-lg border border-[#e2e8f0] bg-[#f8fafc] px-3 py-2">
               &quot;Set a rule: if billing &gt; 15, pull from general&quot;
-            </p>
-            <p className="rounded-lg border border-[#e2e8f0] bg-[#f8fafc] px-3 py-2">
-              &quot;What would happen if 3 agents go offline?&quot;
             </p>
           </div>
         </div>

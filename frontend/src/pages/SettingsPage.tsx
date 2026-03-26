@@ -43,6 +43,8 @@ export default function SettingsPage() {
   const [healthError, setHealthError] = useState(false);
   const [wsConnected, setWsConnected] = useState(wsService.connected);
   const [refreshing, setRefreshing] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const initialMount = useRef(true);
 
   // Notification config state
   const [teamsWebhookUrl, setTeamsWebhookUrl] = useState("");
@@ -69,8 +71,8 @@ export default function SettingsPage() {
   const [thresholdSaved, setThresholdSaved] = useState(false);
   const sliderRef = useRef<HTMLDivElement>(null);
 
-  const fetchHealth = () => {
-    setRefreshing(true);
+  const fetchHealth = (isManual = false) => {
+    if (isManual) setRefreshing(true);
     healthApi
       .check()
       .then((data) => {
@@ -78,7 +80,10 @@ export default function SettingsPage() {
         setHealthError(false);
       })
       .catch(() => setHealthError(true))
-      .finally(() => setRefreshing(false));
+      .finally(() => {
+        if (isManual) setRefreshing(false);
+        setInitialLoading(false);
+      });
   };
 
   const fetchNotifConfig = useCallback(() => {
@@ -105,7 +110,12 @@ export default function SettingsPage() {
   }, []);
 
   useEffect(() => {
-    fetchHealth();
+    if (initialMount.current) {
+      initialMount.current = false;
+      // Slight delay to give backend time to start
+      const timer = setTimeout(() => fetchHealth(false), 1000);
+      return () => clearTimeout(timer);
+    }
     fetchNotifConfig();
     fetchThreshold();
     const unsub = wsService.onConnectionChange((connected) => {
@@ -233,7 +243,10 @@ export default function SettingsPage() {
   };
 
   const getServiceStatus = (key: string): { status: string; detail: string } => {
-    if (!health?.services) return { status: "checking", detail: "..." };
+    if (!health?.services) {
+      if (healthError) return { status: "pending", detail: "Backend unreachable" };
+      return { status: "checking", detail: "..." };
+    }
     const svc = (health.services as Record<string, ServiceStatus>)[key];
     if (!svc) return { status: "pending", detail: "Not configured" };
     return { status: svc.status, detail: svc.detail || svc.model || "" };
@@ -243,7 +256,10 @@ export default function SettingsPage() {
   const llmSvc = (health?.services as Record<string, Record<string, string>> | undefined)?.llm;
   const llmInfo = llmSvc
     ? { status: llmSvc.provider ? "connected" : "pending", detail: `${llmSvc.provider || "none"} - ${llmSvc.model || "unknown"}` }
-    : { status: "checking" as string, detail: "..." };
+    : { 
+        status: healthError ? "pending" : "checking" as string, 
+        detail: healthError ? "Backend unreachable" : "..." 
+      };
 
   const statusItems = [
     {
@@ -289,7 +305,12 @@ export default function SettingsPage() {
       return { icon: XCircle, color: "text-[#ef4444]", bg: "bg-[#ef4444]/10", label: "Error" };
     }
     if (status === "checking") {
-      return { icon: RefreshCw, color: "text-[#94a3b8] animate-spin", bg: "bg-[#f1f5f9]", label: "Checking..." };
+      return { 
+        icon: RefreshCw, 
+        color: cn("text-[#94a3b8]", !initialLoading && "animate-spin"), 
+        bg: "bg-[#f1f5f9]", 
+        label: initialLoading ? "Connecting..." : "Checking..." 
+      };
     }
     return { icon: XCircle, color: "text-[#f59e0b]", bg: "bg-[#f59e0b]/10", label: "Pending" };
   };
@@ -305,7 +326,7 @@ export default function SettingsPage() {
         </div>
         <Button
           size="sm"
-          onClick={fetchHealth}
+          onClick={() => fetchHealth(true)}
           disabled={refreshing}
           className="h-8 border border-[#e2e8f0] bg-white text-xs font-medium text-[#475569] hover:bg-[#f1f5f9]"
         >

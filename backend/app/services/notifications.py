@@ -170,77 +170,6 @@ class NotificationService:
 
     # ── Gmail / SMTP Email ─────────────────────────────────────────────────
 
-    def _send_smtp(self, subject: str, html: str, recipients: list[str]):
-        """Blocking SMTP send (run via asyncio.to_thread).
-
-        Raises NotificationError with specific diagnostics on failure.
-        """
-        sender = settings.smtp_from or settings.smtp_user
-        if not sender:
-            raise NotificationError("No sender address. Set SMTP_FROM or SMTP_USER.")
-        if not recipients:
-            raise NotificationError("No recipients. Set SMTP_TO.")
-
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = subject
-        msg["From"] = sender
-        msg["To"] = ", ".join(recipients)
-        msg.attach(MIMEText(html, "html"))
-
-        port = settings.smtp_port
-        host = settings.smtp_host
-        ctx = ssl.create_default_context()
-
-        try:
-            if port == 465:
-                # Implicit SSL (SMTPS)
-                with smtplib.SMTP_SSL(host, port, timeout=15, context=ctx) as server:
-                    if settings.smtp_user and settings.smtp_password:
-                        server.login(settings.smtp_user, settings.smtp_password)
-                    server.sendmail(sender, recipients, msg.as_string())
-            else:
-                # STARTTLS (port 587) or plain (port 25)
-                with smtplib.SMTP(host, port, timeout=15) as server:
-                    server.ehlo()
-                    if port != 25:
-                        server.starttls(context=ctx)
-                        server.ehlo()
-                    if settings.smtp_user and settings.smtp_password:
-                        server.login(settings.smtp_user, settings.smtp_password)
-                    server.sendmail(sender, recipients, msg.as_string())
-        except smtplib.SMTPAuthenticationError as e:
-            raise NotificationError(
-                f"SMTP authentication failed ({e.smtp_code}). "
-                "For Gmail, use an App Password (not your account password). "
-                "Enable 2FA at myaccount.google.com, then create an App Password."
-            ) from e
-        except smtplib.SMTPConnectError as e:
-            raise NotificationError(
-                f"Could not connect to {host}:{port} ({e.smtp_code}). "
-                "Check SMTP host and port."
-            ) from e
-        except smtplib.SMTPRecipientsRefused as e:
-            bad = ", ".join(e.recipients.keys())
-            raise NotificationError(f"Recipients refused by server: {bad}") from e
-        except smtplib.SMTPSenderRefused as e:
-            raise NotificationError(
-                f"Sender address '{sender}' refused by server ({e.smtp_code}). "
-                "Set SMTP_FROM to a valid address for this SMTP account."
-            ) from e
-        except smtplib.SMTPException as e:
-            raise NotificationError(f"SMTP error: {e}") from e
-        except ConnectionRefusedError:
-            raise NotificationError(
-                f"Connection refused to {host}:{port}. "
-                "Is the SMTP host correct? Try smtp.gmail.com:587."
-            )
-        except TimeoutError:
-            raise NotificationError(
-                f"Connection to {host}:{port} timed out after 15 seconds. "
-                "Check host/port and your network."
-            )
-        except OSError as e:
-            raise NotificationError(f"Network error connecting to {host}:{port}: {e}") from e
 
     async def _send_email_inner(self, subject: str, html: str) -> bool:
         """Shared email sending logic. Raises NotificationError on failure."""
@@ -248,7 +177,13 @@ class NotificationService:
         if not recipients:
             raise NotificationError("No recipients configured in SMTP_TO.")
 
-        await asyncio.to_thread(self._send_smtp, subject, html, recipients)
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"] = settings.smtp_from or settings.smtp_user
+        msg["To"] = ", ".join(recipients)
+        msg.attach(MIMEText(html, "html"))
+
+        await asyncio.to_thread(self._send_smtp, msg, recipients)
         logger.info("Email sent to %s: %s", recipients, subject[:60])
         return True
 
@@ -432,14 +367,23 @@ class NotificationService:
 
     def _send_smtp(self, msg: MIMEMultipart, recipients: list[str]) -> tuple[bool, str]:
         """Blocking SMTP send (run via asyncio.to_thread)."""
-        with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=15) as server:
-            server.ehlo()
-            if settings.smtp_port != 25:
-                server.starttls()
+        if settings.smtp_port == 465:
+            # Implicit SSL — use SMTP_SSL
+            with smtplib.SMTP_SSL(settings.smtp_host, settings.smtp_port, timeout=15) as server:
                 server.ehlo()
-            if settings.smtp_user and settings.smtp_password:
-                server.login(settings.smtp_user, settings.smtp_password)
-            server.sendmail(msg["From"], recipients, msg.as_string())
+                if settings.smtp_user and settings.smtp_password:
+                    server.login(settings.smtp_user, settings.smtp_password)
+                server.sendmail(msg["From"], recipients, msg.as_string())
+        else:
+            # Port 587 (STARTTLS) or 25 (plain)
+            with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=15) as server:
+                server.ehlo()
+                if settings.smtp_port == 587:
+                    server.starttls()
+                    server.ehlo()
+                if settings.smtp_user and settings.smtp_password:
+                    server.login(settings.smtp_user, settings.smtp_password)
+                server.sendmail(msg["From"], recipients, msg.as_string())
         return True, "Email sent"
 
     # ── On-demand Report Email (user-triggered) ─────────────────────────────
@@ -645,7 +589,7 @@ class NotificationService:
                 encoders.encode_base64(part)
                 part.add_header(
                     "Content-Disposition",
-                    f"attachment; filename={attachment_name}",
+                    f'attachment; filename="{attachment_name}"',
                 )
                 msg.attach(part)
             except Exception as e:
