@@ -5,18 +5,44 @@ import AgentCollaborationPanel from "../components/operations-center/AgentCollab
 import GovernanceScorecardWidget from "../components/operations-center/GovernanceScorecardWidget";
 import AgentMovementToasts from "../components/operations-center/AgentMovementToasts";
 import MetricsSidebar from "../components/metrics/MetricsSidebar";
+import { TrendChart } from "../components/operations-center/TrendChart";
+import AnomalyTimeline from "../components/operations-center/AnomalyTimeline";
+import { useState } from "react";
+import { useWebSocket } from "../hooks/useWebSocket";
+import { useDashboardStore } from "../stores/dashboardStore";
 
 export default function OperationsCenter() {
-  return (
-    <div className="grid min-h-0 flex-1 grid-cols-12 gap-4 overflow-hidden">
-      <AgentMovementToasts />
-      {/* Main content — AI Decision Feed + Agent Collaboration */}
-      <div className="col-span-8 flex min-h-0 flex-col gap-4 overflow-hidden">
-        <CostImpactTicker />
+  const [latestWsData, setLatestWsData] = useState<any>(null);
+  const isDemoRunning = useDashboardStore((s) => s.simulationActive);
 
-        <div className="grid min-h-0 flex-1 grid-cols-2 gap-4">
+  useWebSocket("*", (msg) => {
+    setLatestWsData(msg);
+  });
+
+  return (
+    <div className="grid grid-cols-12 gap-4">
+      <AgentMovementToasts />
+      {/* Main content — Trend Chart + AI Decision Feed + Agent Collaboration */}
+      <div 
+        className="col-span-8 flex flex-col gap-4 p-4 pb-16"
+      >
+        <div className="flex-shrink-0">
+          <CostImpactTicker />
+        </div>
+
+        {/* 2. Trend Chart — FIXED HEIGHT, never grows */}
+        <div className="flex-shrink-0">
+          <TrendChart wsData={latestWsData} isRunning={isDemoRunning} />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 h-[500px]">
           <AIDecisionFeed />
           <AgentCollaborationPanel />
+        </div>
+
+        {/* 4. Anomaly Timeline */}
+        <div className="flex-shrink-0">
+          <AnomalyTimeline />
         </div>
       </div>
 
