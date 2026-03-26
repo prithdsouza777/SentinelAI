@@ -1,0 +1,60 @@
+{
+  "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.17/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.17",
+  "version": "1.0.0",
+  "id": "4cc02c75-aa1b-4d32-b956-3a87537b7c10",
+  "developer": {
+    "name": "CirrusLabs",
+    "websiteUrl": "https://cirruslabs.io",
+    "privacyUrl": "https://cirruslabs.io/privacy",
+    "termsOfUseUrl": "https://cirruslabs.io/terms"
+  },
+  "name": {
+    "short": "SentinelAI",
+    "full": "SentinelAI - AI Contact Center Intelligence"
+  },
+  "description": {
+    "short": "Autonomous AI Operations Layer for AWS Connect",
+    "full": "SentinelAI is an autonomous AI-powered operations layer for contact centers. Chat with the bot to get queue status, manage agents, view alerts, approve AI decisions, and generate session reports — all from Microsoft Teams."
+  },
+  "icons": {
+    "color": "color.png",
+    "outline": "outline.png"
+  },
+  "accentColor": "#6366F1",
+  "bots": [
+    {
+      "botId": "4cc02c75-aa1b-4d32-b956-3a87537b7c10",
+      "scopes": ["personal", "team", "groupChat"],
+      "supportsFiles": true,
+      "isNotificationOnly": false,
+      "commandLists": [
+        {
+          "scopes": ["personal", "team", "groupChat"],
+          "commands": [
+            {
+              "title": "status",
+              "description": "Get current queue status and health overview"
+            },
+            {
+              "title": "alerts",
+              "description": "View active and recent alerts"
+            },
+            {
+              "title": "agents",
+              "description": "Check agent availability and assignments"
+            },
+            {
+              "title": "generate report",
+              "description": "Generate and receive a PDF session report"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "permissions": ["identity", "messageTeamMembers"],
+  "validDomains": [
+    "t99cv9nmkf.ap-south-1.awsapprunner.com"
+  ]
+}
