@@ -1,4 +1,4 @@
-import { BrainCircuit, Eye, Search, Zap, CheckCircle, ThumbsUp, ThumbsDown, Shield, Clock } from "lucide-react";
+import { BrainCircuit, Eye, Search, Zap, CheckCircle, ThumbsUp, ThumbsDown, Shield, Clock, ChevronDown, Wrench, AlertTriangle, FileSearch } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDashboardStore } from "../../stores/dashboardStore";
 import { wsService } from "../../services/websocket";
@@ -39,9 +39,173 @@ function AutoApproveCountdown({ autoApproveAt }: { autoApproveAt: string }) {
   );
 }
 
+function ExplainPanel({ decision }: { decision: AgentDecision }) {
+  const toolName = decision.action?.split(":")[0];
+  const toolArgs: Record<string, string> = {};
+  if (decision.action) {
+    for (const seg of decision.action.split(":").slice(1)) {
+      if (seg.includes("=")) {
+        const [k, v] = seg.split("=", 2);
+        toolArgs[k] = v;
+      }
+    }
+  }
+
+  const guardrailLabel =
+    decision.guardrailResult === "AUTO_APPROVE" ? "Auto-Approved (confidence >= 90%)" :
+    decision.guardrailResult === "PENDING_HUMAN" ? "Pending Human Review (confidence 70-90%)" :
+    decision.guardrailResult === "BLOCKED" ? "Blocked (confidence < 70%)" :
+    decision.guardrailResult === "NEGOTIATION_OVERRIDDEN" ? "Overridden by Negotiation" :
+    "Unknown";
+
+  return (
+    <motion.div
+      initial={{ height: 0, opacity: 0 }}
+      animate={{ height: "auto", opacity: 1 }}
+      exit={{ height: 0, opacity: 0 }}
+      transition={{ duration: 0.25, ease: "easeOut" }}
+      className="overflow-hidden"
+    >
+      <div className="mt-3 space-y-3 border-t border-[#e2e8f0] pt-3">
+        {/* Reasoning Chain */}
+        <div>
+          <div className="mb-1.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#94a3b8]">
+            <BrainCircuit className="h-3 w-3" />
+            Reasoning Chain
+          </div>
+          <div className="space-y-1.5">
+            <motion.div
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.05 }}
+              className="flex items-start gap-2 rounded-lg bg-[#f8fafc] px-3 py-2"
+            >
+              <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#2563eb]/10 text-[9px] font-bold text-[#2563eb]">1</span>
+              <span className="text-[12px] text-[#475569]">Observed queue metrics and detected anomaly patterns</span>
+            </motion.div>
+            {decision.reasoning && (
+              <motion.div
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.1 }}
+                className="flex items-start gap-2 rounded-lg bg-[#f8fafc] px-3 py-2"
+              >
+                <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#8b5cf6]/10 text-[9px] font-bold text-[#8b5cf6]">2</span>
+                <span className="text-[12px] text-[#475569]">{decision.reasoning}</span>
+              </motion.div>
+            )}
+            <motion.div
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.15 }}
+              className="flex items-start gap-2 rounded-lg bg-[#f8fafc] px-3 py-2"
+            >
+              <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#10b981]/10 text-[9px] font-bold text-[#10b981]">{decision.reasoning ? "3" : "2"}</span>
+              <span className="text-[12px] text-[#475569]">{decision.summary}</span>
+            </motion.div>
+          </div>
+        </div>
+
+        {/* Tool Call */}
+        {toolName && (
+          <motion.div
+            initial={{ opacity: 0, x: -8 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <div className="mb-1.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#94a3b8]">
+              <Wrench className="h-3 w-3" />
+              Tool Call
+            </div>
+            <div className="rounded-lg border border-[#e2e8f0] bg-[#fafbfc] px-3 py-2">
+              <div className="flex items-center gap-2">
+                <code className="rounded bg-[#8b5cf6]/10 px-2 py-0.5 text-[11px] font-semibold text-[#8b5cf6]">{toolName}</code>
+                <span className={cn(
+                  "rounded-full px-1.5 py-0.5 text-[9px] font-bold",
+                  decision.guardrailResult !== "BLOCKED"
+                    ? "bg-[#10b981]/10 text-[#10b981]"
+                    : "bg-[#ef4444]/10 text-[#ef4444]"
+                )}>
+                  {decision.guardrailResult !== "BLOCKED" ? "AUTHORIZED" : "BLOCKED"}
+                </span>
+              </div>
+              {Object.keys(toolArgs).length > 0 && (
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {Object.entries(toolArgs).map(([k, v]) => (
+                    <span key={k} className="rounded bg-[#f1f5f9] px-2 py-0.5 text-[10px] text-[#64748b]">
+                      {k}=<strong>{v}</strong>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+
+        {/* Guardrail Evaluation */}
+        <motion.div
+          initial={{ opacity: 0, x: -8 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.25 }}
+        >
+          <div className="mb-1.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#94a3b8]">
+            <Shield className="h-3 w-3" />
+            Guardrail Evaluation
+          </div>
+          <div className="flex items-center justify-between rounded-lg border border-[#e2e8f0] bg-[#fafbfc] px-3 py-2">
+            <span className="text-[11px] text-[#475569]">{guardrailLabel}</span>
+            <span className={cn(
+              "text-xs font-bold tabular-nums",
+              decision.confidence >= 0.9 ? "text-[#10b981]" :
+              decision.confidence >= 0.7 ? "text-[#f59e0b]" : "text-[#ef4444]"
+            )}>
+              {Math.round(decision.confidence * 100)}%
+            </span>
+          </div>
+        </motion.div>
+
+        {/* Policy Violations */}
+        {decision.policyViolations?.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, x: -8 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <div className="mb-1.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#ef4444]">
+              <AlertTriangle className="h-3 w-3" />
+              Policy Violations
+            </div>
+            <div className="space-y-1">
+              {decision.policyViolations.map((v, i) => (
+                <div key={i} className="rounded-lg border border-[#ef4444]/15 bg-[#ef4444]/5 px-3 py-1.5 text-[11px] text-[#ef4444]">
+                  {v}
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+
+        {/* RAIA Trace Badge */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.35 }}
+          className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-[#8b5cf6]/5 to-transparent px-3 py-2"
+        >
+          <BrainCircuit className="h-3.5 w-3.5 text-[#8b5cf6]" />
+          <span className="text-[10px] font-medium text-[#8b5cf6]">
+            Traced to RAIA for explainability evaluation
+          </span>
+        </motion.div>
+      </div>
+    </motion.div>
+  );
+}
+
 function DecisionCard({ decision }: { decision: AgentDecision }) {
   const approveDecision = useDashboardStore((s) => s.approveDecision);
   const rejectDecision = useDashboardStore((s) => s.rejectDecision);
+  const [expanded, setExpanded] = useState(false);
   const phase = phaseConfig[decision.phase];
   const PhaseIcon = phase.icon;
 
@@ -102,11 +266,11 @@ function DecisionCard({ decision }: { decision: AgentDecision }) {
 
       <p className="text-sm font-semibold leading-snug text-[#1e293b]">{decision.summary}</p>
 
-      {decision.reasoning && (
+      {decision.reasoning && !expanded && (
         <p className="mt-1.5 text-[13px] leading-relaxed text-[#64748b]">{decision.reasoning}</p>
       )}
 
-      {decision.confidence != null && (
+      {decision.confidence != null && !expanded && (
         <div className="mt-3 flex items-center gap-2">
           <span className="text-[11px] font-medium text-[#94a3b8]">Confidence</span>
           <div className="h-2 flex-1 overflow-hidden rounded-full bg-[#f1f5f9]">
@@ -131,7 +295,7 @@ function DecisionCard({ decision }: { decision: AgentDecision }) {
         </div>
       )}
 
-      {decision.policyViolations?.length > 0 && (
+      {decision.policyViolations?.length > 0 && !expanded && (
         <div className="mt-2 flex flex-wrap gap-1.5">
           {decision.policyViolations.map((v, i) => (
             <span key={i} className="rounded-full border border-[#ef4444]/20 bg-[#ef4444]/10 px-2.5 py-0.5 text-[11px] font-medium text-[#ef4444]">
@@ -140,6 +304,25 @@ function DecisionCard({ decision }: { decision: AgentDecision }) {
           ))}
         </div>
       )}
+
+      {/* Explain This Decision button */}
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className={cn(
+          "mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border py-1.5 text-[11px] font-semibold transition-all",
+          expanded
+            ? "border-[#8b5cf6]/20 bg-[#8b5cf6]/5 text-[#8b5cf6]"
+            : "border-[#e2e8f0] text-[#94a3b8] hover:border-[#8b5cf6]/20 hover:bg-[#8b5cf6]/5 hover:text-[#8b5cf6]"
+        )}
+      >
+        <FileSearch className="h-3.5 w-3.5" />
+        {expanded ? "Hide Explanation" : "Explain This Decision"}
+        <ChevronDown className={cn("h-3 w-3 transition-transform", expanded && "rotate-180")} />
+      </button>
+
+      <AnimatePresence>
+        {expanded && <ExplainPanel decision={decision} />}
+      </AnimatePresence>
 
       {isPending && (
         <div className="mt-3 flex items-center gap-2 border-t border-[#e2e8f0] pt-3">

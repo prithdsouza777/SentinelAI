@@ -251,13 +251,12 @@ def log_decisions(decisions: list[dict], metrics: list[dict]) -> None:
 
 
 def connect() -> dict:
-    """Attempt to connect/verify RAIA SDK and start a trace session if needed.
+    """Connect to RAIA — the ONLY way tracing starts.
 
     Called when user clicks 'Connect RAIA' in the governance panel.
-    Returns connection result with real SDK status.
+    Initializes SDK if needed, starts a fresh trace session, returns real status.
     """
     if not _sdk_available:
-        # Try to initialize if not yet done
         initialize()
 
     if not _sdk_available:
@@ -266,9 +265,8 @@ def connect() -> dict:
             "reason": "RAIA SDK not configured — set RAIA_EMAIL and RAIA_PASSWORD in .env",
         }
 
-    # Start a trace session if one isn't active
-    if _trace is None:
-        start_session("SentinelAI Live Connection")
+    # Always start a fresh trace session on Connect
+    start_session("SentinelAI Live Connection")
 
     status = get_trace_status()
     status["connected"] = True

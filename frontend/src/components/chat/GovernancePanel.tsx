@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { governanceApi } from "@/services/api";
+import { useDashboardStore } from "@/stores/dashboardStore";
 
 type ConnectState = "idle" | "connecting" | "connected" | "failed";
 
@@ -52,6 +53,7 @@ const ltFeatures = [
 ];
 
 export default function GovernancePanel() {
+  const simulationActive = useDashboardStore((s) => s.simulationActive);
   const [raiaState, setRaiaState] = useState<ConnectState>("idle");
   const [raiaChecks, setRaiaChecks] = useState<CheckResult[]>([]);
   const [raiaTraceCount, setRaiaTraceCount] = useState(0);
@@ -65,6 +67,59 @@ export default function GovernancePanel() {
 
   const [modal, setModal] = useState<ModalTarget>(null);
   const [connectProgress, setConnectProgress] = useState(0);
+
+  // Reset connect state when simulation stops
+  useEffect(() => {
+    if (!simulationActive) {
+      setRaiaState("idle");
+      setRaiaChecks([]);
+      setRaiaTraceCount(0);
+      setLtState("idle");
+      setLtChecks([]);
+      setLtFrameworks([]);
+    }
+  }, [simulationActive]);
+
+  // Poll RAIA status after connecting to update Decision Traceability
+  useEffect(() => {
+    if (raiaState !== "connected" && raiaState !== "failed") return;
+    if (!simulationActive) return;
+
+    const poll = async () => {
+      try {
+        const res = await governanceApi.getStatus();
+        const interactions = res.raia.interactions ?? 0;
+        setRaiaTraceCount(interactions);
+
+        // Rebuild checks with updated interaction count
+        setRaiaChecks((prev) =>
+          prev.map((c) =>
+            c.name === "Decision Traceability"
+              ? {
+                  ...c,
+                  passed: interactions > 0,
+                  detail: interactions > 0
+                    ? `${interactions} interactions traced`
+                    : "Awaiting simulation — start demo to trace decisions",
+                }
+              : c
+          )
+        );
+
+        // Update overall state: if all checks pass now, switch to connected
+        setRaiaChecks((latest) => {
+          const allPassed = latest.every((c) => c.passed);
+          if (allPassed && raiaState === "failed") {
+            setRaiaState("connected");
+          }
+          return latest;
+        });
+      } catch { /* ignore */ }
+    };
+
+    const interval = setInterval(poll, 4000);
+    return () => clearInterval(interval);
+  }, [raiaState, simulationActive]);
 
   useEffect(() => {
     if (connectProgress > 0 && connectProgress < 100) {
@@ -151,11 +206,12 @@ export default function GovernancePanel() {
           <button
             onClick={() => {
               if (raiaState === "idle") setModal("raia");
-              else if (raiaState === "connected" || raiaState === "failed") setRaiaExpanded((v) => !v);
+              else if (raiaState === "connected" || raiaState === "failed") setRaiaExpanded(!raiaExpanded);
             }}
             className={cn(
               "flex w-full items-center gap-3 px-4 py-3.5 transition-all",
-              (raiaState === "idle" || raiaState === "connected" || raiaState === "failed") && "cursor-pointer",
+              raiaState === "idle" && "cursor-pointer",
+              (raiaState === "connected" || raiaState === "failed") && "cursor-pointer",
               raiaState === "connecting" && "bg-gradient-to-r from-[#8b5cf6]/5 to-transparent"
             )}
           >
@@ -202,12 +258,16 @@ export default function GovernancePanel() {
                 <span className="rounded-full bg-[#10b981]/10 px-2.5 py-0.5 text-[10px] font-bold text-[#10b981]">
                   Connected
                 </span>
+                <ChevronDown className={cn("h-3.5 w-3.5 text-[#94a3b8] transition-transform duration-200", raiaExpanded && "rotate-180")} />
               </div>
             )}
             {raiaState === "failed" && (
-              <span className="rounded-full bg-[#f59e0b]/10 px-2.5 py-0.5 text-[10px] font-bold text-[#f59e0b]">
-                Issues Found
-              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="rounded-full bg-[#f59e0b]/10 px-2.5 py-0.5 text-[10px] font-bold text-[#f59e0b]">
+                  Issues Found
+                </span>
+                <ChevronDown className={cn("h-3.5 w-3.5 text-[#94a3b8] transition-transform duration-200", raiaExpanded && "rotate-180")} />
+              </div>
             )}
             {(raiaState === "connected" || raiaState === "failed") && (
               <ChevronDown className={cn("h-4 w-4 text-[#94a3b8] transition-transform", raiaExpanded && "rotate-180")} />
@@ -285,11 +345,12 @@ export default function GovernancePanel() {
           <button
             onClick={() => {
               if (ltState === "idle") setModal("lockthreat");
-              else if (ltState === "connected" || ltState === "failed") setLtExpanded((v) => !v);
+              else if (ltState === "connected" || ltState === "failed") setLtExpanded(!ltExpanded);
             }}
             className={cn(
               "flex w-full items-center gap-3 px-4 py-3.5 transition-all",
-              (ltState === "idle" || ltState === "connected" || ltState === "failed") && "cursor-pointer",
+              ltState === "idle" && "cursor-pointer",
+              (ltState === "connected" || ltState === "failed") && "cursor-pointer",
               ltState === "connecting" && "bg-gradient-to-r from-[#2563eb]/5 to-transparent"
             )}
           >
@@ -336,12 +397,16 @@ export default function GovernancePanel() {
                 <span className="rounded-full bg-[#10b981]/10 px-2.5 py-0.5 text-[10px] font-bold text-[#10b981]">
                   Connected
                 </span>
+                <ChevronDown className={cn("h-3.5 w-3.5 text-[#94a3b8] transition-transform duration-200", ltExpanded && "rotate-180")} />
               </div>
             )}
             {ltState === "failed" && (
-              <span className="rounded-full bg-[#f59e0b]/10 px-2.5 py-0.5 text-[10px] font-bold text-[#f59e0b]">
-                Issues Found
-              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="rounded-full bg-[#f59e0b]/10 px-2.5 py-0.5 text-[10px] font-bold text-[#f59e0b]">
+                  Issues Found
+                </span>
+                <ChevronDown className={cn("h-3.5 w-3.5 text-[#94a3b8] transition-transform duration-200", ltExpanded && "rotate-180")} />
+              </div>
             )}
             {(ltState === "connected" || ltState === "failed") && (
               <ChevronDown className={cn("h-4 w-4 text-[#94a3b8] transition-transform", ltExpanded && "rotate-180")} />

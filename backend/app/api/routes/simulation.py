@@ -82,9 +82,8 @@ async def start_simulation(request: SimulationStartRequest, req: Request):
     req.app.state.recent_decisions.clear()
     req.app.state.recent_alerts.clear()
     req.app.state.recent_negotiations.clear()
-    # Start RAIA trace session
-    from app.services.raia_tracer import start_session as raia_start
-    raia_start(request.scenario_id)
+    # RAIA trace session is NOT auto-started here.
+    # User must explicitly click "Connect RAIA" in the governance panel.
 
     await simulation_engine.start(scenario=request.scenario_id)
     return {"status": "started", "scenario_id": request.scenario_id}
