@@ -15,6 +15,7 @@ import {
   AlertTriangle,
   BarChart3,
   Network,
+  ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { governanceApi } from "@/services/api";
@@ -58,6 +59,9 @@ export default function GovernancePanel() {
   const [ltState, setLtState] = useState<ConnectState>("idle");
   const [ltChecks, setLtChecks] = useState<CheckResult[]>([]);
   const [ltFrameworks, setLtFrameworks] = useState<FrameworkResult[]>([]);
+
+  const [raiaExpanded, setRaiaExpanded] = useState(true);
+  const [ltExpanded, setLtExpanded] = useState(true);
 
   const [modal, setModal] = useState<ModalTarget>(null);
   const [connectProgress, setConnectProgress] = useState(0);
@@ -145,10 +149,13 @@ export default function GovernancePanel() {
           )}
         >
           <button
-            onClick={() => raiaState === "idle" ? setModal("raia") : undefined}
+            onClick={() => {
+              if (raiaState === "idle") setModal("raia");
+              else if (raiaState === "connected" || raiaState === "failed") setRaiaExpanded((v) => !v);
+            }}
             className={cn(
               "flex w-full items-center gap-3 px-4 py-3.5 transition-all",
-              raiaState === "idle" && "cursor-pointer",
+              (raiaState === "idle" || raiaState === "connected" || raiaState === "failed") && "cursor-pointer",
               raiaState === "connecting" && "bg-gradient-to-r from-[#8b5cf6]/5 to-transparent"
             )}
           >
@@ -202,6 +209,9 @@ export default function GovernancePanel() {
                 Issues Found
               </span>
             )}
+            {(raiaState === "connected" || raiaState === "failed") && (
+              <ChevronDown className={cn("h-4 w-4 text-[#94a3b8] transition-transform", raiaExpanded && "rotate-180")} />
+            )}
           </button>
 
           {/* Progress bar while connecting */}
@@ -219,7 +229,7 @@ export default function GovernancePanel() {
           )}
 
           <AnimatePresence>
-            {(raiaState === "connected" || raiaState === "failed") && (
+            {(raiaState === "connected" || raiaState === "failed") && raiaExpanded && (
               <motion.div
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: "auto", opacity: 1 }}
@@ -273,10 +283,13 @@ export default function GovernancePanel() {
           )}
         >
           <button
-            onClick={() => ltState === "idle" ? setModal("lockthreat") : undefined}
+            onClick={() => {
+              if (ltState === "idle") setModal("lockthreat");
+              else if (ltState === "connected" || ltState === "failed") setLtExpanded((v) => !v);
+            }}
             className={cn(
               "flex w-full items-center gap-3 px-4 py-3.5 transition-all",
-              ltState === "idle" && "cursor-pointer",
+              (ltState === "idle" || ltState === "connected" || ltState === "failed") && "cursor-pointer",
               ltState === "connecting" && "bg-gradient-to-r from-[#2563eb]/5 to-transparent"
             )}
           >
@@ -330,6 +343,9 @@ export default function GovernancePanel() {
                 Issues Found
               </span>
             )}
+            {(ltState === "connected" || ltState === "failed") && (
+              <ChevronDown className={cn("h-4 w-4 text-[#94a3b8] transition-transform", ltExpanded && "rotate-180")} />
+            )}
           </button>
 
           {/* Progress bar while connecting */}
@@ -347,7 +363,7 @@ export default function GovernancePanel() {
           )}
 
           <AnimatePresence>
-            {(ltState === "connected" || ltState === "failed") && (
+            {(ltState === "connected" || ltState === "failed") && ltExpanded && (
               <motion.div
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: "auto", opacity: 1 }}

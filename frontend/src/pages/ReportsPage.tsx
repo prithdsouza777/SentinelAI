@@ -588,7 +588,7 @@ export default function ReportsPage() {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pr-1">
       {/* Header */}
-      <div className="relative flex items-center justify-between pl-4">
+      <div className="sticky top-0 z-10 relative flex items-center justify-between pl-4 bg-[var(--bg-primary)] pb-2">
         <div className="pointer-events-none absolute left-0 top-0 h-full w-[3px] rounded bg-[var(--accent-subtle)]" />
         <div>
           <h2 className="text-lg font-semibold text-foreground">Session Reports</h2>
