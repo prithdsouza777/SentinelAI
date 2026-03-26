@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.api.routes import alerts, agents, chat, health, queues, simulation
+from app.api.routes import alerts, agents, auth, chat, health, queues, simulation
 from app.api.routes import reports, history, notifications, agent_chat, governance, teams
 from app.api.websocket import router as ws_router
 from app.config import settings
@@ -231,6 +231,7 @@ app.add_middleware(
 )
 
 # REST routes
+app.include_router(auth.router, prefix="/api", tags=["auth"])
 app.include_router(health.router, prefix="/api", tags=["health"])
 app.include_router(queues.router, prefix="/api", tags=["queues"])
 app.include_router(agents.router, prefix="/api", tags=["agents"])

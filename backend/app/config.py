@@ -48,6 +48,24 @@ class Settings(BaseSettings):
     # Notification cooldown (seconds) — prevents spam for repeated alerts
     notification_cooldown: int = 60
 
+    # OAuth — Google
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    google_redirect_uri: str = "http://localhost:8000/api/auth/google/callback"
+
+    # OAuth — Microsoft (Azure AD / Entra ID)
+    microsoft_client_id: str = ""
+    microsoft_client_secret: str = ""
+    microsoft_redirect_uri: str = "http://localhost:8000/api/auth/microsoft/callback"
+    microsoft_tenant_id: str = "common"  # "common" for multi-tenant, or specific tenant ID
+
+    # JWT
+    jwt_secret: str = "sentinelai-dev-secret-change-in-production"
+    jwt_expiry_hours: int = 8
+
+    # Frontend URL (for OAuth callback redirect)
+    frontend_url: str = "http://localhost:5173"
+
     # CORS
     cors_origins: str = "http://localhost:5173"
 

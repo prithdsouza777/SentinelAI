@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 import { Routes, Route } from "react-router-dom";
 import AppLayout from "./components/layout/AppLayout";
 import LoginPage from "./pages/LoginPage";
+import AuthCallbackPage from "./pages/AuthCallbackPage";
 import LandingPage from "./pages/LandingPage";
 import RequireAuth from "./components/auth/RequireAuth";
 
@@ -36,6 +37,7 @@ function App() {
     <Routes>
       <Route index element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/auth/callback" element={<AuthCallbackPage />} />
 
       <Route element={<RequireAuth />}>
         <Route element={<AppLayout />}>
