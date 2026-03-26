@@ -108,12 +108,10 @@ async def connect_raia():
         },
         {
             "name": "Decision Traceability",
-            "passed": result.get("active", False) or result.get("enabled", False),
+            "passed": (result.get("interactions", 0) or 0) > 0,
             "detail": f"{result.get('interactions', 0)} interactions traced"
-            if result.get("active")
-            else "SDK ready, awaiting simulation"
-            if result.get("enabled")
-            else "Trace SDK not connected",
+            if (result.get("interactions", 0) or 0) > 0
+            else "Awaiting simulation — start demo to trace decisions",
         },
         {
             "name": "Tool Authorization",
