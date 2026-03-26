@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { ShieldCheck } from "lucide-react";
-import type { UserRole } from "@/components/auth/authToken";
 import {
   clearSessionToken,
   createMockToken,
@@ -14,8 +13,6 @@ import "./LoginPage.css";
 
 const DEMO_EMAIL = "demo@sentinelai.com";
 const DEMO_PASSWORD = "demo1234";
-
-const ROLES: UserRole[] = ["Operator", "Supervisor", "Read-Only"];
 
 function LogoMark() {
   return (
@@ -32,40 +29,11 @@ function LogoMark() {
   );
 }
 
-function RoleSelector({
-  value,
-  onChange,
-}: {
-  value: UserRole;
-  onChange: (r: UserRole) => void;
-}) {
-  return (
-    <div className="login-role-group" role="radiogroup" aria-label="Role selector">
-      {ROLES.map((r) => {
-        const active = r === value;
-        return (
-          <button
-            key={r}
-            type="button"
-            role="radio"
-            aria-checked={active}
-            className={`login-role-pill ${active ? "is-active" : ""}`}
-            onClick={() => onChange(r)}
-          >
-            {r}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
 export default function LoginPage() {
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<UserRole>("Supervisor");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -75,7 +43,7 @@ export default function LoginPage() {
     if (existingSession) navigate("/dashboard", { replace: true });
   }, []);
 
-  const signIn = (nextEmail: string, nextPassword: string, nextRole: UserRole) => {
+  const signIn = (nextEmail: string, nextPassword: string) => {
     const ok = nextEmail === DEMO_EMAIL && nextPassword === DEMO_PASSWORD;
     if (!ok) {
       setError("Invalid credentials");
@@ -84,7 +52,7 @@ export default function LoginPage() {
 
     setError(null);
     clearSessionToken();
-    const token = createMockToken(nextEmail, nextRole);
+    const token = createMockToken(nextEmail, "Supervisor");
     setSessionToken(token);
     navigate("/dashboard", { replace: true });
   };
@@ -94,7 +62,7 @@ export default function LoginPage() {
     if (submitting) return;
     setSubmitting(true);
     try {
-      signIn(email.trim(), password, role);
+      signIn(email.trim(), password);
     } finally {
       setSubmitting(false);
     }
@@ -103,7 +71,7 @@ export default function LoginPage() {
   const handleDemoMode = () => {
     setEmail(DEMO_EMAIL);
     setPassword(DEMO_PASSWORD);
-    signIn(DEMO_EMAIL, DEMO_PASSWORD, role);
+    signIn(DEMO_EMAIL, DEMO_PASSWORD);
   };
 
   return (
@@ -148,10 +116,6 @@ export default function LoginPage() {
                 />
               </label>
 
-              <div className="login-role-wrap">
-                <div className="login-label login-label-muted">Role</div>
-                <RoleSelector value={role} onChange={setRole} />
-              </div>
             </div>
 
             <div className="login-actions">

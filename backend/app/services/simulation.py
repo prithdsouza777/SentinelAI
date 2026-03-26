@@ -333,9 +333,11 @@ class SimulationEngine:
             pass
 
     async def stop(self):
-        """Stop the simulation loop."""
+        """Stop the simulation loop and reset tick to 0."""
         self.running = False
         self.scenario = None
+        self.tick = 0
+        self._routing_log.clear()
         self.clear_chaos()
         if self._task:
             self._task.cancel()

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import ThemeToggle from "@/components/theme/ThemeToggle";
 import { clearSessionToken } from "@/components/auth/authToken";
+import { cn } from "@/lib/utils";
 
 export default function Header() {
   const simulationActive = useDashboardStore((s) => s.simulationActive);
@@ -16,13 +17,20 @@ export default function Header() {
   const resetForNewDemo = useDashboardStore((s) => s.resetForNewDemo);
   const navigate = useNavigate();
   const [demoLoading, setDemoLoading] = useState(false);
-  const [wsConnected, setWsConnected] = useState(true);
+  const [wsConnected, setWsConnected] = useState(wsService.connected);
+  const [initialLoading, setInitialLoading] = useState(true);
 
   useEffect(() => {
     const unsub = wsService.onConnectionChange((connected) => {
       setWsConnected(connected);
+      setInitialLoading(false);
     });
-    return unsub;
+    // Fallback to stop initial loading if no change after 3s
+    const timer = setTimeout(() => setInitialLoading(false), 3000);
+    return () => {
+      unsub();
+      clearTimeout(timer);
+    };
   }, []);
 
   const handleStartDemo = async () => {
@@ -119,8 +127,10 @@ export default function Header() {
             </>
           ) : (
             <>
-              <WifiOff className="h-3 w-3 animate-pulse text-[#ef4444]" />
-              <span className="text-[11px] font-medium text-[#ef4444]">Reconnecting...</span>
+              <WifiOff className={cn("h-3 w-3 text-[#ef4444]", !initialLoading && "animate-pulse")} />
+              <span className="text-[11px] font-medium text-[#ef4444]">
+                {initialLoading ? "Connecting..." : "Reconnecting..."}
+              </span>
             </>
           )}
         </div>

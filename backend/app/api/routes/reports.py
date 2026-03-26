@@ -7,13 +7,21 @@ export and compliance. No LLM calls — pure data aggregation from in-memory sta
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException, Request
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from app.agents.guardrails import guardrails
 from app.services.notifications import notification_service
 from app.config import settings
 
 router = APIRouter()
+
+
+def _report_filename(report: dict) -> str:
+    """Build a sanitized PDF filename like SentinelAI_Report_sentinelai_demo_123.pdf"""
+    scenario = (report.get("simulationScenario") or "session").strip()
+    scenario = scenario.lower().replace(" ", "_").replace("-", "_")
+    tick = report.get("simulationTick", 0)
+    return f"SentinelAI_Report_{scenario}_{tick}.pdf"
 
 
 def _build_report_from_state(app_state) -> dict:
@@ -185,17 +193,43 @@ async def session_report(request: Request):
     return await _build_report(request)
 
 
-class EmailReportRequest(BaseModel):
-    pdf_base64: str | None = Field(None, alias="pdfBase64")
+@router.get("/reports/session/pdf")
+async def session_report_pdf(request: Request):
+    """Generate and return the session report as a PDF file.
+
+    Useful for direct printing/viewing in the browser.
+    """
+    from fastapi.responses import Response
+    from app.services.pdf_report import generate_report_pdf
+
+    report = await _build_report(request)
+    pdf_bytes = generate_report_pdf(report)
+
+    filename = _report_filename(report)
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'inline; filename="{filename}"'
+        }
+    )
+
+
+class _EmptyBody(BaseModel):
+    pass
 
 
 @router.post("/reports/email")
-async def email_report(request: Request, body: EmailReportRequest):
+async def email_report(request: Request, body: _EmptyBody = _EmptyBody()):
     """Email the current session report to configured SMTP recipients.
 
+    Generates a compact PDF server-side via fpdf2 and attaches it.
     Requires SMTP to be configured in Settings → Notifications.
-    This is a user-triggered call — no cooldown is applied.
     """
+    import base64
+    from app.services.pdf_report import generate_report_pdf
+
     if not settings.smtp_host or not settings.smtp_to:
         raise HTTPException(
             status_code=400,
@@ -206,10 +240,13 @@ async def email_report(request: Request, body: EmailReportRequest):
         )
 
     report = await _build_report(request)
+    pdf_bytes = generate_report_pdf(report)
+    pdf_b64 = base64.b64encode(pdf_bytes).decode("utf-8")
+
     ok, message = await notification_service.send_report_email(
         report=report,
-        attachment_base64=body.pdf_base64,
-        attachment_name=f"SentinelAI_Report_{report.get('simulationScenario', 'Session')}_{report.get('simulationTick', 0)}.pdf",
+        attachment_base64=pdf_b64,
+        attachment_name=_report_filename(report),
     )
 
     if not ok:
