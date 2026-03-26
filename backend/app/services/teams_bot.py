@@ -9,7 +9,6 @@ Uses the Bot Framework REST API directly (no SDK) for FastAPI compatibility.
 """
 
 import asyncio
-import base64
 import logging
 import re
 import time
@@ -386,38 +385,37 @@ class TeamsBotService:
     # ── Report handler ───────────────────────────────────────────────────
 
     async def handle_report_request(self, activity: dict, app_state) -> tuple[str, list[dict]]:
-        """Generate a PDF report and return (text, attachments) for the reply."""
+        """Build a fresh report summary and reply with a link to the dashboard.
+
+        The PDF is generated client-side in the frontend Reports page, so the
+        bot provides a quick summary + link instead of generating the PDF inline.
+        """
         try:
             from app.api.routes.reports import _build_report_from_state
-            from app.services.pdf_report import generate_report_pdf
 
             report = _build_report_from_state(app_state)
-            pdf_bytes = generate_report_pdf(report)
-            pdf_b64 = base64.b64encode(pdf_bytes).decode("ascii")
-
-            scenario = report.get("simulationScenario", "session")
+            scenario = report.get("simulationScenario", "Idle")
             tick = report.get("simulationTick", 0)
-            filename = f"SentinelAI_Report_{scenario}_tick{tick}.pdf"
+            cost = report.get("costImpact", {})
+            alerts = report.get("alerts", {})
+            gov = report.get("governance", {})
 
-            attachment = {
-                "contentType": "application/vnd.microsoft.teams.card.file.consent",
-                "contentUrl": None,
-                "name": filename,
-                "content": None,
-            }
-
-            # For Teams, send as inline base64 file
-            inline_attachment = {
-                "contentType": "application/pdf",
-                "contentUrl": f"data:application/pdf;base64,{pdf_b64}",
-                "name": filename,
-            }
+            dashboard_url = settings.cors_origins.split(",")[0].strip()
+            report_url = f"{dashboard_url}/reports"
 
             text = (
-                f"Here's your **SentinelAI Session Report** "
-                f"(Scenario: {scenario}, Tick: {tick})."
+                f"**SentinelAI Session Report** (Scenario: {scenario}, Tick: {tick})\n\n"
+                f"**Cost Impact:** ${cost.get('totalSaved', 0):,.2f} saved | "
+                f"${cost.get('revenueAtRisk', 0):,.2f} at risk\n"
+                f"**Alerts:** {alerts.get('total', 0)} total | "
+                f"{alerts.get('active', 0)} active | "
+                f"{alerts.get('resolved', 0)} resolved\n"
+                f"**Governance:** {gov.get('totalDecisions', 0)} decisions | "
+                f"{gov.get('autoApproved', 0)} auto-approved | "
+                f"{gov.get('blocked', 0)} blocked\n\n"
+                f"[Open Reports page to generate & download PDF]({report_url})"
             )
-            return text, [inline_attachment]
+            return text, []
 
         except Exception as e:
             logger.error("Report generation failed: %s", e)

@@ -251,6 +251,11 @@ export default function ReportsPage() {
     }
   };
 
+  // Auto-generate report on page load / refresh
+  useEffect(() => {
+    generateReport();
+  }, []);
+
   const sendReportEmail = async () => {
     if (!report) return;
     setEmailSending(true);
@@ -360,15 +365,22 @@ export default function ReportsPage() {
     }
   };
 
-  const downloadReport = () => {
-    if (!report) return;
-    const blob = new Blob([JSON.stringify(report, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `sentinelai-report-${new Date().toISOString().slice(0, 19)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const downloadReport = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/reports/session");
+      const freshReport = await res.json();
+      setReport(freshReport);
+      const blob = new Blob([JSON.stringify(freshReport, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `sentinelai-report-${new Date().toISOString().slice(0, 19)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const queueRows: QueueRow[] = useMemo(() => {
@@ -613,9 +625,22 @@ export default function ReportsPage() {
     });
   };
 
-  const exportSkillRoutingsCsv = () => {
-    if (!report) return;
-    const rows = routingRows; // Export ALL routing rows, not just visible/filtered
+  const exportSkillRoutingsCsv = async () => {
+    setLoading(true);
+    let freshReport = report;
+    try {
+      const res = await fetch("/api/reports/session");
+      freshReport = await res.json();
+      setReport(freshReport);
+    } catch { /* use existing report as fallback */ }
+    setLoading(false);
+    if (!freshReport) return;
+
+    const rows = freshReport.skillRouting.recentRoutings.map((r: any, i: number) => ({
+      ...r,
+      id: `${r.contactId}-${r.agentId}-${r.tick}-${i}`,
+      scorePct: Math.round(r.score * 100),
+    }));
     const header = ["Contact", "Agent", "Match Score", "Reasoning", "Tick"];
     const lines = [header.map(escapeCsvCell).join(",")];
     for (const r of rows) {
@@ -662,7 +687,7 @@ export default function ReportsPage() {
             className="print-hide border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent-subtle)]"
           >
             <RefreshCw className={cn("mr-2 h-4 w-4", loading && "animate-spin")} />
-            {loading ? "Generating..." : "Generate Report"}
+            {loading ? "Refreshing..." : "Refresh Data"}
           </Button>
           {report && (
             <Button
@@ -671,7 +696,7 @@ export default function ReportsPage() {
               className="print-hide gap-2"
             >
               <Download className="mr-2 h-4 w-4" />
-              Export JSON
+              Download JSON
             </Button>
           )}
 
@@ -682,7 +707,7 @@ export default function ReportsPage() {
               className="print-hide gap-2"
             >
               <Download className="mr-2 h-4 w-4" />
-              Export CSV
+              Download CSV
             </Button>
           )}
 
