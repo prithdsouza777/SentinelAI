@@ -19,7 +19,7 @@ function decodeJwtPayload(token: string): TokenPayload | null {
     const parts = token.split(".");
     if (parts.length === 3) {
       // Real JWT — decode the payload (part[1])
-      const payload = JSON.parse(atob(parts[1]));
+      const payload = JSON.parse(atob(parts[1]!));
       return {
         sub: payload.sub,
         email: payload.email || "",
