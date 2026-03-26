@@ -38,6 +38,7 @@ interface DashboardState {
   // Chat
   chatMessages: ChatMessage[];
   addChatMessage: (message: ChatMessage) => void;
+  clearChatMessages: () => void;
 
   // Simulation
   simulationActive: boolean;
@@ -130,6 +131,7 @@ export const useDashboardStore = create<DashboardState>((set) => ({
     set((state) => ({
       chatMessages: [...state.chatMessages, message].slice(-200),
     })),
+  clearChatMessages: () => set({ chatMessages: [] }),
 
   simulationActive: false,
   setSimulationActive: (active) => set({ simulationActive: active }),

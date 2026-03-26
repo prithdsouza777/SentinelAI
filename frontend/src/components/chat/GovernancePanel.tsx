@@ -269,6 +269,9 @@ export default function GovernancePanel() {
                 <ChevronDown className={cn("h-3.5 w-3.5 text-[#94a3b8] transition-transform duration-200", raiaExpanded && "rotate-180")} />
               </div>
             )}
+            {(raiaState === "connected" || raiaState === "failed") && (
+              <ChevronDown className={cn("h-4 w-4 text-[#94a3b8] transition-transform", raiaExpanded && "rotate-180")} />
+            )}
           </button>
 
           {/* Progress bar while connecting */}
@@ -404,6 +407,9 @@ export default function GovernancePanel() {
                 </span>
                 <ChevronDown className={cn("h-3.5 w-3.5 text-[#94a3b8] transition-transform duration-200", ltExpanded && "rotate-180")} />
               </div>
+            )}
+            {(ltState === "connected" || ltState === "failed") && (
+              <ChevronDown className={cn("h-4 w-4 text-[#94a3b8] transition-transform", ltExpanded && "rotate-180")} />
             )}
           </button>
 

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, BrainCircuit, Sparkles, Zap } from "lucide-react";
+import { Send, BrainCircuit, Sparkles, Zap, Shield, Trash2, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDashboardStore } from "../stores/dashboardStore";
 import { chatApi } from "../services/api";
@@ -7,6 +7,13 @@ import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import GovernancePanel from "@/components/chat/GovernancePanel";
 import type { ChatMessage } from "../types";
+
+interface Policy {
+  id: string;
+  rule: string;
+  status: string;
+  created: string;
+}
 
 function renderMarkdown(text: string) {
   const lines = text.split("\n");
@@ -65,9 +72,42 @@ const quickActions = [
 export default function ChatPage() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [policies, setPolicies] = useState<Policy[]>([]);
+  const [policiesLoading, setPoliciesLoading] = useState(false);
   const messages = useDashboardStore((s) => s.chatMessages);
   const addMessage = useDashboardStore((s) => s.addChatMessage);
+  const clearMessages = useDashboardStore((s) => s.clearChatMessages);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  const fetchPolicies = async () => {
+    setPoliciesLoading(true);
+    try {
+      const res = (await chatApi.listPolicies()) as { policies: Policy[] };
+      setPolicies(res.policies ?? []);
+    } catch {
+      /* ignore */
+    } finally {
+      setPoliciesLoading(false);
+    }
+  };
+
+  const deletePolicy = async (id: string) => {
+    try {
+      await chatApi.deletePolicy(id);
+      setPolicies((prev) => prev.filter((p) => p.id !== id));
+    } catch {
+      /* ignore */
+    }
+  };
+
+  useEffect(() => {
+    fetchPolicies();
+  }, []);
+
+  // Refresh policies when new messages arrive (user may have created one via chat)
+  useEffect(() => {
+    if (messages.length > 0) fetchPolicies();
+  }, [messages.length]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -76,6 +116,16 @@ export default function ChatPage() {
   const handleSend = async (text?: string) => {
     const messageText = text ?? input;
     if (!messageText.trim() || loading) return;
+
+    // Handle /clear command
+    if (messageText.trim().toLowerCase() === "/clear") {
+      if (!text) setInput("");
+      clearMessages();
+      try {
+        await fetch("/api/chat/clear", { method: "POST" });
+      } catch { /* ignore */ }
+      return;
+    }
 
     const userMsg: ChatMessage = {
       id: crypto.randomUUID(),
@@ -224,6 +274,49 @@ export default function ChatPage() {
       <div className="hidden w-80 flex-col gap-4 overflow-auto lg:flex">
         {/* RAIA + LockThreat Governance Panel */}
         <GovernancePanel />
+
+        {/* Active Policies */}
+        <div className="rounded-2xl border border-[#e2e8f0] bg-white p-4 shadow-sm">
+          <div className="mb-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Shield className="h-4 w-4 text-[#2563eb]" />
+              <span className="text-xs font-semibold uppercase tracking-wider text-[#64748b]">
+                Active Policies
+              </span>
+            </div>
+            <button
+              onClick={fetchPolicies}
+              className="rounded-md p-1 text-[#94a3b8] hover:bg-[#f1f5f9] hover:text-[#64748b] transition-colors"
+              title="Refresh policies"
+            >
+              <RefreshCw className={cn("h-3.5 w-3.5", policiesLoading && "animate-spin")} />
+            </button>
+          </div>
+          {policies.length === 0 ? (
+            <p className="text-[11px] text-[#94a3b8]">
+              No active policies. Create one via chat, e.g. &quot;Set a rule: if billing queue &gt; 15, pull from general&quot;
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {policies.map((p) => (
+                <div
+                  key={p.id}
+                  className="group flex items-start gap-2 rounded-lg border border-[#e2e8f0] bg-[#f8fafc] px-3 py-2"
+                >
+                  <div className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#10b981]" />
+                  <p className="flex-1 text-[11px] text-[#475569] leading-relaxed">{p.rule}</p>
+                  <button
+                    onClick={() => deletePolicy(p.id)}
+                    className="shrink-0 rounded p-0.5 text-[#94a3b8] opacity-0 transition-all hover:bg-[#fee2e2] hover:text-[#ef4444] group-hover:opacity-100"
+                    title="Remove policy"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* Example Commands (compact) */}
         <div className="rounded-2xl border border-[#e2e8f0] bg-white p-4 shadow-sm">

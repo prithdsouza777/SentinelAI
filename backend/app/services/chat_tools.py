@@ -86,6 +86,52 @@ TOOLS = [
         },
     },
     {
+        "name": "create_policy",
+        "description": "Create a persistent operational policy rule for the contact center. Use when the user wants to set rules like 'keep at least 4 agents in VIP', 'if billing > 15, pull from general', or any staffing/routing rule. The policy is enforced automatically every simulation tick.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "rule": {
+                    "type": "string",
+                    "description": "The policy rule in natural language, e.g. 'Always keep at least 4 agents in VIP' or 'If billing queue exceeds 15 contacts, pull an agent from general'",
+                }
+            },
+            "required": ["rule"],
+        },
+    },
+    {
+        "name": "list_policies",
+        "description": "List all currently active operational policies. Use when the user asks about existing rules or policies.",
+        "input_schema": {
+            "type": "object",
+            "properties": {},
+            "required": [],
+        },
+    },
+    {
+        "name": "get_policy_analytics",
+        "description": "Get impact analytics for policies: how many times enforced, agents moved, current compliance status, and whether the policy is being met. Use when the user asks about policy impact, effectiveness, or 'how is this policy affecting us'.",
+        "input_schema": {
+            "type": "object",
+            "properties": {},
+            "required": [],
+        },
+    },
+    {
+        "name": "delete_policy",
+        "description": "Delete/remove an active policy by its ID. Use when the user wants to remove a rule.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "policy_id": {
+                    "type": "string",
+                    "description": "The policy ID to delete, e.g. 'policy-1'",
+                }
+            },
+            "required": ["policy_id"],
+        },
+    },
+    {
         "name": "get_alerts",
         "description": "Get active and recently resolved alerts with severity, queue, description, and timestamps.",
         "input_schema": {
@@ -147,6 +193,10 @@ def execute_tool(tool_name: str, tool_input: dict, context: dict) -> str:
         "get_agent_profile": _exec_agent_profile,
         "check_move_feasibility": _exec_check_move,
         "move_agent": _exec_move_agent,
+        "create_policy": _exec_create_policy,
+        "list_policies": _exec_list_policies,
+        "get_policy_analytics": _exec_policy_analytics,
+        "delete_policy": _exec_delete_policy,
         "get_alerts": _exec_alerts,
         "get_recent_decisions": _exec_decisions,
         "get_cost_summary": _exec_cost_summary,
@@ -160,6 +210,94 @@ def execute_tool(tool_name: str, tool_input: dict, context: dict) -> str:
     except Exception as e:
         logger.warning("Tool %s failed: %s", tool_name, e)
         return f"Error executing {tool_name}: {e}"
+
+
+def _exec_create_policy(inp: dict, ctx: dict) -> str:
+    import app.api.routes.chat as chat_module
+    from app.api.routes.chat import enforce_policies
+    from datetime import datetime, timezone
+
+    rule = inp.get("rule", "").strip()
+    if not rule:
+        return "Error: No rule provided."
+
+    policy = {
+        "id": f"policy-{chat_module._next_id()}",
+        "rule": rule,
+        "status": "active",
+        "createdAt": datetime.now(timezone.utc).isoformat(),
+        "stats": {"movesMade": 0, "timesEnforced": 0, "agentsMoved": []},
+    }
+    chat_module._policies.append(policy)
+
+    # Enforce immediately
+    actions = enforce_policies()
+
+    result = (
+        f"SUCCESS: Policy created and enforced immediately.\n"
+        f"  ID: {policy['id']}\n"
+        f"  Rule: {rule}\n"
+        f"  Status: Active\n"
+    )
+    if actions:
+        result += f"  Immediate actions: {len(actions)} agent moves\n"
+        for a in actions:
+            result += f"    - {a}\n"
+    else:
+        result += "  No moves needed — policy already satisfied.\n"
+    return result
+
+
+def _exec_policy_analytics(inp: dict, ctx: dict) -> str:
+    from app.api.routes.chat import _policies, _parse_min_agents_policy
+    from app.services.agent_database import agent_database
+
+    if not _policies:
+        return "No policies exist yet."
+
+    lines = [f"Policy Analytics ({len(_policies)} total):"]
+    for p in _policies:
+        stats = p.get("stats", {"movesMade": 0, "timesEnforced": 0, "agentsMoved": []})
+        status_icon = "ACTIVE" if p["status"] == "active" else "DELETED"
+        lines.append(f"\n[{p['id']}] {status_icon}: {p['rule']}")
+        lines.append(f"  Times checked: {stats['timesEnforced']}")
+        lines.append(f"  Total moves made: {stats['movesMade']}")
+        if stats["agentsMoved"]:
+            lines.append(f"  Agents affected: {', '.join(stats['agentsMoved'])}")
+
+        # Current compliance for active min-staffing policies
+        if p["status"] == "active":
+            constraints = _parse_min_agents_policy(p["rule"])
+            for queue_id, min_count in constraints:
+                current = len(agent_database.get_agents_in_queue(queue_id))
+                met = "YES" if current >= min_count else "NO"
+                lines.append(f"  Compliance: {current}/{min_count} agents in {queue_id} — {met}")
+
+    return "\n".join(lines)
+
+
+def _exec_list_policies(inp: dict, ctx: dict) -> str:
+    from app.api.routes.chat import _policies
+
+    active = [p for p in _policies if p["status"] == "active"]
+    if not active:
+        return "No active policies. Users can create rules like 'keep at least 4 agents in VIP'."
+
+    lines = [f"{len(active)} active policies:"]
+    for p in active:
+        lines.append(f"  [{p['id']}] {p['rule']}")
+    return "\n".join(lines)
+
+
+def _exec_delete_policy(inp: dict, ctx: dict) -> str:
+    from app.api.routes.chat import _policies
+
+    policy_id = inp.get("policy_id", "").strip()
+    for p in _policies:
+        if p["id"] == policy_id:
+            p["status"] = "deleted"
+            return f"SUCCESS: Policy {policy_id} deleted."
+    return f"Policy '{policy_id}' not found."
 
 
 def _exec_queue_status(inp: dict, ctx: dict) -> str:
