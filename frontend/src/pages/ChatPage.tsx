@@ -76,6 +76,7 @@ export default function ChatPage() {
   const [policiesLoading, setPoliciesLoading] = useState(false);
   const messages = useDashboardStore((s) => s.chatMessages);
   const addMessage = useDashboardStore((s) => s.addChatMessage);
+  const clearMessages = useDashboardStore((s) => s.clearChatMessages);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const fetchPolicies = async () => {
@@ -115,6 +116,16 @@ export default function ChatPage() {
   const handleSend = async (text?: string) => {
     const messageText = text ?? input;
     if (!messageText.trim() || loading) return;
+
+    // Handle /clear command
+    if (messageText.trim().toLowerCase() === "/clear") {
+      if (!text) setInput("");
+      clearMessages();
+      try {
+        await fetch("/api/chat/clear", { method: "POST" });
+      } catch { /* ignore */ }
+      return;
+    }
 
     const userMsg: ChatMessage = {
       id: crypto.randomUUID(),

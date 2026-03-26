@@ -88,8 +88,17 @@ async def _tick():
     # Send all queue updates + alerts in a single WS frame
     await manager.broadcast_batch(ws_batch)
 
-    # Run agents with camelCase dicts (10s timeout prevents tick loop from hanging)
+    # Enforce user-defined policies (min staffing, threshold rules)
     metrics_dicts = [m.model_dump(by_alias=True, mode="json") for m in metrics]
+    try:
+        from app.api.routes.chat import enforce_policies
+        policy_actions = enforce_policies(current_metrics=metrics_dicts)
+        for action in policy_actions:
+            logger.info("Policy enforced: %s", action)
+    except Exception as e:
+        logger.warning("Policy enforcement error: %s", e)
+
+    # Run agents with camelCase dicts (10s timeout prevents tick loop from hanging)
     try:
         decisions = await asyncio.wait_for(
             orchestrator.process_metrics(

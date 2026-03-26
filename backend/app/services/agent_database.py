@@ -506,6 +506,7 @@ class AgentDatabase:
         count: int = 2,
         exclude_queues: Optional[list[str]] = None,
         min_remaining: int = 2,
+        force: bool = False,
     ) -> list[HumanAgentProfile]:
         """Return the best-fit agents for a target department.
 
@@ -515,6 +516,10 @@ class AgentDatabase:
         top performers even if both have decent target fitness.
 
         Transfer score = target_fitness * 0.6 - source_fitness * 0.4
+
+        If force=True (used by human policy enforcement), bypasses the
+        fitness threshold — but still prefers available agents over busy ones.
+        Busy agents are included but ranked lower so available agents move first.
         """
         exclude = set(exclude_queues or [])
         exclude.add(target_dept_id)
@@ -524,6 +529,14 @@ class AgentDatabase:
             # Build placeholders for exclusion
             placeholders = ",".join("?" for _ in exclude)
             # Join target fitness AND source fitness (agent's current queue)
+            status_filter = "" if force else "AND a.status = 'available' "
+            # When forced (human policy), include all agents but rank available ones first
+            order_clause = (
+                "(CASE WHEN a.status = 'available' THEN 0 ELSE 1 END), "
+                "(ds_target.fitness_score * 0.6 - COALESCE(ds_source.fitness_score, 0) * 0.4) DESC"
+                if force else
+                "(ds_target.fitness_score * 0.6 - COALESCE(ds_source.fitness_score, 0) * 0.4) DESC"
+            )
             rows = conn.execute(
                 f"SELECT a.*, "
                 f"  ds_target.fitness_score AS target_fitness, "
@@ -534,8 +547,8 @@ class AgentDatabase:
                 f"LEFT JOIN department_scores ds_source "
                 f"  ON a.id = ds_source.agent_id AND ds_source.department_id = a.current_queue_id "
                 f"WHERE a.current_queue_id NOT IN ({placeholders}) "
-                f"AND a.status = 'available' "
-                f"ORDER BY (ds_target.fitness_score * 0.6 - COALESCE(ds_source.fitness_score, 0) * 0.4) DESC",
+                f"{status_filter}"
+                f"ORDER BY {order_clause}",
                 (target_dept_id, *exclude),
             ).fetchall()
 
@@ -548,15 +561,15 @@ class AgentDatabase:
             for row in rows:
                 if len(result) >= count:
                     break
-                # Guardrail: skip agents below minimum fitness threshold
-                if row["target_fitness"] < MIN_FITNESS_THRESHOLD:
+                # Guardrail: skip agents below minimum fitness threshold (unless forced by human policy)
+                if not force and row["target_fitness"] < MIN_FITNESS_THRESHOLD:
                     logger.debug(
                         "Skipping %s for %s — fitness %.2f below threshold %.2f",
                         row["name"], target_dept_id, row["target_fitness"], MIN_FITNESS_THRESHOLD,
                     )
                     continue
                 src_q = row["current_queue_id"]
-                if queue_counts.get(src_q, 0) > min_remaining:
+                if force or queue_counts.get(src_q, 0) > min_remaining:
                     result.append(self._row_to_profile(conn, row))
                     queue_counts[src_q] -= 1
 
