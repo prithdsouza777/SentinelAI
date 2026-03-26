@@ -14,6 +14,10 @@ WORKDIR /app
 COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Install RAIA trace SDK
+COPY backend/trace-sdk ./trace-sdk
+RUN pip install --no-cache-dir ./trace-sdk
+
 # Copy backend code
 COPY backend/ .
 

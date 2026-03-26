@@ -1,8 +1,8 @@
-import { LogOut, Play, Square, Wifi, WifiOff, Zap } from "lucide-react";
+import { LogOut, Play, Square, Wifi, WifiOff, Zap, BrainCircuit } from "lucide-react";
 import { useDashboardStore } from "../../stores/dashboardStore";
-import { simulationApi } from "../../services/api";
+import { simulationApi, governanceApi } from "../../services/api";
 import { wsService } from "../../services/websocket";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,8 @@ export default function Header() {
   const [demoLoading, setDemoLoading] = useState(false);
   const [wsConnected, setWsConnected] = useState(wsService.connected);
   const [initialLoading, setInitialLoading] = useState(true);
+  const [raiaTraces, setRaiaTraces] = useState(0);
+  const prevTraces = useRef(0);
 
   useEffect(() => {
     const unsub = wsService.onConnectionChange((connected) => {
@@ -32,6 +34,21 @@ export default function Header() {
       clearTimeout(timer);
     };
   }, []);
+
+  // Poll RAIA trace count when simulation is active
+  useEffect(() => {
+    if (!simulationActive) return;
+    const poll = async () => {
+      try {
+        const res = await governanceApi.getStatus();
+        prevTraces.current = raiaTraces;
+        setRaiaTraces(res.raia.interactions ?? 0);
+      } catch { /* ignore */ }
+    };
+    poll();
+    const interval = setInterval(poll, 4000);
+    return () => clearInterval(interval);
+  }, [simulationActive]);
 
   const handleStartDemo = async () => {
     setDemoLoading(true);
@@ -107,15 +124,37 @@ export default function Header() {
         </AnimatePresence>
 
         {simulationActive && (
-          <motion.div
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="flex items-center gap-1.5 rounded-full border border-[#10b981]/30 bg-[#10b981]/10 px-2.5 py-1"
-          >
-            <Zap className="h-3 w-3 text-[#10b981]" />
-            <span className="text-xs font-semibold text-[#10b981]">Live</span>
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#10b981]" />
-          </motion.div>
+          <>
+            <motion.div
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="flex items-center gap-1.5 rounded-full border border-[#10b981]/30 bg-[#10b981]/10 px-2.5 py-1"
+            >
+              <Zap className="h-3 w-3 text-[#10b981]" />
+              <span className="text-xs font-semibold text-[#10b981]">Live</span>
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#10b981]" />
+            </motion.div>
+
+            {raiaTraces > 0 && (
+              <motion.div
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="flex items-center gap-1.5 rounded-full border border-[#8b5cf6]/20 bg-[#8b5cf6]/5 px-2.5 py-1"
+              >
+                <BrainCircuit className="h-3 w-3 text-[#8b5cf6]" />
+                <span className="text-[11px] font-medium text-[#64748b]">RAIA</span>
+                <motion.span
+                  key={raiaTraces}
+                  initial={raiaTraces > prevTraces.current ? { scale: 1.4, color: "#8b5cf6" } : false}
+                  animate={{ scale: 1, color: "#8b5cf6" }}
+                  transition={{ duration: 0.3 }}
+                  className="text-xs font-bold tabular-nums"
+                >
+                  {raiaTraces}
+                </motion.span>
+              </motion.div>
+            )}
+          </>
         )}
 
         {/* Connection status */}
