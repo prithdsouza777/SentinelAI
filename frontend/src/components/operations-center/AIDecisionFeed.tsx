@@ -46,7 +46,7 @@ function ExplainPanel({ decision }: { decision: AgentDecision }) {
     for (const seg of decision.action.split(":").slice(1)) {
       if (seg.includes("=")) {
         const [k, v] = seg.split("=", 2);
-        toolArgs[k] = v;
+        if (k) toolArgs[k] = v ?? "";
       }
     }
   }

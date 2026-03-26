@@ -15,7 +15,6 @@ import {
   ChevronDown,
   Bot,
   Network,
-  TrendingUp,
   CheckCircle2,
   Eye,
   GitBranch,
@@ -211,7 +210,7 @@ const agents = [
   },
 ];
 
-const techStack = [
+const techStack: { name: string; logo: string; logoDark?: string; wide: boolean | string }[] = [
   { name: "AWS Bedrock", logo: "/logos/aws.svg", wide: true },
   { name: "Anthropic Claude", logo: "/logos/anthropic.svg", wide: false },
   { name: "LangGraph", logo: "/logos/langgraph.svg", wide: false },
