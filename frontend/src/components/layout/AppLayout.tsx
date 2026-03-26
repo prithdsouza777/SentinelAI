@@ -13,11 +13,11 @@ export default function AppLayout() {
   const didReset = useRef(false);
 
   // On browser refresh: clear backend metrics (not simulation) + frontend store
+  // Use a dedicated effect with empty deps to ensure it only runs once and timer isn't cleared by re-renders
   useEffect(() => {
     if (didReset.current) return;
     didReset.current = true;
     
-    // Slight delay to give backend time to start
     const timer = setTimeout(() => {
       fetch("/api/session/reset", { method: "POST" })
         .then(() => resetForNewDemo())
@@ -25,7 +25,7 @@ export default function AppLayout() {
     }, 1500);
 
     return () => clearTimeout(timer);
-  }, [resetForNewDemo]);
+  }, []); // Explicitly empty deps for mount-only execution
 
   return (
     <TooltipProvider>

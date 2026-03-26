@@ -44,7 +44,6 @@ export default function SettingsPage() {
   const [wsConnected, setWsConnected] = useState(wsService.connected);
   const [refreshing, setRefreshing] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
-  const initialMount = useRef(true);
 
   // Notification config state
   const [teamsWebhookUrl, setTeamsWebhookUrl] = useState("");
@@ -109,13 +108,14 @@ export default function SettingsPage() {
     }).catch(() => {});
   }, []);
 
+  // Dedicated effect for initial mount logic to avoid timer being cleared by re-renders
   useEffect(() => {
-    if (initialMount.current) {
-      initialMount.current = false;
-      // Slight delay to give backend time to start
-      const timer = setTimeout(() => fetchHealth(false), 1000);
-      return () => clearTimeout(timer);
-    }
+    // Slight delay to give backend time to start
+    const timer = setTimeout(() => fetchHealth(false), 1000);
+    return () => clearTimeout(timer);
+  }, []); // Empty dependencies ensure this only runs once on mount
+
+  useEffect(() => {
     fetchNotifConfig();
     fetchThreshold();
     const unsub = wsService.onConnectionChange((connected) => {
