@@ -391,7 +391,7 @@ function DeptAgentBubble({
       {/* Chat button on hover */}
       {onChat && (
         <div
-          className="absolute -bottom-1 left-1/2 z-10 -translate-x-1/2 opacity-0 transition-all group-hover/bubble:opacity-100"
+          className="absolute -bottom-5 left-1/2 z-10 -translate-x-1/2 opacity-0 transition-all group-hover/bubble:opacity-100"
           onClick={(e) => {
             e.stopPropagation();
             onChat(agent);
@@ -631,7 +631,7 @@ function DepartmentMapView({
             </div>
 
             {/* Agent bubbles grid */}
-            <div className="flex min-h-[80px] flex-wrap gap-1 justify-center">
+            <div className="flex min-h-[80px] flex-wrap gap-x-1 gap-y-6 justify-center pb-4">
               <AnimatePresence mode="popLayout">
                 {deptAgents.map((agent, i) => (
                   <DeptAgentBubble
