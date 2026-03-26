@@ -106,6 +106,38 @@ async def stop_simulation(request: Request):
     return {"status": "stopped"}
 
 
+@router.post("/session/reset")
+async def reset_session(request: Request):
+    """Clear accumulated metrics so a browser refresh starts with clean counters.
+
+    Does NOT stop the simulation — the demo keeps running.  Only clears
+    alerts, decisions, negotiations, cost accumulators, and governance
+    counters.  Workforce data (from SQLite) is untouched.
+    """
+    from app.agents.guardrails import guardrails
+    from app.agents.orchestrator import orchestrator
+
+    # Clear in-memory collections (but keep simulation running)
+    request.app.state.recent_decisions.clear()
+    request.app.state.recent_alerts.clear()
+    request.app.state.recent_negotiations.clear()
+    if hasattr(request.app.state, "metrics_history"):
+        request.app.state.metrics_history.clear()
+
+    # Reset cost / governance accumulators
+    guardrails.reset()
+    orchestrator._total_saved = 0.0
+    orchestrator._revenue_at_risk = 0.0
+    orchestrator._prevented_abandoned = 0
+    orchestrator._actions_today = 0
+
+    # Reset tick counter and routing log so report shows 0
+    simulation_engine.tick = 0
+    simulation_engine._routing_log.clear()
+
+    return {"status": "reset"}
+
+
 @router.post("/simulation/chaos")
 async def inject_chaos(request: ChaosRequest):
     """Inject a chaos event into the running simulation. Auto-starts if idle."""
