@@ -228,7 +228,7 @@ function DecisionCard({ decision }: { decision: AgentDecision }) {
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       className={cn(
-        "min-w-0 overflow-hidden rounded-xl border bg-white p-4 shadow-sm transition-all dark:bg-white/5 dark:border-white/10",
+        "min-w-0 overflow-hidden break-words rounded-xl border bg-white p-4 shadow-sm transition-all dark:bg-white/5 dark:border-white/10",
         isPending ? "animate-conflict-pulse border-[#f59e0b]/40" : "border-[#e2e8f0] dark:border-white/10",
         isRejected && "opacity-40"
       )}
@@ -267,7 +267,7 @@ function DecisionCard({ decision }: { decision: AgentDecision }) {
       <p className="text-sm font-semibold leading-snug text-[#1e293b] dark:text-white/90">{decision.summary}</p>
 
       {decision.reasoning && !expanded && (
-        <p className="mt-1.5 text-[13px] leading-relaxed text-[#64748b]">{decision.reasoning}</p>
+        <p className="mt-1.5 break-all text-[13px] leading-relaxed text-[#64748b] dark:text-[#94a3b8]">{decision.reasoning}</p>
       )}
 
       {decision.confidence != null && !expanded && (
@@ -382,8 +382,8 @@ export default function AIDecisionFeed() {
         )}
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto p-4">
-        <div className="space-y-3">
+      <div className="min-h-0 min-w-0 flex-1 overflow-y-auto p-4">
+        <div className="min-w-0 space-y-3">
           <AnimatePresence initial={false}>
             {decisions.length === 0 ? (
               <div className="flex h-48 flex-col items-center justify-center gap-3 text-center">
