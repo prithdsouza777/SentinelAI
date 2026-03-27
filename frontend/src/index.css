@@ -296,6 +296,21 @@
   --tw-gradient-to: var(--bg-secondary) !important;
 }
 
+/* Gradient via-white — Tailwind v3 bakes via color into --tw-gradient-stops */
+[data-theme="dark"] .via-white {
+  --tw-gradient-stops: var(--tw-gradient-from), var(--bg-card), var(--tw-gradient-to) !important;
+}
+/* Boost nearly-transparent gradient edges so simulation cards aren't washed out */
+[data-theme="dark"] .from-\[\#10b981\]\/5 {
+  --tw-gradient-from: rgba(16, 185, 129, 0.12) !important;
+}
+[data-theme="dark"] .from-\[\#8b5cf6\]\/5 {
+  --tw-gradient-from: rgba(139, 92, 246, 0.12) !important;
+}
+[data-theme="dark"] .to-\[\#2563eb\]\/5 {
+  --tw-gradient-to: rgba(37, 99, 235, 0.12) !important;
+}
+
 /* bg-grid utility */
 [data-theme="dark"] .bg-grid {
   background-image:
@@ -332,6 +347,31 @@
 }
 [data-theme="dark"] .hover\:bg-white:hover {
   background-color: var(--bg-card) !important;
+}
+
+/* bg-white with opacity variants (workforce cards, agent bubbles) */
+[data-theme="dark"] .bg-white\/80 {
+  background-color: color-mix(in srgb, var(--bg-card) 80%, transparent) !important;
+}
+[data-theme="dark"] .bg-white\/60 {
+  background-color: color-mix(in srgb, var(--bg-card) 60%, transparent) !important;
+}
+[data-theme="dark"] .bg-white\/50 {
+  background-color: color-mix(in srgb, var(--bg-card) 50%, transparent) !important;
+}
+/* hover:bg-white variants */
+[data-theme="dark"] .hover\:bg-white\/60:hover {
+  background-color: color-mix(in srgb, var(--bg-card) 60%, transparent) !important;
+}
+
+/* border-white (status dots on agent avatars) */
+[data-theme="dark"] .border-white {
+  border-color: var(--bg-card) !important;
+}
+
+/* border with opacity variants */
+[data-theme="dark"] .border-\[\#e2e8f0\]\/60 {
+  border-color: color-mix(in srgb, var(--border) 60%, transparent) !important;
 }
 
 /* bg used as dividers */
