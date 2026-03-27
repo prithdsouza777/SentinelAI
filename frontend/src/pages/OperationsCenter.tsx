@@ -7,17 +7,10 @@ import AgentMovementToasts from "../components/operations-center/AgentMovementTo
 import MetricsSidebar from "../components/metrics/MetricsSidebar";
 import { TrendChart } from "../components/operations-center/TrendChart";
 import AnomalyTimeline from "../components/operations-center/AnomalyTimeline";
-import { useState } from "react";
-import { useWebSocket } from "../hooks/useWebSocket";
 import { useDashboardStore } from "../stores/dashboardStore";
 
 export default function OperationsCenter() {
-  const [latestWsData, setLatestWsData] = useState<any>(null);
   const isDemoRunning = useDashboardStore((s) => s.simulationActive);
-
-  useWebSocket("*", (msg) => {
-    setLatestWsData(msg);
-  });
 
   return (
     <div className="grid grid-cols-12 gap-4">
@@ -32,7 +25,7 @@ export default function OperationsCenter() {
 
         {/* 2. Trend Chart — FIXED HEIGHT, never grows */}
         <div className="flex-shrink-0">
-          <TrendChart wsData={latestWsData} isRunning={isDemoRunning} />
+          <TrendChart isRunning={isDemoRunning} />
         </div>
 
         <div className="grid grid-cols-2 gap-4 h-[500px]">

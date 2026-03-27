@@ -29,6 +29,7 @@ export default function WebSocketProvider() {
     updateCost,
     addChatMessage,
     updateGovernance,
+    addTrendPoint,
   } = useDashboardStore();
 
   useEffect(() => {
@@ -100,6 +101,25 @@ export default function WebSocketProvider() {
         const snapshot = msg.data as GovernanceSnapshot;
         updateGovernance(snapshot);
       }),
+
+      wsService.on("operations:tick", (msg) => {
+        const data = msg.data as {
+          tick?: number;
+          waitTime?: number;
+          queueDepth?: number;
+          serviceLevel?: number;
+          totalActions?: number;
+        };
+        const tick = data.tick ?? 0;
+        addTrendPoint({
+          tick,
+          label: `T${tick}`,
+          waitTime: data.waitTime ?? 0,
+          queueDepth: data.queueDepth ?? 0,
+          serviceLevel: data.serviceLevel ?? 85,
+          aiActionsCount: data.totalActions ?? 0,
+        });
+      }),
     ];
 
     return () => {
@@ -116,6 +136,7 @@ export default function WebSocketProvider() {
     updateCost,
     addChatMessage,
     updateGovernance,
+    addTrendPoint,
   ]);
 
   return null;

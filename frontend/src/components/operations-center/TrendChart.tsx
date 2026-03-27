@@ -1,33 +1,19 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   ComposedChart, Line, Area, XAxis, YAxis,
   CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
-
-interface TrendDataPoint {
-  tick: number;
-  label: string;
-  waitTime: number;
-  queueDepth: number;
-  serviceLevel: number;
-  aiActionsCount: number;
-  ghostWaitTime?: number;
-  ghostQueueDepth?: number;
-}
+import { useDashboardStore, type TrendDataPoint } from '../../stores/dashboardStore';
 
 interface TrendChartProps {
-  wsData: any;
   isRunning: boolean;
 }
 
-const MAX_POINTS = 30;
-
-export const TrendChart: React.FC<TrendChartProps> = ({ wsData, isRunning }) => {
-  const [trendData, setTrendData] = useState<TrendDataPoint[]>([]);
+export const TrendChart: React.FC<TrendChartProps> = ({ isRunning }) => {
+  const trendData = useDashboardStore((s) => s.trendData);
+  const setTrendData = useDashboardStore((s) => s.setTrendData);
   const [ghostActive, setGhostActive] = useState(false);
-  const bufferRef = useRef<TrendDataPoint[]>([]);
-  const lastTickRef = useRef<number>(-1);
 
   const computeGhost = useCallback((
     actual: TrendDataPoint,
@@ -47,59 +33,28 @@ export const TrendChart: React.FC<TrendChartProps> = ({ wsData, isRunning }) => 
     };
   }, []);
 
-  useEffect(() => {
-    if (!wsData || !isRunning) return;
-    
-    // Specifically listen for the aggregated tick event
-    if (wsData.event !== "operations:tick") return;
-    
-    const data = wsData.data || {};
-    const tick = data.tick ?? 0;
-    if (tick === lastTickRef.current) return;
-    lastTickRef.current = tick;
-
-    const newPoint: TrendDataPoint = {
-      tick,
-      label: `T${tick}`,
-      waitTime: data.waitTime ?? 0,
-      queueDepth: data.queueDepth ?? 0,
-      serviceLevel: data.serviceLevel ?? 85,
-      aiActionsCount: data.totalActions ?? 0,
-    };
-
-    if (ghostActive) {
-      const prevGhost = bufferRef.current[bufferRef.current.length - 1] ?? null;
-      const ghost = computeGhost(newPoint, prevGhost, newPoint.aiActionsCount);
-      newPoint.ghostWaitTime = ghost.ghostWaitTime;
-      newPoint.ghostQueueDepth = ghost.ghostQueueDepth;
-    }
-
-    bufferRef.current = [...bufferRef.current.slice(-(MAX_POINTS - 1)), newPoint];
-    setTrendData([...bufferRef.current]);
-  }, [wsData, isRunning, ghostActive, computeGhost]);
-
   const handleGhostToggle = useCallback(() => {
-    if (!ghostActive && bufferRef.current.length > 0) {
+    if (!ghostActive && trendData.length > 0) {
       let prev: TrendDataPoint | null = null;
-      bufferRef.current = bufferRef.current.map(point => {
+      const updated = trendData.map(point => {
         const ghost = computeGhost(point, prev, point.aiActionsCount);
         prev = { ...point, ...ghost };
         return { ...point, ...ghost };
       });
-      setTrendData([...bufferRef.current]);
+      setTrendData(updated);
     } else if (ghostActive) {
-      bufferRef.current = bufferRef.current.map(p => ({
+      const updated = trendData.map(p => ({
         ...p, ghostWaitTime: undefined, ghostQueueDepth: undefined
       }));
-      setTrendData([...bufferRef.current]);
+      setTrendData(updated);
     }
     setGhostActive(prev => !prev);
-  }, [ghostActive, computeGhost]);
+  }, [ghostActive, computeGhost, trendData, setTrendData]);
 
   const latest = trendData[trendData.length - 1];
-  const waitDelta = latest 
+  const waitDelta = latest
     ? ((latest.ghostWaitTime ?? 0) - latest.waitTime).toFixed(1) : '0';
-  const queueDelta = latest 
+  const queueDelta = latest
     ? Math.round((latest.ghostQueueDepth ?? 0) - latest.queueDepth) : 0;
 
   return (
@@ -115,7 +70,7 @@ export const TrendChart: React.FC<TrendChartProps> = ({ wsData, isRunning }) => 
       boxShadow: '0 4px 20px -5px rgba(0,0,0,0.1)',
       position: 'relative',
     }}>
-      
+
       {/* Header */}
       <div style={{
         display: 'flex', justifyContent: 'space-between',
@@ -169,7 +124,7 @@ export const TrendChart: React.FC<TrendChartProps> = ({ wsData, isRunning }) => 
       {/* Ghost banner */}
       <AnimatePresence>
         {ghostActive && latest && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: -10, height: 0 }}
             animate={{ opacity: 1, y: 0, height: 'auto' }}
             exit={{ opacity: 0, y: -10, height: 0 }}
@@ -221,8 +176,8 @@ export const TrendChart: React.FC<TrendChartProps> = ({ wsData, isRunning }) => 
         </div>
       ) : (
         <ResponsiveContainer width="100%" height={190}>
-          <ComposedChart 
-            data={trendData} 
+          <ComposedChart
+            data={trendData}
             margin={{ top: 10, right: 10, bottom: 0, left: -20 }}
           >
             <defs>
@@ -248,7 +203,7 @@ export const TrendChart: React.FC<TrendChartProps> = ({ wsData, isRunning }) => 
             />
             <YAxis yAxisId="left" tick={{ fill: 'var(--text-muted)', fontSize: 10 }} axisLine={false} tickLine={false} />
             <YAxis yAxisId="right" orientation="right" domain={[0, 100]} hide />
-            
+
             <Tooltip
               contentStyle={{
                 background: 'rgba(255, 255, 255, 0.98)',
@@ -262,14 +217,13 @@ export const TrendChart: React.FC<TrendChartProps> = ({ wsData, isRunning }) => 
               itemStyle={{ padding: '2px 0' }}
               animationDuration={250}
             />
-            <Legend 
-              verticalAlign="top" 
-              align="right" 
-              iconType="circle" 
-              wrapperStyle={{ fontSize: 11, fontWeight: 500, paddingBottom: 15 }} 
+            <Legend
+              verticalAlign="top"
+              align="right"
+              iconType="circle"
+              wrapperStyle={{ fontSize: 11, fontWeight: 500, paddingBottom: 15 }}
             />
 
-            {/* Smooth Area Charts */}
             <Area
               yAxisId="left"
               type="monotone"
@@ -307,7 +261,6 @@ export const TrendChart: React.FC<TrendChartProps> = ({ wsData, isRunning }) => 
               animationDuration={2000}
             />
 
-            {/* Ghost lines for What-If */}
             {ghostActive && (
               <>
                 <Line

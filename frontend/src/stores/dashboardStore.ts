@@ -10,6 +10,17 @@ import type {
   SessionReport,
 } from "../types";
 
+export interface TrendDataPoint {
+  tick: number;
+  label: string;
+  waitTime: number;
+  queueDepth: number;
+  serviceLevel: number;
+  aiActionsCount: number;
+  ghostWaitTime?: number;
+  ghostQueueDepth?: number;
+}
+
 interface DashboardState {
   // Queue metrics
   queues: QueueMetrics[];
@@ -52,6 +63,12 @@ interface DashboardState {
   // Session report (persists across page navigations)
   sessionReport: SessionReport | null;
   setSessionReport: (report: SessionReport | null) => void;
+
+  // Trend chart data (persists across page navigations)
+  trendData: TrendDataPoint[];
+  trendLastTick: number;
+  setTrendData: (data: TrendDataPoint[]) => void;
+  addTrendPoint: (point: TrendDataPoint) => void;
 }
 
 export const useDashboardStore = create<DashboardState>((set) => ({
@@ -156,6 +173,8 @@ export const useDashboardStore = create<DashboardState>((set) => ({
         avgConfidence: 0,
         lastUpdated: new Date().toISOString(),
       },
+      trendData: [],
+      trendLastTick: -1,
     }),
 
   governance: {
@@ -171,4 +190,14 @@ export const useDashboardStore = create<DashboardState>((set) => ({
 
   sessionReport: null,
   setSessionReport: (report) => set({ sessionReport: report }),
+
+  trendData: [],
+  trendLastTick: -1,
+  setTrendData: (data) => set({ trendData: data }),
+  addTrendPoint: (point) =>
+    set((state) => {
+      if (point.tick === state.trendLastTick) return state;
+      const updated = [...state.trendData.slice(-29), point];
+      return { trendData: updated, trendLastTick: point.tick };
+    }),
 }));
