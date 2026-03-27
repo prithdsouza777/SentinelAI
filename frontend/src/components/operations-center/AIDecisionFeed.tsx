@@ -228,7 +228,7 @@ function DecisionCard({ decision }: { decision: AgentDecision }) {
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       className={cn(
-        "min-w-0 overflow-hidden break-words rounded-xl border bg-white p-4 shadow-sm transition-all dark:bg-white/5 dark:border-white/10",
+        "min-w-0 overflow-hidden break-words rounded-xl border bg-white p-4 shadow-sm transition-all dark:bg-white/[0.03] dark:border-white/10",
         isPending ? "animate-conflict-pulse border-[#f59e0b]/40" : "border-[#e2e8f0] dark:border-white/10",
         isRejected && "opacity-40"
       )}
@@ -368,7 +368,7 @@ export default function AIDecisionFeed() {
   const decisions = useDashboardStore((s) => s.decisions);
 
   return (
-    <div className="flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border border-[#e2e8f0] bg-white shadow-sm dark:border-white/10 dark:bg-white/5">
+    <div className="flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border border-[#e2e8f0] bg-white shadow-sm dark:border-white/10 dark:bg-[#0f1729]">
       <div className="flex items-center justify-between border-b border-[#e2e8f0] px-5 py-4 dark:border-white/10">
         <div className="flex items-center gap-2.5">
           <BrainCircuit className="h-5 w-5 text-[#8b5cf6]" />
