@@ -228,19 +228,19 @@ function DecisionCard({ decision }: { decision: AgentDecision }) {
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       className={cn(
-        "rounded-xl border bg-white p-4 shadow-sm transition-all",
-        isPending ? "animate-conflict-pulse border-[#f59e0b]/40" : "border-[#e2e8f0]",
+        "min-w-0 overflow-hidden rounded-xl border bg-white p-4 shadow-sm transition-all dark:bg-white/5 dark:border-white/10",
+        isPending ? "animate-conflict-pulse border-[#f59e0b]/40" : "border-[#e2e8f0] dark:border-white/10",
         isRejected && "opacity-40"
       )}
     >
-      <div className="mb-2 flex flex-wrap items-center gap-2">
+      <div className="mb-2 flex flex-wrap items-center gap-1.5">
         <div className={cn("flex items-center gap-1.5 rounded-full border px-2.5 py-1", phase.bg)}>
           <PhaseIcon className={cn("h-3.5 w-3.5", phase.color)} />
           <span className={cn("text-[11px] font-semibold", phase.color)}>
             {phase.label}
           </span>
         </div>
-        <span className="text-xs font-medium text-[#64748b]">
+        <span className="text-xs font-medium text-[#64748b] dark:text-[#94a3b8]">
           {decision.agentType.replace("_", " ")}
         </span>
 
@@ -264,7 +264,7 @@ function DecisionCard({ decision }: { decision: AgentDecision }) {
         </span>
       </div>
 
-      <p className="text-sm font-semibold leading-snug text-[#1e293b]">{decision.summary}</p>
+      <p className="text-sm font-semibold leading-snug text-[#1e293b] dark:text-white/90">{decision.summary}</p>
 
       {decision.reasoning && !expanded && (
         <p className="mt-1.5 text-[13px] leading-relaxed text-[#64748b]">{decision.reasoning}</p>
@@ -325,21 +325,21 @@ function DecisionCard({ decision }: { decision: AgentDecision }) {
       </AnimatePresence>
 
       {isPending && (
-        <div className="mt-3 flex items-center gap-2 border-t border-[#e2e8f0] pt-3">
+        <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-[#e2e8f0] dark:border-white/10 pt-3">
           {decision.autoApproveAt && (
             <AutoApproveCountdown autoApproveAt={decision.autoApproveAt} />
           )}
-          <div className="ml-auto flex gap-2">
+          <div className="ml-auto flex shrink-0 gap-2">
             <button
               onClick={handleApprove}
-              className="flex items-center gap-1.5 rounded-lg border border-[#10b981]/30 bg-[#10b981]/10 px-4 py-2 text-xs font-semibold text-[#10b981] transition-colors hover:bg-[#10b981]/20"
+              className="flex items-center gap-1.5 rounded-lg border border-[#10b981]/30 bg-[#10b981]/10 px-3 py-1.5 text-xs font-semibold text-[#10b981] transition-colors hover:bg-[#10b981]/20"
             >
               <ThumbsUp className="h-3.5 w-3.5" />
               Approve
             </button>
             <button
               onClick={handleReject}
-              className="flex items-center gap-1.5 rounded-lg border border-[#ef4444]/30 bg-[#ef4444]/10 px-4 py-2 text-xs font-semibold text-[#ef4444] transition-colors hover:bg-[#ef4444]/20"
+              className="flex items-center gap-1.5 rounded-lg border border-[#ef4444]/30 bg-[#ef4444]/10 px-3 py-1.5 text-xs font-semibold text-[#ef4444] transition-colors hover:bg-[#ef4444]/20"
             >
               <ThumbsDown className="h-3.5 w-3.5" />
               Reject
@@ -368,8 +368,8 @@ export default function AIDecisionFeed() {
   const decisions = useDashboardStore((s) => s.decisions);
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-[#e2e8f0] bg-white shadow-sm">
-      <div className="flex items-center justify-between border-b border-[#e2e8f0] px-5 py-4">
+    <div className="flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border border-[#e2e8f0] bg-white shadow-sm dark:border-white/10 dark:bg-white/5">
+      <div className="flex items-center justify-between border-b border-[#e2e8f0] px-5 py-4 dark:border-white/10">
         <div className="flex items-center gap-2.5">
           <BrainCircuit className="h-5 w-5 text-[#8b5cf6]" />
           <span className="text-sm font-bold uppercase tracking-wider text-[#475569]">AI Decision Feed</span>
