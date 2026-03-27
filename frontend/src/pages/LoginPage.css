@@ -657,28 +657,23 @@
 }
 
 /* -- Dark mode -- */
-:root.dark .login-page-root,
-.dark .login-page-root {
+[data-theme="dark"] .login-page-root {
   background: linear-gradient(180deg, #0f172a 0%, #0c1222 50%, #080e1a 100%);
 }
 
-:root.dark .login-blob-1,
-.dark .login-blob-1 {
+[data-theme="dark"] .login-blob-1 {
   background: radial-gradient(circle, rgba(37, 99, 235, 0.15), transparent 70%);
 }
 
-:root.dark .login-blob-2,
-.dark .login-blob-2 {
+[data-theme="dark"] .login-blob-2 {
   background: radial-gradient(circle, rgba(16, 185, 129, 0.12), transparent 70%);
 }
 
-:root.dark .login-blob-3,
-.dark .login-blob-3 {
+[data-theme="dark"] .login-blob-3 {
   background: radial-gradient(circle, rgba(139, 92, 246, 0.1), transparent 70%);
 }
 
-:root.dark .login-card,
-.dark .login-card {
+[data-theme="dark"] .login-card {
   background: rgba(15, 23, 42, 0.72);
   border-color: rgba(51, 65, 85, 0.5);
   box-shadow:
@@ -687,123 +682,101 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
-:root.dark .login-card-title,
-.dark .login-card-title {
+[data-theme="dark"] .login-card-title {
   color: #f1f5f9;
 }
 
-:root.dark .login-card-subtitle,
-.dark .login-card-subtitle {
+[data-theme="dark"] .login-card-subtitle {
   color: #94a3b8;
 }
 
-:root.dark .login-label,
-.dark .login-label {
+[data-theme="dark"] .login-label {
   color: #94a3b8;
 }
 
-:root.dark .login-input,
-.dark .login-input {
+[data-theme="dark"] .login-input {
   background: rgba(30, 41, 59, 0.6);
   border-color: rgba(51, 65, 85, 0.6);
   color: #f1f5f9;
 }
 
-:root.dark .login-input:focus,
-.dark .login-input:focus {
+[data-theme="dark"] .login-input:focus {
   background: rgba(30, 41, 59, 0.8);
   border-color: #3b82f6;
 }
 
-:root.dark .login-input::placeholder,
-.dark .login-input::placeholder {
+[data-theme="dark"] .login-input::placeholder {
   color: #64748b;
 }
 
-:root.dark .login-btn-oauth,
-.dark .login-btn-oauth {
+[data-theme="dark"] .login-btn-oauth {
   background: rgba(30, 41, 59, 0.6);
   border-color: rgba(51, 65, 85, 0.6);
   color: #94a3b8;
 }
 
-:root.dark .login-btn-oauth:hover,
-.dark .login-btn-oauth:hover {
+[data-theme="dark"] .login-btn-oauth:hover {
   background: rgba(30, 41, 59, 0.9);
   border-color: rgba(59, 130, 246, 0.4);
   color: #f1f5f9;
 }
 
-:root.dark .login-btn-demo,
-.dark .login-btn-demo {
+[data-theme="dark"] .login-btn-demo {
   background: rgba(30, 41, 59, 0.6);
   border-color: rgba(51, 65, 85, 0.6);
   color: #94a3b8;
 }
 
-:root.dark .login-btn-demo:hover,
-.dark .login-btn-demo:hover {
+[data-theme="dark"] .login-btn-demo:hover {
   background: rgba(30, 41, 59, 0.9);
   color: #10b981;
 }
 
-:root.dark .login-showcase-wordmark,
-.dark .login-showcase-wordmark {
+[data-theme="dark"] .login-showcase-wordmark {
   color: #f1f5f9;
 }
 
-:root.dark .login-showcase-desc,
-.dark .login-showcase-desc {
+[data-theme="dark"] .login-showcase-desc {
   color: #94a3b8;
 }
 
-:root.dark .login-showcase-byline,
-.dark .login-showcase-byline {
+[data-theme="dark"] .login-showcase-byline {
   color: #94a3b8;
 }
 
-:root.dark .login-float-tag,
-.dark .login-float-tag {
+[data-theme="dark"] .login-float-tag {
   background: rgba(30, 41, 59, 0.6);
   border-color: rgba(51, 65, 85, 0.6);
   color: #94a3b8;
 }
 
-:root.dark .login-float-tag:hover,
-.dark .login-float-tag:hover {
+[data-theme="dark"] .login-float-tag:hover {
   background: rgba(30, 41, 59, 0.9);
   border-color: rgba(59, 130, 246, 0.4);
 }
 
-:root.dark .login-orbit-ring,
-.dark .login-orbit-ring {
+[data-theme="dark"] .login-orbit-ring {
   border-color: rgba(59, 130, 246, 0.15);
 }
 
-:root.dark .login-orbit-center,
-.dark .login-orbit-center {
+[data-theme="dark"] .login-orbit-center {
   background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(37, 99, 235, 0.04));
   border-color: rgba(59, 130, 246, 0.2);
 }
 
-:root.dark .login-divider,
-.dark .login-divider {
+[data-theme="dark"] .login-divider {
   color: #64748b;
 }
 
-:root.dark .login-divider::before,
-:root.dark .login-divider::after,
-.dark .login-divider::before,
-.dark .login-divider::after {
+[data-theme="dark"] .login-divider::before,
+[data-theme="dark"] .login-divider::after {
   background: linear-gradient(90deg, transparent, rgba(51, 65, 85, 0.6), transparent);
 }
 
-:root.dark .login-back-link,
-.dark .login-back-link {
+[data-theme="dark"] .login-back-link {
   color: #94a3b8;
 }
 
-:root.dark .login-back-link:hover,
-.dark .login-back-link:hover {
+[data-theme="dark"] .login-back-link:hover {
   color: #3b82f6;
 }
