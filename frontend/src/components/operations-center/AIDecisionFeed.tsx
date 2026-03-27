@@ -228,8 +228,8 @@ function DecisionCard({ decision }: { decision: AgentDecision }) {
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       className={cn(
-        "min-w-0 overflow-hidden break-words rounded-xl border bg-white p-4 shadow-sm transition-all dark:bg-white/[0.03] dark:border-white/10",
-        isPending ? "animate-conflict-pulse border-[#f59e0b]/40" : "border-[#e2e8f0] dark:border-white/10",
+        "min-w-0 overflow-hidden break-words rounded-xl border bg-white p-4 shadow-sm transition-all",
+        isPending ? "animate-conflict-pulse border-[#f59e0b]/40" : "border-[#e2e8f0]",
         isRejected && "opacity-40"
       )}
     >
@@ -240,7 +240,7 @@ function DecisionCard({ decision }: { decision: AgentDecision }) {
             {phase.label}
           </span>
         </div>
-        <span className="text-xs font-medium text-[#64748b] dark:text-[#94a3b8]">
+        <span className="text-xs font-medium text-[#64748b]">
           {decision.agentType.replace("_", " ")}
         </span>
 
@@ -264,10 +264,10 @@ function DecisionCard({ decision }: { decision: AgentDecision }) {
         </span>
       </div>
 
-      <p className="text-sm font-semibold leading-snug text-[#1e293b] dark:text-white/90">{decision.summary}</p>
+      <p className="text-sm font-semibold leading-snug text-[#1e293b]">{decision.summary}</p>
 
       {decision.reasoning && !expanded && (
-        <p className="mt-1.5 break-all text-[13px] leading-relaxed text-[#64748b] dark:text-[#94a3b8]">{decision.reasoning}</p>
+        <p className="mt-1.5 break-all text-[13px] leading-relaxed text-[#64748b]">{decision.reasoning}</p>
       )}
 
       {decision.confidence != null && !expanded && (
@@ -325,7 +325,7 @@ function DecisionCard({ decision }: { decision: AgentDecision }) {
       </AnimatePresence>
 
       {isPending && (
-        <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-[#e2e8f0] dark:border-white/10 pt-3">
+        <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-[#e2e8f0] pt-3">
           {decision.autoApproveAt && (
             <AutoApproveCountdown autoApproveAt={decision.autoApproveAt} />
           )}
@@ -368,8 +368,8 @@ export default function AIDecisionFeed() {
   const decisions = useDashboardStore((s) => s.decisions);
 
   return (
-    <div className="flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border border-[#e2e8f0] bg-white shadow-sm dark:border-white/10 dark:bg-[#0f1729]">
-      <div className="flex items-center justify-between border-b border-[#e2e8f0] px-5 py-4 dark:border-white/10">
+    <div className="flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border border-[#e2e8f0] bg-white shadow-sm">
+      <div className="flex items-center justify-between border-b border-[#e2e8f0] px-5 py-4">
         <div className="flex items-center gap-2.5">
           <BrainCircuit className="h-5 w-5 text-[#8b5cf6]" />
           <span className="text-sm font-bold uppercase tracking-wider text-[#475569]">AI Decision Feed</span>
