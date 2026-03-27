@@ -228,7 +228,7 @@ function DecisionCard({ decision }: { decision: AgentDecision }) {
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       className={cn(
-        "min-w-0 overflow-hidden rounded-xl border bg-white p-4 shadow-sm transition-all dark:bg-white/5 dark:border-white/10",
+        "min-w-0 overflow-hidden break-words rounded-xl border bg-white p-4 shadow-sm transition-all dark:bg-white/[0.03] dark:border-white/10",
         isPending ? "animate-conflict-pulse border-[#f59e0b]/40" : "border-[#e2e8f0] dark:border-white/10",
         isRejected && "opacity-40"
       )}
@@ -267,7 +267,7 @@ function DecisionCard({ decision }: { decision: AgentDecision }) {
       <p className="text-sm font-semibold leading-snug text-[#1e293b] dark:text-white/90">{decision.summary}</p>
 
       {decision.reasoning && !expanded && (
-        <p className="mt-1.5 text-[13px] leading-relaxed text-[#64748b]">{decision.reasoning}</p>
+        <p className="mt-1.5 break-all text-[13px] leading-relaxed text-[#64748b] dark:text-[#94a3b8]">{decision.reasoning}</p>
       )}
 
       {decision.confidence != null && !expanded && (
@@ -368,7 +368,7 @@ export default function AIDecisionFeed() {
   const decisions = useDashboardStore((s) => s.decisions);
 
   return (
-    <div className="flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border border-[#e2e8f0] bg-white shadow-sm dark:border-white/10 dark:bg-white/5">
+    <div className="flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border border-[#e2e8f0] bg-white shadow-sm dark:border-white/10 dark:bg-[#0f1729]">
       <div className="flex items-center justify-between border-b border-[#e2e8f0] px-5 py-4 dark:border-white/10">
         <div className="flex items-center gap-2.5">
           <BrainCircuit className="h-5 w-5 text-[#8b5cf6]" />
@@ -382,8 +382,8 @@ export default function AIDecisionFeed() {
         )}
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto p-4">
-        <div className="space-y-3">
+      <div className="min-h-0 min-w-0 flex-1 overflow-y-auto p-4">
+        <div className="min-w-0 space-y-3">
           <AnimatePresence initial={false}>
             {decisions.length === 0 ? (
               <div className="flex h-48 flex-col items-center justify-center gap-3 text-center">
