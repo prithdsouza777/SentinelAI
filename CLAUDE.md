@@ -3,7 +3,7 @@
 ## Project
 
 SentinelAI — Autonomous AI Operations Layer for AWS Connect.
-Built by CirrusLabs for the 2026 Internal Buildathon.
+Built by CirrusLabs for the 2026 Internal Buildathon. **Early Alpha — in production.**
 
 ## Quick Start
 
@@ -21,11 +21,17 @@ Set AWS credentials in `backend/.env` for Bedrock, or `ANTHROPIC_API_KEY` for An
 - **LLM**: 3-tier fallback: AWS Bedrock (primary) > Anthropic API > NoKeyLLM. Service in `backend/app/services/bedrock.py`
 - **Bedrock**: Uses Converse API with native tool-use, conversation memory (30-message history), 5-round tool loops
 - **Guardrails**: AUTO_APPROVE (>=0.9), PENDING_HUMAN (0.7-0.9, 30s auto-approve), BLOCKED (<0.7)
-- **Frontend**: React 18 + TypeScript + Zustand 5 + shadcn/ui + Framer Motion
+- **Frontend**: React 18 + TypeScript 5.6 + Zustand 5 + shadcn/ui + Framer Motion + Recharts
+- **Auth**: Google & Microsoft OAuth + JWT authentication (`backend/app/api/routes/auth.py`)
 - **Real-time**: WebSocket (primary) with SSE fallback (`/api/stream`) + HTTP action fallback (`/api/ws-action`)
-- **10 pages**: Landing, Login, Dashboard, Agents, Workforce, Alerts, Chat, Simulation, Reports, Settings
+- **10 pages** + AuthCallback: Landing, Login, Dashboard, Agents, Workforce, Alerts, Chat, Simulation, Reports, Settings
+- **51 API endpoints** across 13 route files
+- **13 backend services** (LLM, simulation, anomaly, PDF, Teams, RAIA, notifications, etc.)
 - **Agent Proficiency DB**: SQLite-backed workforce database (`backend/agents.db`) with 24 human agents, 12 skills, 5 departments
-- **19 backend tests** in `backend/tests/test_health.py`
+- **Contact Lens Sentiment**: Live customer mood per queue, updated every tick
+- **RAIA Tracing**: Instrumentation in `backend/app/services/raia_tracer.py`
+- **NL Policy Engine**: Create/list/delete governance policies via chat
+- **20 backend tests** in `backend/tests/test_health.py` (16 passing, 4 env-dependent)
 
 ## Key Conventions
 

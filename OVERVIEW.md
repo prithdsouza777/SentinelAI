@@ -1,5 +1,7 @@
 # SentinelAI — Project Overview (Non-Technical)
 
+> **Status: Early Alpha — Live in production**
+
 This document explains SentinelAI in plain language for anyone — managers, judges, stakeholders, or team members who want to understand the project without reading code.
 
 ---
@@ -79,7 +81,7 @@ The command center. Shows:
 - **Anomaly Timeline** — visual history of problems detected
 
 ### Page 2: Agents
-Shows the status of all 4 AI agents:
+Shows the status of all 5 AI agents:
 - Whether each agent is currently observing, analyzing, deciding, or acting
 - Their recent decisions with full reasoning
 - The negotiation log (when agents disagreed and how they resolved it)
@@ -103,6 +105,8 @@ A chat interface where you can ask questions in plain English:
 - "What just happened?" — get an incident summary
 - "What if we lose 3 agents?" — run a predictive scenario
 - "Show me the cost impact" — see savings breakdown
+- Create governance policies via natural language
+- `/clear` command resets conversation history
 
 ### Page 6: Simulation Engine
 The testing and demo control panel:
@@ -115,6 +119,8 @@ Session analytics and export:
 - Recharts-powered charts showing queue metrics, agent decisions, and cost impact over time
 - Session summary with governance scorecard
 - Exportable data (JSON format)
+- Email reports with server-side PDF attachment (fpdf2)
+- Auto-fetch on page load, refresh on actions, inline PDF download
 
 ### Page 8: Settings
 System configuration and connection status:
@@ -133,7 +139,7 @@ The public-facing entry point:
 - Grid pattern and glow effects for visual polish
 
 ### Page 10: Login
-Authentication gate before accessing the dashboard
+Authentication gate with **Google and Microsoft OAuth** before accessing the dashboard. Features a redesigned sign-in page matching the landing page aesthetic.
 
 ---
 
@@ -171,6 +177,10 @@ The supervisor types "What just happened?" in the chat. The Analytics Agent resp
 | **Zustand** | Frontend state management | Keeps all dashboard data synchronized |
 | **TailwindCSS + shadcn/ui** | The design system for the dashboard | Modern, dark-themed, professional look |
 | **Framer Motion** | Animation library | Smooth transitions and visual polish |
+| **OAuth (Google/Microsoft)** | Login providers | Enterprise-ready authentication |
+| **JWT** | Token-based auth | Secure session management |
+| **fpdf2** | Server-side PDF generation | Professional report exports |
+| **Docker** | Containerization | Production deployment |
 
 ### LLM Fallback Chain
 The AI brain has a 3-tier fallback so it never fails:
@@ -184,16 +194,21 @@ The AI brain has a 3-tier fallback so it never fails:
 
 | Metric | Value |
 |--------|-------|
-| Backend tests passing | 19/19 |
+| Production status | Early Alpha — live |
+| Backend tests | 20 total (16 passing, 4 env-dependent) |
 | TypeScript errors | 0 |
-| Frontend pages | 10 |
+| Frontend pages | 10 + OAuth callback |
+| Frontend components | 32 |
 | AI agents | 5 |
+| API endpoints | 51 across 13 route files |
+| Backend services | 13 |
 | LLM fallback tiers | 3 (Bedrock > Anthropic API > NoKeyLLM) |
 | Simulation scenarios | 6 |
 | Chaos injection types | 4 |
 | Tick interval | 3 seconds |
 | Auto-approve timeout | 30 seconds |
 | Simulated queues | 5 (Support, Billing, Sales, General, VIP) |
+| Human agents in DB | 24 (12 skills, 5 departments) |
 
 ---
 
@@ -206,6 +221,9 @@ The AI brain has a 3-tier fallback so it never fails:
 5. **Cost quantification** — every action shows its dollar impact, making the business case clear
 6. **Simulation-first** — the demo always works perfectly, no external dependencies needed
 7. **Beautiful dark UI** — professional glassmorphism design with smooth animations
+8. **Enterprise auth** — Google and Microsoft OAuth with JWT tokens
+9. **Contact Lens sentiment** — live customer mood per queue for emotional intelligence
+10. **In production** — early alpha deployed and running, not just a demo
 
 ---
 
@@ -223,6 +241,6 @@ The AI brain has a 3-tier fallback so it never fails:
 
 ## Team
 
-Built by the CirrusLabs team for the 2026 Internal Buildathon.
+Built by the CirrusLabs team for the 2026 Internal Buildathon. Now in **early alpha production**.
 
 **CirrusLabs** (cirruslabs.io) — Enterprise AI Strategy & Compliance Consulting

@@ -1,5 +1,6 @@
 # SentinelAI — Project Context & Product Vision
 > Answers WHY. Covers the product, the company, the demo, and the key decisions.
+> **Status: Early Alpha — in production**
 > → See [STATUS.md](./STATUS.md) for current build state.
 > → See [TASKS.md](./TASKS.md) for what to build.
 > → See [ARCHITECTURE.md](./ARCHITECTURE.md) for how to build it.
@@ -14,6 +15,7 @@
 | **Project** | SentinelAI — Autonomous AI Contact Center Intelligence Platform for AWS Connect |
 | **Event** | Internal buildathon — 1 month, 4-6 person team, goal: win with demo-ready product |
 | **Score** | 19/20 across: wow factor, business value, technical depth, feasibility |
+| **Status** | **Early Alpha — deployed to production** |
 
 ---
 
@@ -28,15 +30,16 @@ SentinelAI is an **autonomous AI operations layer that sits on top of AWS Connec
 
 ---
 
-## The 5 Pillars
+## The 6 Pillars
 
 | Pillar | What It Is | Key Feature |
 |--------|-----------|-------------|
-| **AI Operations Center** | Live AI decision feed, agent reasoning, cost ticker | NOT a metrics dashboard — agents are the star |
+| **AI Operations Center** | Live AI decision feed, agent reasoning, cost ticker, TrendChart | NOT a metrics dashboard — agents are the star |
 | **AI Anomaly Engine** | Statistical detection with velocity scoring | Cascade correlation (one queue affects others) |
 | **Autonomous Agents** | 5 agents + multi-agent negotiation + proficiency DB | Agents disagree, negotiate, resolve — visible to user |
-| **Conversational Command** | Natural language interface | "What just happened?" returns reasoned summary |
+| **Conversational Command** | Natural language interface + NL policy engine | "What just happened?" returns reasoned summary |
 | **Simulation Engine** | Built-in demo mode with chaos injection | Primary demo path, not fallback |
+| **Contact Lens Sentiment** | Live customer mood per queue | Real-time emotional intelligence |
 
 ---
 
@@ -66,6 +69,16 @@ SentinelAI is an **autonomous AI operations layer that sits on top of AWS Connec
 **Decision**: All WS events and REST responses use camelCase JSON.
 **Why**: Frontend TypeScript uses camelCase. Converting on the frontend is messy.
 **Implication**: Always serialize with `model.model_dump(by_alias=True, mode="json")`.
+
+### Decision 6: OAuth Authentication
+**Decision**: Google & Microsoft OAuth with JWT tokens. No username/password auth.
+**Why**: Enterprise-ready from day one. No password storage liability. Familiar SSO flow for enterprise users.
+**Implication**: `RequireAuth` component gates all dashboard pages. Token managed via `authToken.ts`. Backend validates JWT on protected endpoints.
+
+### Decision 7: Early Production Deployment
+**Decision**: Deploy as early alpha while continuing development.
+**Why**: Proves the system works in a real environment. Validates Docker containerization, real-world WebSocket behavior, and production LLM connectivity. Builds confidence for stakeholders.
+**Implication**: All code must be production-safe. Error handling, graceful fallbacks, and env-based configuration are not optional.
 
 ---
 
@@ -149,6 +162,9 @@ The project was scored 19/20 on:
 - A conflict resolving autonomously (negotiation panel)
 - A number going up (cost ticker)
 - Natural language interaction ("What just happened?" → smart answer)
+- **Already in production** — not just a demo, it's deployed and running
+- Enterprise authentication (OAuth) — production-grade access control
+- Customer sentiment tracking — emotional intelligence layer
 
 ---
 
@@ -174,6 +190,8 @@ The project was scored 19/20 on:
 | LangGraph too complex | Low | Plain Python sequential calls work identically |
 | camelCase/snake_case bugs | High | CamelModel base class + always by_alias=True |
 | Demo timing off | Medium | Scripted scenario (sentinelai_demo) auto-fires events |
+| OAuth provider outage | Low | JWT tokens cached client-side; session survives short outages |
+| Production environment drift | Medium | Docker containerization ensures consistent deployment |
 
 ---
 

@@ -11,14 +11,17 @@
 |------|--------|
 | Project | SentinelAI — Autonomous AI Operations Layer for AWS Connect |
 | Company | CirrusLabs (cirruslabs.io) |
-| Status | Fully functional, demo-ready — Teams Bot integration (chat, approvals, PDF reports) |
-| Frontend | React 18 + TypeScript + Zustand 5 + TailwindCSS 3 + shadcn/ui + Recharts + Framer Motion + jspdf + html2canvas |
-| Backend | Python 3.10 + FastAPI + LangGraph 1.1.2 + fpdf2 (server-side PDF) |
+| Status | **Early Alpha — in production.** Fully functional, demo-ready. Teams Bot, OAuth, Contact Lens sentiment. |
+| Frontend | React 18 + TypeScript 5.6 + Zustand 5 + TailwindCSS 3 + shadcn/ui + Recharts + Framer Motion + jspdf + html2canvas |
+| Backend | Python 3.10+ + FastAPI 0.115 + LangGraph 1.1.2 + fpdf2 (server-side PDF) |
 | LLM | 3-tier: AWS Bedrock (primary) > Anthropic API (fallback) > NoKeyLLM (no-key) |
-| Tests | 20/20 passing (backend), 0 TypeScript errors (frontend) |
+| Auth | Google & Microsoft OAuth + JWT authentication |
+| Tests | 20 total — 16 passing, 4 env-dependent (Bedrock auth / SMTP config) |
 | UI Theme | Dark + Light toggle — dark glassmorphism default, CirrusLabs light palette option |
-| Branch | `pritham/bedrock` (Bedrock integration) |
-| Pages | 10 (Landing, Login, Dashboard, Agents, Workforce, Alerts, Chat, Simulation, Reports, Settings) |
+| Branch | `main` |
+| Pages | 10 (Landing, Login, Dashboard, Agents, Workforce, Alerts, Chat, Simulation, Reports, Settings) + AuthCallback |
+| API | 51 endpoints across 13 route files |
+| Services | 13 backend services (LLM, simulation, anomaly, PDF, Teams, RAIA, etc.) |
 
 ---
 
@@ -41,8 +44,12 @@ npm run dev     # starts frontend (:5173) + backend (:8000)
 - **LangGraph orchestrator** runs **4 agents in parallel**, then conditional negotiation
 - **5 Agents**: QueueBalancer, PredictivePrevention, EscalationHandler, SkillRouter, Analytics
 - **3-tier LLM fallback**: AWS Bedrock (Converse API) > Anthropic API > NoKeyLLM
+- **Auth**: Google & Microsoft OAuth + JWT tokens (routes in `app/api/routes/auth.py`)
+- **Contact Lens Sentiment**: Live customer mood per queue, updated every tick
+- **RAIA Tracing**: Instrumentation in `app/services/raia_tracer.py` with nav counter polling
 - **Dashboard Layout**: Fixed-height scroll-safe architecture for multi-agent collaboration stability
 - **Bedrock Converse API**: Native tool-use, conversation memory (30 messages), 5-round tool loops, 3s agent timeout
+- **Policy Engine**: Full NL policy CRUD — create, list, delete governance policies via chat
 - **Guardrails**: AUTO_APPROVE (>=0.9), PENDING_HUMAN (0.7-0.9, 30s timeout), BLOCKED (<0.7)
 - **Skill Router**: Zero-LLM latency, proficiency-weighted scoring from agent database
 - **Agent Proficiency DB**: SQLite (`agents.db`) — 24 human agents, 12 skills, 5 departments, fitness scoring
@@ -83,8 +90,17 @@ npm run dev     # starts frontend (:5173) + backend (:8000)
 | `backend/app/services/teams_bot.py` | Teams Bot service (chat, approval cards, PDF reports) |
 | `backend/app/api/routes/teams.py` | `POST /api/teams/messages` — Bot Framework endpoint |
 | `backend/app/services/pdf_report.py` | Server-side PDF generation (fpdf2) |
+| `backend/app/services/raia_tracer.py` | RAIA tracing instrumentation |
+| `backend/app/services/connect.py` | AWS Connect integration (stub) |
+| `backend/app/api/routes/auth.py` | OAuth login (Google/Microsoft), JWT verify, logout |
+| `backend/app/api/routes/agent_chat.py` | Agent-to-agent chat endpoints |
+| `backend/app/api/routes/governance.py` | Governance scorecard, audit, policies |
+| `backend/app/api/routes/notifications.py` | Email notification endpoints |
+| `frontend/src/pages/AuthCallbackPage.tsx` | OAuth callback handler |
+| `frontend/src/components/auth/authToken.ts` | JWT token management |
+| `frontend/src/components/operations-center/TrendChart.tsx` | Operational Performance Trends chart |
 
-## API Endpoints
+## API Endpoints (51 Total)
 
 | Method | Path | Purpose |
 |--------|------|---------|
@@ -107,6 +123,14 @@ npm run dev     # starts frontend (:5173) + backend (:8000)
 | GET | `/api/stream` | SSE fallback for real-time events |
 | POST | `/api/reports/email` | Email current session report (HTML + PDF attachment) |
 | POST | `/api/teams/messages` | Teams Bot Framework messaging endpoint |
+| POST | `/api/auth/login` | OAuth login (Google/Microsoft) |
+| POST | `/api/auth/logout` | Logout + token invalidation |
+| GET | `/api/auth/verify` | Verify JWT token |
+| GET | `/api/governance/scorecard` | Governance scorecard |
+| GET | `/api/governance/audit` | Audit trail |
+| POST | `/api/agent-chat` | Agent chat message |
+| GET | `/api/agent-chat/agents` | List agents for chat |
+| POST | `/api/notifications/email` | Send notification email |
 
 ## UI Color Palette (CirrusLabs)
 
@@ -131,10 +155,21 @@ npm run dev     # starts frontend (:5173) + backend (:8000)
 - [x] HTTP action fallback endpoint (`/api/ws-action`)
 - [x] WebSocket ping/pong keep-alive (20s interval)
 - [x] PDF export for emailed reports (via jspdf/html2canvas)
-- [ ] AWS Connect integration (even partial API call strengthens demo)
 - [x] Email Report with PDF attachment
 - [x] Teams Bot integration (chat, approval cards, PDF reports)
+- [x] Google & Microsoft OAuth login with JWT authentication
+- [x] Contact Lens sentiment — live customer mood per queue
+- [x] Operational Performance Trends chart (TrendChart)
+- [x] Session reset on refresh + UI stabilization
+- [x] NL Policy Engine with enforcement
+- [x] RAIA tracing instrumentation
+- [x] Explain Decision feature
+- [x] Collapsible RAIA/LockThreat cards
+- [x] Dark/light theme fixes across all pages
+- [ ] AWS Connect integration (even partial API call strengthens demo)
 - [ ] Gemini LLM provider (google-genai SDK installed but not wired)
+- [ ] Redis cache utilization (connection configured, not actively used)
+- [ ] CDK infra completion (DynamoDB tables only)
 
 ---
 

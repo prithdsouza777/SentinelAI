@@ -1,6 +1,7 @@
 # SentinelAI — Build Status
 > Tracks the implementation state of every component.
-> Updated: 2026-03-26
+> Updated: 2026-04-13
+> **Status: Early Alpha — in production**
 
 ---
 
@@ -42,6 +43,15 @@
 | NL Policy Engine | 100% | CRUD via /chat/policy endpoints | — |
 | Teams Bot Integration | 100% | Chat, approval cards, PDF reports via Bot Framework REST API | — |
 | Server-side PDF Generation | 100% | fpdf2, full session report | — |
+| OAuth Authentication | 100% | Google & Microsoft OAuth + JWT tokens | — |
+| Contact Lens Sentiment | 100% | Live customer mood per queue, updated every tick | — |
+| TrendChart (Perf Trends) | 100% | Operational Performance Trends, persists across nav | — |
+| NL Policy Engine | 100% | Create/list/delete governance policies via chat | — |
+| RAIA Tracing | 100% | Instrumentation + nav counter polling (2s) | — |
+| Explain Decision | 100% | Drill into any decision's reasoning chain | — |
+| Session Reset on Refresh | 100% | Clean state on page reload | — |
+| Dark/Light Theme Fixes | 100% | All pages (login, workforce, simulation, decision feed) | — |
+| Production Deployment | 100% | Early alpha — containerized via Docker | — |
 | Redis Cache | — | 10% | connection configured, not used |
 | CDK Infra | — | 30% | DynamoDB tables only |
 
@@ -86,29 +96,72 @@
 | Teams Bot: Chat | Working — same LLM pipeline as Command Center |
 | Teams Bot: Approval cards | Working — Adaptive Cards with Approve/Reject buttons |
 | Teams Bot: PDF reports | Working — server-side fpdf2 generation, sent as attachment |
+| OAuth: Google login | Working — JWT token issued on callback |
+| OAuth: Microsoft login | Working — JWT token issued on callback |
+| Contact Lens sentiment | Working — live mood indicator per queue |
+| TrendChart | Working — persists across page navigations |
+| NL policy engine | Working — create/list/delete policies via chat |
+| RAIA tracing | Working — instrumentation + 2s nav counter polling |
+| Explain Decision | Working — drill into decision reasoning chain |
+| Session reset on refresh | Working — clean state on reload |
+| Collapsible RAIA/LockThreat cards | Working — expandable detail cards |
+| Production deployment | Working — early alpha live via Docker |
 
 ---
 
 ## Test Status
 
 ```
-backend/tests/test_health.py — PASSING (20 tests)
-  ...
+backend/tests/test_health.py — 20 tests (16 PASSING, 4 env-dependent)
+
+PASSING (16):
+  test_health_check
+  test_list_queues
+  test_list_scenarios
+  test_chat_prompt_injection_blocked
+  test_demo_scenario_listed
+  test_policy_crud
+  test_simulation_start_stop
+  test_agents_list
+  test_agents_decisions
+  test_alerts_list
+  test_cost_impact
+  test_governance_summary
+  test_chaos_injection
+  test_session_report
   test_metrics_history
   test_skill_router_in_agents
-  test_email_report_no_smtp
+
+ENV-DEPENDENT (4 — require AWS Bedrock credentials or SMTP config):
+  test_chat_endpoint            (needs Bedrock/Anthropic API key)
+  test_chat_what_just_happened  (needs Bedrock/Anthropic API key)
+  test_whatif_endpoint           (needs Bedrock/Anthropic API key)
+  test_email_report_no_smtp     (SMTP config mismatch)
 ```
 
-Frontend: TypeScript compiles clean (`npx tsc --noEmit` — 0 errors)
+Frontend: TypeScript compiles clean (`npx tsc --noEmit` — 1 non-blocking warning)
 
 ---
 
-## All Weeks Complete
+## All Weeks Complete — Early Alpha in Production
 
-Weeks 1-4 are all done. Remaining optional items:
+Weeks 1-4 are all done. Project is deployed as an early alpha.
+
+**Post-launch additions:**
+- Google & Microsoft OAuth login with JWT authentication
+- Contact Lens sentiment — live customer mood per queue
+- Operational Performance Trends chart (TrendChart)
+- NL Policy Engine with full CRUD
+- RAIA tracing instrumentation
+- Explain Decision feature
+- Session reset on refresh
+- Collapsible RAIA/LockThreat cards
+- Dark/light theme fixes across all pages
+- UI stabilization (overflow, grid, spacing fixes)
+
+**Remaining optional items:**
 - Redis cache integration (not needed for demo)
 - CDK infra completion (not needed for demo)
 - Real AWS Connect integration (Week 4 bonus, not needed)
 - Gemini LLM provider (optional fourth tier)
-- Demo rehearsals and backup video recording
 - Teams Bot requires Azure Bot registration (App ID + Secret) — see `.env.example`

@@ -2,7 +2,7 @@
 
 **Autonomous AI Operations Layer for AWS Connect**
 
-Built by [CirrusLabs](https://www.cirruslabs.io/) — Enterprise AI Strategy & Compliance Consulting
+> **Early Alpha** — Live in production. Built by [CirrusLabs](https://www.cirruslabs.io/) — Enterprise AI Strategy & Compliance Consulting
 
 ---
 
@@ -24,10 +24,10 @@ Contact center supervisors face three critical gaps:
 
 ---
 
-## Five Core Capabilities
+## Six Core Capabilities
 
 ### 1. AI Operations Center
-A live feed of AI agent activity, reasoning chains, and cost impact. Not a metrics dashboard — a window into the AI brain making decisions on your behalf.
+A live feed of AI agent activity, reasoning chains, and cost impact. Not a metrics dashboard — a window into the AI brain making decisions on your behalf. Includes an **Operational Performance Trends** chart that persists across page navigations.
 
 ### 2. AI Anomaly Engine
 Statistical detection that catches problems before they become crises. Tracks velocity (how fast conditions are deteriorating), predicts cascade failures across queues, and fires alerts with severity levels.
@@ -54,13 +54,18 @@ Every agent decision carries a confidence score (0-100%). The system enforces ap
 | 70-90% | Requires human approval (auto-approves after 30s in demo mode) |
 | Below 70% | Blocked until human reviews |
 
-Approve/reject buttons appear on decision cards with live countdown timers. Every decision is logged for audit.
+Approve/reject buttons appear on decision cards with live countdown timers. Every decision is logged for audit. An **Explain Decision** feature lets users drill into any decision's reasoning chain.
 
 ### 5. Conversational Command
 Ask the system anything in plain English:
 - "What just happened?" — full incident summary with reasoning chain
 - "What if we lose 3 more agents?" — predictive what-if simulation
 - "Show me cost impact" — real-time savings analysis
+
+The chat supports a full **NL Policy Engine** — create, list, and delete governance policies via natural language. A `/clear` command resets conversation history.
+
+### 6. Contact Lens Sentiment
+Live customer sentiment tracking per queue, powered by simulated Contact Lens data. Each queue displays a real-time mood indicator that updates every tick.
 
 ---
 
@@ -84,11 +89,15 @@ You can also inject chaos events manually (Kill Agents, Spike Queue, Network Del
 
 | Layer | Technology |
 |-------|-----------|
-| **Frontend** | React 18, TypeScript, Zustand 5, TailwindCSS, shadcn/ui, Aceternity UI, Framer Motion |
-| **Backend** | Python 3.10, FastAPI, LangGraph (parallel agent orchestration) |
-| **AI/LLM** | AWS Bedrock (primary), Anthropic Claude API (fallback), NoKeyLLM (no-key fallback) |
+| **Frontend** | React 18, TypeScript 5.6, Zustand 5, TailwindCSS 3, shadcn/ui, Aceternity UI, Framer Motion, Recharts, jsPDF, html2canvas |
+| **Backend** | Python 3.10+, FastAPI 0.115, Uvicorn 0.34, LangGraph 1.1.2 (parallel agent orchestration) |
+| **AI/LLM** | AWS Bedrock (Converse API, primary), Anthropic Claude API (fallback), NoKeyLLM (no-key fallback) |
+| **Auth** | Google & Microsoft OAuth + JWT authentication |
 | **Real-time** | WebSocket (bidirectional, ping/pong keep-alive) + SSE fallback + HTTP action fallback |
+| **Database** | SQLite (agent proficiency DB — 24 agents, 12 skills, 5 departments) |
 | **State** | Redis (optional, graceful in-memory fallback) |
+| **Infra** | AWS CDK, Docker, Docker Compose |
+| **Integrations** | Microsoft Teams Bot Framework (chat, approval cards, PDF reports), SMTP email |
 | **Target Platform** | AWS Connect (simulation-first, real integration optional) |
 
 ---
@@ -186,7 +195,7 @@ SentinelAI/
 │
 ├── backend/                           # Python FastAPI server
 │   ├── app/
-│   │   ├── agents/                    # AI agent implementations
+│   │   ├── agents/                    # AI agent implementations (8 files)
 │   │   │   ├── orchestrator.py        # LangGraph parallel agent orchestration
 │   │   │   ├── queue_balancer.py      # Queue rebalancing agent
 │   │   │   ├── predictive_prevention.py # Cascade risk detection agent
@@ -197,22 +206,50 @@ SentinelAI/
 │   │   │   └── guardrails.py          # Action scopes, rate limits, approval logic
 │   │   ├── api/                       # API routes and WebSocket
 │   │   │   ├── websocket.py           # Bidirectional WebSocket manager
-│   │   │   └── routes/                # REST endpoints (8 route files)
-│   │   ├── models/                    # Pydantic data models (incl. proficiency.py)
-│   │   │   └── proficiency.py         # SkillProficiency, DepartmentFitness, HumanAgentProfile
-│   │   ├── services/                  # External service integrations
+│   │   │   └── routes/                # REST endpoints (13 route files, 51 endpoints)
+│   │   │       ├── agents.py          # Agent status, decisions, negotiations, human agents
+│   │   │       ├── agent_chat.py      # Agent-to-agent chat
+│   │   │       ├── alerts.py          # Alert list + acknowledge
+│   │   │       ├── auth.py            # OAuth login (Google/Microsoft), JWT, verify
+│   │   │       ├── chat.py            # NL chat, policy CRUD
+│   │   │       ├── governance.py      # Scorecard, audit, policies
+│   │   │       ├── health.py          # Health check
+│   │   │       ├── history.py         # Metrics time-series
+│   │   │       ├── notifications.py   # Email preferences
+│   │   │       ├── queues.py          # Queue metrics
+│   │   │       ├── reports.py         # Session export, email, PDF
+│   │   │       ├── simulation.py      # Start/stop/chaos/whatif/scenarios
+│   │   │       └── teams.py           # Teams Bot Framework
+│   │   ├── models/                    # Pydantic data models (7 files)
+│   │   │   ├── action.py              # Action, ActionLog
+│   │   │   ├── agent.py               # AgentStatus, AgentDecision, AgentType
+│   │   │   ├── alert.py               # Alert, Severity
+│   │   │   ├── guardrails.py          # ApprovalStatus, GuardrailDecision
+│   │   │   ├── proficiency.py         # SkillProficiency, DepartmentFitness, HumanAgentProfile
+│   │   │   └── queue.py               # QueueMetrics, QueueUpdate
+│   │   ├── services/                  # External service integrations (13 files)
 │   │   │   ├── bedrock.py             # LLM service (Bedrock > Anthropic API > NoKeyLLM)
 │   │   │   ├── simulation.py          # Contact center simulation engine
 │   │   │   ├── anomaly.py             # Statistical anomaly detection
 │   │   │   ├── sanitizer.py           # PII sanitizer
 │   │   │   ├── agent_database.py      # SQLite workforce DB (24 agents, 12 skills, 5 depts)
 │   │   │   ├── chat_tools.py          # Chat command tools (MOVE_AGENT, etc.)
-│   │   │   ├── notifications.py       # Notification service
-│   │   │   └── redis_client.py        # Redis with in-memory fallback
+│   │   │   ├── connect.py             # AWS Connect integration (stub)
+│   │   │   ├── notifications.py       # SMTP email with attachment support
+│   │   │   ├── pdf_report.py          # Server-side PDF generation (fpdf2)
+│   │   │   ├── raia_tracer.py         # RAIA tracing instrumentation
+│   │   │   ├── redis_client.py        # Redis with in-memory fallback
+│   │   │   └── teams_bot.py           # Microsoft Teams Bot Framework
 │   │   ├── config.py                  # Environment configuration
 │   │   └── main.py                    # FastAPI app + background tick loop (3s)
-│   ├── tests/                         # 19 passing tests
+│   ├── tests/                         # 20 tests (16 passing, 4 env-dependent)
 │   └── requirements.txt
+│
+├── infra/                             # AWS CDK infrastructure
+│   ├── app.py                         # CDK app entry
+│   └── stacks/sentinelai_stack.py     # CloudFormation stack
+│
+├── teams-manifest/                    # Microsoft Teams bot manifest
 │
 ├── docs/                              # Technical documentation
 │   ├── INDEX.md                       # Documentation navigation
@@ -220,12 +257,15 @@ SentinelAI/
 │   ├── CONTEXT.md                     # Product vision and decisions
 │   ├── STATUS.md                      # Build progress tracker
 │   ├── TASKS.md                       # Sprint task specifications
-│   └── BACKLOG.md                     # Future sprint backlog (all done)
+│   ├── BACKLOG.md                     # Future sprint backlog (all done)
+│   └── COMPETITIVE_ANALYSIS.md        # Market analysis
 │
 ├── OVERVIEW.md                        # Non-technical project explanation
 ├── PRD.md                             # Product Requirements Document
 ├── CLAUDE.md                          # Claude Code context file
-└── GEMINI.md                          # AI model handoff context
+├── GEMINI.md                          # AI model handoff context
+├── Dockerfile                         # Container configuration
+└── docker-compose.yml                 # Docker Compose config
 ```
 
 ---
@@ -264,26 +304,46 @@ The LLM powers each agent's reasoning — analyzing metrics, generating explanat
 
 ---
 
-## API Endpoints
+## API Endpoints (51 Total)
 
 | Method | Path | Description |
 |--------|------|------------|
 | GET | `/api/health` | System health + service status |
 | GET | `/api/queues` | Current queue metrics |
+| GET | `/api/queues/{id}/metrics` | Single queue metrics |
 | GET | `/api/alerts` | Active anomaly alerts |
 | POST | `/api/alerts/{id}/acknowledge` | Acknowledge an alert |
 | GET | `/api/agents` | AI agent status overview |
 | GET | `/api/agents/decisions` | Decision history |
 | GET | `/api/agents/negotiations` | Negotiation log |
+| GET | `/api/agents/governance` | Governance scorecard |
 | GET | `/api/agents/human` | List all human agents with proficiencies |
 | GET | `/api/agents/human/{id}` | Single human agent profile |
 | GET | `/api/agents/human/by-department/{dept_id}` | Agents ranked by department fitness |
 | POST | `/api/chat` | Send natural language query |
+| POST | `/api/chat/policy` | Create NL governance policy |
+| GET | `/api/chat/policies` | List active policies |
+| DELETE | `/api/chat/policy/{id}` | Delete a policy |
+| GET | `/api/governance/scorecard` | Governance scorecard |
+| GET | `/api/governance/audit` | Audit trail |
+| GET | `/api/governance/policies` | Policy list |
+| POST | `/api/auth/login` | OAuth login |
+| POST | `/api/auth/logout` | Logout |
+| GET | `/api/auth/verify` | Verify JWT token |
 | GET | `/api/simulation/scenarios` | List available scenarios |
+| GET | `/api/simulation/status` | Simulation state |
 | POST | `/api/simulation/start` | Start a simulation |
 | POST | `/api/simulation/stop` | Stop simulation |
 | POST | `/api/simulation/chaos` | Inject chaos event |
 | POST | `/api/simulation/whatif` | Run what-if analysis |
+| GET | `/api/reports/session` | Export session report |
+| POST | `/api/reports/email` | Email report with PDF attachment |
+| GET | `/api/metrics/history` | Metrics time-series |
+| POST | `/api/agent-chat` | Agent chat message |
+| GET | `/api/agent-chat/agents` | List agents for chat |
+| GET | `/api/agent-chat/{id}` | Get agent chat history |
+| POST | `/api/notifications/email` | Send notification email |
+| POST | `/api/teams/messages` | Teams Bot Framework endpoint |
 | POST | `/api/ws-action` | HTTP fallback for client-to-server actions |
 | GET | `/api/stream` | SSE fallback for real-time events |
 
@@ -300,7 +360,7 @@ pip install -r requirements.txt
 pytest tests/ -v
 ```
 
-All 19 tests pass. Tests cover health endpoints, simulation lifecycle, agent orchestration, chat, governance, reports, skill router, and API routes.
+20 tests total — 16 passing, 4 environment-dependent (require AWS Bedrock credentials or SMTP config). Tests cover health endpoints, simulation lifecycle, agent orchestration, chat, governance, reports, skill router, chaos injection, and API routes. Frontend compiles cleanly (`npx tsc --noEmit`).
 
 ---
 
@@ -314,7 +374,12 @@ All 19 tests pass. Tests cover health endpoints, simulation lifecycle, agent orc
 | **Cost impact quantification** | Dollar amounts ($1,240 saved), not just metrics — clear business value |
 | **Simulation-first architecture** | Demo always works, no AWS dependency — reliable under any conditions |
 | **LLM with smart fallback** | AWS Bedrock > Anthropic API > NoKeyLLM — 3-tier resilience |
+| **OAuth authentication** | Google & Microsoft login with JWT — enterprise-ready |
+| **Contact Lens sentiment** | Live customer mood per queue — real-time emotional intelligence |
+| **RAIA tracing** | Full observability with navigation counters and trace instrumentation |
 
 ---
+
+> **Status**: Early Alpha — deployed to production. All core features functional. Demo-ready.
 
 *CirrusLabs Internal Buildathon — 2026*

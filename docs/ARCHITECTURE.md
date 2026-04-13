@@ -1,5 +1,6 @@
 # SentinelAI — Technical Architecture
 > Reference manual. Read this when you need to know HOW to write the code.
+> **Status: Early Alpha — in production**
 > → See [TASKS.md](./TASKS.md) for WHAT to build.
 > → See [CONTEXT.md](./CONTEXT.md) for WHY decisions were made.
 
@@ -43,7 +44,9 @@
 │  └────────────────────────────────────────────────────┘ │
 │                                                          │
 │  REST: /api/queues  /api/alerts  /api/agents  /api/chat  │
-│        /api/simulation                                    │
+│        /api/simulation  /api/auth  /api/governance       │
+│        /api/reports  /api/teams  /api/agent-chat         │
+│        51 endpoints across 13 route files                 │
 └──────────────────────────────────────────────────────────┘
 ```
 
@@ -60,6 +63,8 @@ from app.api.websocket import manager                   # ConnectionManager
 from app.agents.orchestrator import orchestrator        # AgentOrchestrator
 from app.agents.negotiation import negotiation_protocol # NegotiationProtocol
 from app.services.agent_database import agent_database  # AgentDatabase (SQLite workforce DB)
+from app.services.teams_bot import teams_bot            # TeamsBotService
+from app.services.pdf_report import generate_pdf_report # PDF generation
 ```
 
 ---
@@ -295,7 +300,27 @@ await manager.broadcast("event:name", camel_case_dict)
 
 ---
 
-## REST API Contract
+## Authentication (OAuth + JWT)
+
+Google and Microsoft OAuth login with JWT token issuance. Routes in `backend/app/api/routes/auth.py`.
+
+```python
+# JWT token flow:
+# 1. Frontend redirects to OAuth provider (Google/Microsoft)
+# 2. Provider redirects back to AuthCallbackPage with code
+# 3. Frontend sends code to POST /api/auth/login
+# 4. Backend validates, issues JWT token
+# 5. Frontend stores token via authToken.ts
+# 6. All subsequent requests include JWT in Authorization header
+# 7. RequireAuth component gates dashboard access
+```
+
+Token management: `frontend/src/components/auth/authToken.ts`
+Auth guard: `frontend/src/components/auth/RequireAuth.tsx`
+
+---
+
+## REST API Contract (51 Endpoints)
 
 All responses use camelCase (enforced by Pydantic alias serialization).
 
@@ -309,15 +334,34 @@ All responses use camelCase (enforced by Pydantic alias serialization).
 | GET | `/api/agents` | `{ agents: AgentStatus[] }` |
 | GET | `/api/agents/decisions` | `{ decisions: AgentDecision[] }` |
 | GET | `/api/agents/negotiations` | `{ negotiations: AgentNegotiation[] }` |
-| POST | `/api/chat` | `{ message, reasoning, timestamp }` |
-| GET | `/api/simulation/scenarios` | `{ scenarios: Scenario[] }` |
-| POST | `/api/simulation/start` | `{ status, scenario_id }` |
-| POST | `/api/simulation/stop` | `{ status }` |
-| POST | `/api/simulation/chaos` | `{ status, type }` |
-| GET | `/api/simulation/status` | `{ running, scenario, tick }` |
+| GET | `/api/agents/governance` | `{ scorecard }` |
 | GET | `/api/agents/human` | `{ agents: HumanAgentProfile[] }` |
 | GET | `/api/agents/human/{id}` | `HumanAgentProfile` |
 | GET | `/api/agents/human/by-department/{dept_id}` | `{ agents: HumanAgentProfile[] }` |
+| POST | `/api/chat` | `{ message, reasoning, timestamp }` |
+| POST | `/api/chat/policy` | `{ policy }` |
+| GET | `/api/chat/policies` | `{ policies: Policy[] }` |
+| DELETE | `/api/chat/policy/{id}` | `{ status }` |
+| GET | `/api/governance/scorecard` | `{ scorecard }` |
+| GET | `/api/governance/audit` | `{ audit: AuditEntry[] }` |
+| GET | `/api/governance/policies` | `{ policies: Policy[] }` |
+| POST | `/api/auth/login` | `{ token, user }` |
+| POST | `/api/auth/logout` | `{ status }` |
+| GET | `/api/auth/verify` | `{ valid, user }` |
+| GET | `/api/simulation/scenarios` | `{ scenarios: Scenario[] }` |
+| GET | `/api/simulation/status` | `{ running, scenario, tick }` |
+| POST | `/api/simulation/start` | `{ status, scenario_id }` |
+| POST | `/api/simulation/stop` | `{ status }` |
+| POST | `/api/simulation/chaos` | `{ status, type }` |
+| POST | `/api/simulation/whatif` | `{ analysis }` |
+| GET | `/api/reports/session` | `{ report }` |
+| POST | `/api/reports/email` | `{ status }` |
+| GET | `/api/metrics/history` | `{ history: MetricsTimeSeries[] }` |
+| POST | `/api/agent-chat` | `{ message }` |
+| GET | `/api/agent-chat/agents` | `{ agents }` |
+| GET | `/api/agent-chat/{id}` | `{ history }` |
+| POST | `/api/notifications/email` | `{ status }` |
+| POST | `/api/teams/messages` | `{ status }` |
 | POST | `/api/ws-action` | Varies by event (HTTP fallback for WS actions) |
 | GET | `/api/stream` | SSE event stream (text/event-stream) |
 
@@ -461,3 +505,9 @@ Run: `cd backend && pytest tests/ -v`
 6. **simulation_mode=True always** — real AWS Connect integration is Week 4 optional. Never block on it.
 
 7. **3-tier LLM fallback** — Bedrock > Anthropic API > NoKeyLLM. Set AWS creds or ANTHROPIC_API_KEY in `.env`. Without either, chat shows config instructions.
+
+8. **OAuth tokens** — Google/Microsoft OAuth issues JWT tokens. `RequireAuth` component gates all dashboard pages. Token stored client-side via `authToken.ts`.
+
+9. **Contact Lens sentiment** — Each queue carries a `sentiment_score` field updated every tick. Frontend displays mood indicators per queue.
+
+10. **RAIA tracing** — `raia_tracer.py` instruments key operations. Nav counter polls every 2s, resets on simulation stop.
